@@ -40,6 +40,13 @@ const datasetColors: Record<Dataset, string> = {
   Other: 'bg-dataset-other',
 };
 
+const datasetInitials: Record<Dataset, string> = {
+  Sanctions: 'S',
+  PEP: 'PEP',
+  'Law Enforcement': 'LE',
+  Other: 'OT',
+};
+
 const bucketIcons: Record<MatchStatus, React.ReactNode> = {
   Unresolved: <CircleDot className="h-3.5 w-3.5" />,
   Positive: <Check className="h-3.5 w-3.5" />,
@@ -524,8 +531,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                             </div>
                           </td>
                           <td className="px-4 py-3" onClick={() => openMatch(m)}>
-                            <Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[10px] border-0`}>
-                              {m.dataset}
+                            <Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[10px] border-0`} title={m.dataset}>
+                              {datasetInitials[m.dataset]}
                             </Badge>
                           </td>
                           <td className="px-4 py-3 text-xs text-muted-foreground" onClick={() => openMatch(m)}>
@@ -633,7 +640,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                   <tr key={m.id} className="border-b">
                     <td className="px-3 py-1.5 font-medium">{m.matchedName}</td>
                     <td className="px-3 py-1.5 font-mono">{m.strength}%</td>
-                    <td className="px-3 py-1.5"><Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[9px] border-0`}>{m.dataset}</Badge></td>
+                    <td className="px-3 py-1.5"><Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[9px] border-0`} title={m.dataset}>{datasetInitials[m.dataset]}</Badge></td>
                     <td className="px-3 py-1.5 text-muted-foreground">{m.status}</td>
                   </tr>
                 ))}
