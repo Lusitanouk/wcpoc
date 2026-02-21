@@ -1,4 +1,4 @@
-import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult } from '@/types';
+import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult, CaseNote } from '@/types';
 import { computePriorityScore, priorityLevel } from '@/lib/priority';
 
 export const groups: Group[] = [
@@ -30,6 +30,27 @@ const countries = ['United States', 'United Kingdom', 'Russia', 'China', 'German
 const reviewReasons = ['Profile updated', 'New alias added', 'Status change', 'New source added', 'Category reclassified', 'Sanctions list updated'];
 const keywords = ['Terrorism', 'Money Laundering', 'Fraud', 'Corruption', 'Drug Trafficking', 'Arms Dealing', 'Tax Evasion', 'Cybercrime'];
 const changeFields = ['Category', 'Nationality', 'Secondary ID', 'Alias', 'PEP Status', 'Sanctions List'];
+const analysts = ['John Smith', 'Jane Doe', 'Alex Turner', 'Maria Lopez', 'Sam Wilson', 'Unassigned'];
+const noteTexts = [
+  'Initial screening completed. No immediate red flags.',
+  'Escalated for supervisor review due to high match strength.',
+  'Client provided additional documentation — re-screening advised.',
+  'OGS alert triggered — new sanctions list entry detected.',
+  'Case reassigned from previous analyst.',
+  'Reviewed media articles — no adverse findings.',
+  'Passport verification pending — document quality low.',
+  'Moved to EDD group for enhanced monitoring.',
+];
+
+function generateNotes(caseId: string): CaseNote[] {
+  const count = randInt(0, 4);
+  return Array.from({ length: count }, (_, i) => ({
+    id: `${caseId}-note-${i}`,
+    author: rand(analysts.filter(a => a !== 'Unassigned')),
+    text: rand(noteTexts),
+    createdAt: randDate('2024-06-01', '2025-02-15'),
+  }));
+}
 
 function rand<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 function randInt(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min; }
@@ -161,6 +182,9 @@ export const cases: Case[] = Array.from({ length: 30 }, (_, i) => {
   const reviewRequiredCount = matches.filter(m => m.reviewRequired).length;
   const hasMandatory = reviewRequiredCount > 0 || unresolvedCount > 2;
 
+  const idTypes = ['Passport', 'National ID', 'Driver License', 'Tax ID'];
+  const assignee = rand(analysts);
+
   return {
     id: caseId,
     name: caseName,
@@ -183,6 +207,20 @@ export const cases: Case[] = Array.from({ length: 30 }, (_, i) => {
     possibleCount: matches.filter(m => m.status === 'Possible').length,
     falseCount: matches.filter(m => m.status === 'False').length,
     unknownCount: matches.filter(m => m.status === 'Unknown').length,
+    assignee,
+    status: 'Active' as const,
+    screeningData: {
+      dob: entityType === 'Individual' ? randDate('1950-01-01', '2000-12-31') : undefined,
+      gender: entityType === 'Individual' ? rand(['Male', 'Female']) : undefined,
+      nationality: entityType === 'Individual' ? rand(nationalities) : undefined,
+      country: rand(countries),
+      idType: Math.random() > 0.3 ? rand(idTypes) : undefined,
+      idNumber: Math.random() > 0.3 ? `${rand(['P', 'N', 'D', 'T'])}${randInt(100000000, 999999999)}` : undefined,
+      secondaryIdType: Math.random() > 0.6 ? rand(idTypes) : undefined,
+      secondaryIdNumber: Math.random() > 0.6 ? `${rand(['P', 'N', 'D', 'T'])}${randInt(100000000, 999999999)}` : undefined,
+      customFields: Math.random() > 0.5 ? { 'Internal Ref': `REF-${randInt(1000, 9999)}`, 'Source System': rand(['CRM', 'Onboarding', 'KYC Portal']) } : undefined,
+    },
+    notes: generateNotes(caseId),
   };
 });
 

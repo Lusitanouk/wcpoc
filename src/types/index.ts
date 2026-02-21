@@ -23,6 +23,25 @@ export interface ChangeLogEntry {
   changedAt: string;
 }
 
+export interface CaseScreeningData {
+  dob?: string;
+  gender?: string;
+  nationality?: string;
+  country?: string;
+  idType?: string;
+  idNumber?: string;
+  secondaryIdType?: string;
+  secondaryIdNumber?: string;
+  customFields?: Record<string, string>;
+}
+
+export interface CaseNote {
+  id: string;
+  author: string;
+  text: string;
+  createdAt: string;
+}
+
 export interface Case {
   id: string;
   name: string;
@@ -41,6 +60,10 @@ export interface Case {
   possibleCount: number;
   falseCount: number;
   unknownCount: number;
+  assignee: string;
+  status: 'Active' | 'Archived' | 'Deleted';
+  screeningData: CaseScreeningData;
+  notes: CaseNote[];
 }
 
 export interface MatchIdentifiers {
