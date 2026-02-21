@@ -631,16 +631,16 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             </table>
           </div>
 
-          {/* Row 1: Status > Risk Level > Reason */}
-          <div className="flex gap-3 items-start">
+          {/* Resolution: Status | Risk Level | Reason + Comment */}
+          <div className="flex gap-4 items-start">
             <div className="space-y-1.5 shrink-0">
               <Label className="text-xs">Status</Label>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-col gap-1">
                 {(['Positive', 'Possible', 'False', 'Unknown', 'Unresolved'] as MatchStatus[]).map(s => (
                   <button
                     key={s}
                     onClick={() => setBulkStatus(s)}
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border ${
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
                       bulkStatus === s
                         ? 'bg-primary text-primary-foreground border-primary'
                         : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
@@ -653,12 +653,12 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             </div>
             <div className="space-y-1.5 shrink-0">
               <Label className="text-xs">Risk Level</Label>
-              <div className="flex flex-wrap gap-1">
+              <div className="flex flex-col gap-1">
                 {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
                   <button
                     key={r}
                     onClick={() => setBulkRisk(r)}
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border ${
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
                       bulkRisk === r
                         ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
                           : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
@@ -671,28 +671,28 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                 ))}
               </div>
             </div>
-            <div className="space-y-1.5 flex-1 min-w-0">
-              <Label className="text-xs">Reason (required)</Label>
-              <Textarea
-                value={bulkReason}
-                onChange={e => setBulkReason(e.target.value)}
-                rows={2}
-                placeholder="Reason for bulk resolution..."
-                className="text-xs resize-none"
-              />
+            <div className="flex-1 min-w-0 space-y-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Reason (required)</Label>
+                <Textarea
+                  value={bulkReason}
+                  onChange={e => setBulkReason(e.target.value)}
+                  rows={2}
+                  placeholder="Reason for bulk resolution..."
+                  className="text-xs resize-none"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Comment (optional)</Label>
+                <Textarea
+                  value={bulkComment}
+                  onChange={e => setBulkComment(e.target.value)}
+                  rows={2}
+                  placeholder="Additional comment..."
+                  className="text-xs resize-none"
+                />
+              </div>
             </div>
-          </div>
-
-          {/* Row 2: Comment */}
-          <div className="space-y-1.5">
-            <Label className="text-xs">Comment (optional)</Label>
-            <Textarea
-              value={bulkComment}
-              onChange={e => setBulkComment(e.target.value)}
-              rows={2}
-              placeholder="Additional comment..."
-              className="text-xs resize-none"
-            />
           </div>
 
           <DialogFooter>
