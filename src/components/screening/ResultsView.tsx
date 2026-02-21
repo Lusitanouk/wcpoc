@@ -248,29 +248,41 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           return (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 border-t bg-muted/30 text-xs">
               <span className="font-medium text-foreground">{bucketTotal} {activeBucket.toLowerCase()}</span>
-              <span className="text-muted-foreground">·</span>
               {/* Match type / dataset breakdown */}
-              <span className="text-muted-foreground">
-                {Object.entries(datasetCounts).map(([ds, count], i) => (
-                  <span key={ds}>{i > 0 ? ', ' : ''}<span className="text-foreground font-medium">{count}</span> {ds}</span>
-                ))}
-              </span>
-              <span className="text-muted-foreground">·</span>
-              {/* Risk level breakdown */}
-              <span className="text-muted-foreground">
-                {Object.entries(riskCounts).map(([level, count], i) => (
-                  <span key={level}>
-                    {i > 0 ? ', ' : ''}
-                    <span className={`font-medium ${level === 'High' ? 'text-destructive' : level === 'Medium' ? 'text-amber-600' : 'text-foreground'}`}>{count}</span>
-                    {' '}{level} risk
+              {Object.keys(datasetCounts).length > 0 && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">
+                    {Object.entries(datasetCounts).map(([ds, count], i) => (
+                      <span key={ds}>{i > 0 ? ', ' : ''}<span className="text-foreground font-medium">{count}</span> {ds}</span>
+                    ))}
                   </span>
-                ))}
-              </span>
-              <span className="text-muted-foreground">·</span>
-              {/* Review required */}
-              <span className={`font-medium flex items-center gap-1 ${bucketReview > 0 ? 'text-status-possible' : 'text-muted-foreground'}`}>
-                <AlertTriangle className="h-3 w-3" /> {bucketReview} review required
-              </span>
+                </>
+              )}
+              {/* Risk level breakdown - only show non-None levels */}
+              {Object.entries(riskCounts).filter(([level]) => level !== 'None').length > 0 && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">
+                    {Object.entries(riskCounts).filter(([level]) => level !== 'None').map(([level, count], i) => (
+                      <span key={level}>
+                        {i > 0 ? ', ' : ''}
+                        <span className={`font-medium ${level === 'High' ? 'text-destructive' : level === 'Medium' ? 'text-amber-600' : 'text-foreground'}`}>{count}</span>
+                        {' '}{level} risk
+                      </span>
+                    ))}
+                  </span>
+                </>
+              )}
+              {/* Review required - only show if > 0 */}
+              {bucketReview > 0 && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-status-possible font-medium flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> {bucketReview} review required
+                  </span>
+                </>
+              )}
             </div>
           );
         })()}
