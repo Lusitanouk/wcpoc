@@ -4,7 +4,7 @@ import {
   ArrowLeft, Shield, Newspaper, CreditCard, User, MapPin, Calendar, Hash,
   Edit, UserPlus, ArrowRightLeft, Archive, Trash2, RefreshCw, ToggleRight,
   ChevronDown, MessageSquare, Send, Clock, FileText, Activity, AlertTriangle,
-  ChevronUp, LayoutDashboard, ChevronRight, ChevronLeft, Eye, Info
+  ChevronUp, LayoutDashboard, ChevronRight, ChevronLeft, Eye, Info, Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,6 +25,7 @@ import { MediaCheckResultsView } from '@/components/screening/MediaCheckResultsV
 import { PassportCheckResultsView } from '@/components/screening/PassportCheckResultsView';
 import type { CheckType, MediaCheckResult, PassportCheckResult, CaseAuditEvent, AuditEventType, AuditEventDetails, RiskLevel } from '@/types';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
+import { exportCasePdf } from '@/lib/export';
 
 // ─── Constants ───────────────────────────────────────────────
 const checkTypeIcons: Record<CheckType, React.ReactNode> = {
@@ -448,6 +449,9 @@ export default function CaseDetailPage() {
         </DropdownMenu>
         <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => setAuditDrawerOpen(true)}>
           <Activity className="h-3.5 w-3.5" /> Audit
+        </Button>
+        <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => exportCasePdf(caseData, matches)}>
+          <Download className="h-3.5 w-3.5" /> Export
         </Button>
         </div>
       </div>

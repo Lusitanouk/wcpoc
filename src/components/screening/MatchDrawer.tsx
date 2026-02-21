@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Check, HelpCircle, XCircle, CircleOff, Clock, User, History, ChevronsUpDown, Maximize2, Minimize2, ExternalLink, FileText, Database } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, HelpCircle, XCircle, CircleOff, Clock, User, History, ChevronsUpDown, Maximize2, Minimize2, ExternalLink, FileText, Database, Download } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { priorityColor } from '@/lib/priority';
 import type { Match, MatchStatus, RiskLevel, CaseScreeningData } from '@/types';
 import { useTranslation } from 'react-i18next';
+import { exportMatchPdf } from '@/lib/export';
 
 const fieldResultIcon = (result: string) => {
   switch (result) {
@@ -80,6 +81,14 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
           <h2 className="text-base font-semibold truncate">{match.matchedName}</h2>
           <div className="flex items-center gap-1 shrink-0">
             <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => exportMatchPdf(match, caseName)}>
+                    <Download className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Export match PDF</TooltipContent>
+              </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => setIsFullscreen(!isFullscreen)}>
