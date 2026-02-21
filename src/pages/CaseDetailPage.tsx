@@ -21,7 +21,7 @@ import { generatePassportCheckResult } from '@/data/passport-mock-data';
 import { ResultsView } from '@/components/screening/ResultsView';
 import { MediaCheckResultsView } from '@/components/screening/MediaCheckResultsView';
 import { PassportCheckResultsView } from '@/components/screening/PassportCheckResultsView';
-import type { CheckType, MediaCheckResult, PassportCheckResult, CaseAuditEvent, AuditEventType, AuditEventDetails } from '@/types';
+import type { CheckType, MediaCheckResult, PassportCheckResult, CaseAuditEvent, AuditEventType, AuditEventDetails, RiskLevel } from '@/types';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 // ─── Constants ───────────────────────────────────────────────
@@ -287,6 +287,9 @@ export default function CaseDetailPage() {
   const [rescreenDialog, setRescreenDialog] = useState(false);
   const [archiveDialog, setArchiveDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
+  const [ratingDialog, setRatingDialog] = useState(false);
+  const [newRating, setNewRating] = useState<RiskLevel>(caseData?.rating || 'Low');
+  const [ratingHistory, setRatingHistory] = useState<{ from: string; to: string; comment: string; author: string; date: string }[]>([]);
   const [actionComment, setActionComment] = useState('');
   const [localAuditEvents, setLocalAuditEvents] = useState<CaseAuditEvent[]>([]);
 
@@ -440,27 +443,44 @@ export default function CaseDetailPage() {
           <div className="space-y-4">
             {/* Combined risk & resolution strip */}
             <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
-              <Card className="p-2.5 text-center col-span-1">
+              {/* Rating card with edit action */}
+              <Card className="p-2.5 text-center col-span-1 relative group">
                 <span className="text-[10px] text-muted-foreground block">Rating</span>
                 <div className={`text-base font-bold ${
                   caseData.rating === 'High' ? 'text-destructive'
                   : caseData.rating === 'Medium' ? 'text-amber-600'
                   : 'text-foreground'
                 }`}>{caseData.rating}</div>
+                <button
+                  onClick={() => { setActionComment(''); setRatingDialog(true); }}
+                  className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
+                  title="Edit rating"
+                >
+                  <Edit className="h-3 w-3 text-muted-foreground" />
+                </button>
               </Card>
-              <Card className="p-2.5 text-center col-span-1">
+              {/* Matches card - click through to World-Check */}
+              <Card
+                className="p-2.5 text-center col-span-1 cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => { setActiveTab('World-Check'); }}
+              >
                 <span className="text-[10px] text-muted-foreground block">Matches</span>
                 <div className="text-base font-bold">{wcMatches}</div>
                 {highRiskMatches > 0 && <span className="text-[9px] text-destructive">{highRiskMatches} high</span>}
               </Card>
+              {/* Resolution bucket cards - click through to WC tab with bucket */}
               {([
-                { label: 'Unres.', count: caseData.unresolvedCount, cls: 'status-unresolved' },
-                { label: 'Pos.', count: caseData.positiveCount, cls: 'status-positive' },
-                { label: 'Poss.', count: caseData.possibleCount, cls: 'status-possible' },
-                { label: 'False', count: caseData.falseCount, cls: 'status-false' },
-                { label: 'Unk.', count: caseData.unknownCount, cls: 'status-unknown' },
+                { label: 'Unres.', bucket: 'unresolved', count: caseData.unresolvedCount, cls: 'status-unresolved' },
+                { label: 'Pos.', bucket: 'positive', count: caseData.positiveCount, cls: 'status-positive' },
+                { label: 'Poss.', bucket: 'possible', count: caseData.possibleCount, cls: 'status-possible' },
+                { label: 'False', bucket: 'false', count: caseData.falseCount, cls: 'status-false' },
+                { label: 'Unk.', bucket: 'unknown', count: caseData.unknownCount, cls: 'status-unknown' },
               ] as const).map(b => (
-                <Card key={b.label} className="p-2.5 text-center col-span-1">
+                <Card
+                  key={b.label}
+                  className="p-2.5 text-center col-span-1 cursor-pointer hover:bg-muted/50 transition-colors"
+                  onClick={() => setSearchParams({ tab: 'World-Check', bucket: b.bucket }, { replace: true })}
+                >
                   <span className="text-[10px] text-muted-foreground block">{b.label}</span>
                   <div className={`text-base font-bold ${b.cls}`}>{b.count}</div>
                 </Card>
@@ -630,6 +650,93 @@ export default function CaseDetailPage() {
           </div>
           <div className="mt-2"><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Describe what was changed..." className="min-h-[60px] text-xs resize-none" /></div>
           <DialogFooter><Button variant="outline" size="sm" onClick={() => setEditDialog(false)}>Cancel</Button><Button size="sm" onClick={() => handleActionWithComment('edit', 'Case details updated', () => setEditDialog(false))}>Save Changes</Button></DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Rating Edit Dialog */}
+      <Dialog open={ratingDialog} onOpenChange={(open) => { setRatingDialog(open); if (open) setNewRating(caseData.rating); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Edit Case Rating</DialogTitle>
+            <DialogDescription>Change the risk rating for {caseData.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">New Rating</label>
+              <div className="flex gap-2">
+                {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setNewRating(r)}
+                    className={`flex-1 px-3 py-2 rounded-md text-xs font-medium border transition-all ${
+                      newRating === r
+                        ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
+                          : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
+                          : 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted text-muted-foreground border-border hover:bg-muted/80'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (required)</label>
+              <Textarea
+                value={actionComment}
+                onChange={e => setActionComment(e.target.value)}
+                placeholder="Reason for rating change..."
+                className="min-h-[60px] text-xs resize-none"
+              />
+            </div>
+
+            {/* Historical rating changes */}
+            {ratingHistory.length > 0 && (
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Rating History</label>
+                <div className="max-h-[150px] overflow-y-auto space-y-1.5">
+                  {ratingHistory.map((h, i) => (
+                    <div key={i} className="flex items-start gap-2 p-2 rounded-md bg-muted/50 text-[11px]">
+                      <Clock className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="line-through text-muted-foreground">{h.from}</span>
+                          <span>→</span>
+                          <span className={`font-medium ${h.to === 'High' ? 'text-destructive' : h.to === 'Medium' ? 'text-amber-600' : 'text-foreground'}`}>{h.to}</span>
+                          <span className="text-muted-foreground ml-auto shrink-0">{h.date}</span>
+                        </div>
+                        <div className="text-muted-foreground mt-0.5">
+                          <span className="font-medium text-foreground">{h.author}</span>: {h.comment}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setRatingDialog(false)}>Cancel</Button>
+            <Button
+              size="sm"
+              disabled={!actionComment.trim() || newRating === caseData.rating}
+              onClick={() => {
+                setRatingHistory(prev => [{
+                  from: caseData.rating,
+                  to: newRating,
+                  comment: actionComment,
+                  author: 'Current User',
+                  date: new Date().toISOString().split('T')[0],
+                }, ...prev]);
+                addAuditEvent('edit', `Rating changed from ${caseData.rating} to ${newRating}`, actionComment);
+                setActionComment('');
+                setRatingDialog(false);
+              }}
+            >
+              Update Rating
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
