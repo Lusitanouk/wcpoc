@@ -211,24 +211,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
 
       {/* Disposition Summary & Bucket Tabs */}
       <div className="mb-4 rounded-lg border bg-card">
-        {/* Compact stats row */}
-        <div className="flex items-center gap-4 px-4 py-2 border-b bg-muted/30 text-xs">
-          <span className="font-medium text-foreground">{total} matches</span>
-          <span className="text-muted-foreground">·</span>
-          <span className="text-status-unresolved font-medium">{unresolved} unresolved</span>
-          {reviewReq > 0 && (
-            <>
-              <span className="text-muted-foreground">·</span>
-              <span className="text-status-possible font-medium flex items-center gap-1">
-                <AlertTriangle className="h-3 w-3" /> {reviewReq} pending review
-              </span>
-            </>
-          )}
-          <span className="text-muted-foreground">·</span>
-          <span className="text-muted-foreground">
-            {bucketCounts.Positive} true · {bucketCounts.Possible} possible · {bucketCounts.False} false · {bucketCounts.Unknown} unknown
-          </span>
-        </div>
         {/* Bucket tabs */}
         <div className="flex gap-1 p-1">
           {BUCKETS.map(bucket => (
@@ -252,6 +234,38 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             </button>
           ))}
         </div>
+        {/* Contextual stats row for active bucket */}
+        {(() => {
+          const bucketMatches = matches.filter(m => m.status === activeBucket);
+          const bucketTotal = bucketMatches.length;
+          const bucketReview = bucketMatches.filter(m => m.reviewRequired).length;
+          const avgStrength = bucketTotal > 0 ? Math.round(bucketMatches.reduce((s, m) => s + m.strength, 0) / bucketTotal) : 0;
+          const highRisk = bucketMatches.filter(m => m.riskLevel === 'High').length;
+          const datasets = new Set(bucketMatches.map(m => m.dataset));
+          return (
+            <div className="flex items-center gap-4 px-4 py-2 border-t bg-muted/30 text-xs">
+              <span className="font-medium text-foreground">{bucketTotal} {activeBucket.toLowerCase()}</span>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-muted-foreground">avg strength <span className="text-foreground font-medium">{avgStrength}%</span></span>
+              {highRisk > 0 && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-destructive font-medium">{highRisk} high risk</span>
+                </>
+              )}
+              {bucketReview > 0 && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-status-possible font-medium flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> {bucketReview} pending review
+                  </span>
+                </>
+              )}
+              <span className="text-muted-foreground">·</span>
+              <span className="text-muted-foreground">{datasets.size} dataset{datasets.size !== 1 ? 's' : ''}: {Array.from(datasets).join(', ')}</span>
+            </div>
+          );
+        })()}
       </div>
 
       {/* Bulk Action Bar + Filters */}
