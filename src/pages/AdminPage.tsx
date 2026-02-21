@@ -12,7 +12,7 @@ const sections = [
 export default function AdminPage() {
   return (
     <div>
-      <h1 className="text-xl font-bold mb-6">Administration</h1>
+      <h1 className="text-xl font-bold flex items-center gap-2 mb-6"><Settings className="h-5 w-5 text-primary" /> Administration</h1>
       <div className="grid grid-cols-2 gap-4 max-w-3xl">
         {sections.map(s => (
           <Card key={s.title} className="opacity-75">

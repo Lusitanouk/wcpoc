@@ -191,7 +191,7 @@ export default function ReportsPage() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-xl font-bold">Reports</h1>
+          <h1 className="text-xl font-bold flex items-center gap-2"><FileText className="h-5 w-5 text-primary" /> Reports</h1>
           <p className="text-sm text-muted-foreground mt-0.5">Generate, schedule, and export compliance reports</p>
         </div>
         <Button size="sm" className="gap-1.5" onClick={() => { resetBuilder(); setBuilderOpen(true); }}>

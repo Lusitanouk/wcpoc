@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search, Archive, Users, ArrowRightLeft, Download, ToggleRight, AlertTriangle,
   Filter, Settings2, Shield, Newspaper, CreditCard, Save, Trash2, RefreshCw,
-  UserPlus, X, SlidersHorizontal
+  UserPlus, X, SlidersHorizontal, Briefcase
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -185,7 +185,7 @@ export default function CasesPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold">Case Manager</h1>
+        <h1 className="text-xl font-bold flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Case Manager</h1>
         <div className="flex items-center gap-2">
           <Badge variant="secondary" className="text-xs">{filtered.length} / {activeCases.length} cases</Badge>
           {role === 'Supervisor' && <Badge variant="secondary" className="text-xs gap-1"><Users className="h-3 w-3" /> Team Queue</Badge>}
