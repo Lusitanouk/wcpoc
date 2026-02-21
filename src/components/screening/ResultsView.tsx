@@ -4,7 +4,6 @@ import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XC
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
@@ -16,7 +15,7 @@ interface ResultsViewProps {
   matches: Match[];
   caseName: string;
   caseId: string;
-  checkTypes: CheckType[];
+  checkTypes?: CheckType[];
 }
 
 const statusColors: Record<MatchStatus, string> = {
@@ -59,11 +58,10 @@ function strengthColor(s: number) {
 
 const BUCKETS: MatchStatus[] = ['Unresolved', 'Positive', 'Possible', 'False', 'Unknown'];
 
-export function ResultsView({ matches, caseName, caseId, checkTypes }: ResultsViewProps) {
+export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<string>(checkTypes[0] || 'World-Check');
   const [showFilters, setShowFilters] = useState(false);
   const [minStrength, setMinStrength] = useState(0);
   const [filterDataset, setFilterDataset] = useState<string>('all');
@@ -104,7 +102,6 @@ export function ResultsView({ matches, caseName, caseId, checkTypes }: ResultsVi
   const filteredMatches = useMemo(() => {
     return matches
       .filter(m => {
-        if (m.checkType !== activeTab) return false;
         if (m.status !== activeBucket) return false;
         if (m.strength < minStrength) return false;
         if (filterDataset !== 'all' && m.dataset !== filterDataset) return false;
@@ -113,7 +110,7 @@ export function ResultsView({ matches, caseName, caseId, checkTypes }: ResultsVi
         return true;
       })
       .sort((a, b) => b.priorityScore - a.priorityScore);
-  }, [matches, activeTab, activeBucket, minStrength, filterDataset, filterPriority]);
+  }, [matches, activeBucket, minStrength, filterDataset, filterPriority]);
 
   const total = matches.length;
   const unresolved = bucketCounts.Unresolved;
@@ -181,204 +178,194 @@ export function ResultsView({ matches, caseName, caseId, checkTypes }: ResultsVi
         ))}
       </div>
 
-      {/* Tabs */}
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex items-center justify-between mb-4">
-          <TabsList>
-            {checkTypes.map(ct => (
-              <TabsTrigger key={ct} value={ct}>{ct}</TabsTrigger>
-            ))}
-          </TabsList>
-          <Button
-            variant={showFilters ? 'secondary' : 'outline'}
-            size="sm"
-            onClick={() => setShowFilters(!showFilters)}
-            className="gap-1"
-          >
-            <Filter className="h-3.5 w-3.5" />
-            Filters
-            {(minStrength > 0 || filterDataset !== 'all' || filterPriority !== 'all') && (
-              <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">!</Badge>
-            )}
-          </Button>
-        </div>
+      {/* Filters */}
+      <div className="flex items-center justify-end mb-4">
+        <Button
+          variant={showFilters ? 'secondary' : 'outline'}
+          size="sm"
+          onClick={() => setShowFilters(!showFilters)}
+          className="gap-1"
+        >
+          <Filter className="h-3.5 w-3.5" />
+          Filters
+          {(minStrength > 0 || filterDataset !== 'all' || filterPriority !== 'all') && (
+            <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">!</Badge>
+          )}
+        </Button>
+      </div>
 
-        {/* Filters Panel */}
-        {showFilters && (
-          <Card className="mb-4 animate-fade-in">
-            <CardContent className="pt-4 pb-4">
-              <div className="grid grid-cols-4 gap-4 items-end">
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">Min Match Strength</label>
-                  <div className="flex items-center gap-2">
-                    <Slider
-                      value={[minStrength]}
-                      onValueChange={v => setMinStrength(v[0])}
-                      max={100}
-                      step={5}
-                      className="flex-1"
-                    />
-                    <span className="text-xs font-mono w-8">{minStrength}%</span>
-                  </div>
+      {/* Filters Panel */}
+      {showFilters && (
+        <Card className="mb-4 animate-fade-in">
+          <CardContent className="pt-4 pb-4">
+            <div className="grid grid-cols-4 gap-4 items-end">
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Min Match Strength</label>
+                <div className="flex items-center gap-2">
+                  <Slider
+                    value={[minStrength]}
+                    onValueChange={v => setMinStrength(v[0])}
+                    max={100}
+                    step={5}
+                    className="flex-1"
+                  />
+                  <span className="text-xs font-mono w-8">{minStrength}%</span>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">Dataset</label>
-                  <Select value={filterDataset} onValueChange={setFilterDataset}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Datasets</SelectItem>
-                      <SelectItem value="Sanctions">Sanctions</SelectItem>
-                      <SelectItem value="PEP">PEP</SelectItem>
-                      <SelectItem value="Law Enforcement">Law Enforcement</SelectItem>
-                      <SelectItem value="Other">Other</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground">Priority</label>
-                  <Select value={filterPriority} onValueChange={setFilterPriority}>
-                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Priorities</SelectItem>
-                      <SelectItem value="High">High Priority Only</SelectItem>
-                      <SelectItem value="sanctions-pep">Sanctions/PEP Only</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => { setMinStrength(0); setFilterDataset('all'); setFilterPriority('all'); }}
-                  className="gap-1"
-                >
-                  <X className="h-3 w-3" /> Clear
-                </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Dataset</label>
+                <Select value={filterDataset} onValueChange={setFilterDataset}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Datasets</SelectItem>
+                    <SelectItem value="Sanctions">Sanctions</SelectItem>
+                    <SelectItem value="PEP">PEP</SelectItem>
+                    <SelectItem value="Law Enforcement">Law Enforcement</SelectItem>
+                    <SelectItem value="Other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <label className="text-xs font-medium text-muted-foreground">Priority</label>
+                <Select value={filterPriority} onValueChange={setFilterPriority}>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Priorities</SelectItem>
+                    <SelectItem value="High">High Priority Only</SelectItem>
+                    <SelectItem value="sanctions-pep">Sanctions/PEP Only</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => { setMinStrength(0); setFilterDataset('all'); setFilterPriority('all'); }}
+                className="gap-1"
+              >
+                <X className="h-3 w-3" /> Clear
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
-        {checkTypes.map(ct => (
-          <TabsContent key={ct} value={ct}>
-            <Card>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b bg-muted/50">
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Matched Name / Alias</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">Priority</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground w-32">Strength</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Dataset</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Key Identifiers</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground w-16"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredMatches.length === 0 ? (
-                      <tr>
-                        <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
-                          No matches in this bucket for the current filters.
+      {/* Matches Table */}
+      <Card>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Matched Name / Alias</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">Priority</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-32">Strength</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Dataset</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Key Identifiers</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-16"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredMatches.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                    No matches in this bucket for the current filters.
+                  </td>
+                </tr>
+              ) : (
+                filteredMatches.map(m => (
+                  <HoverCard key={m.id} openDelay={300} closeDelay={100}>
+                    <HoverCardTrigger asChild>
+                      <tr
+                        onClick={() => openMatch(m)}
+                        className={`border-b cursor-pointer transition-colors hover:bg-muted/30 ${
+                          m.reviewRequired ? 'bg-status-possible/5' : ''
+                        }`}
+                        tabIndex={0}
+                        onKeyDown={e => e.key === 'Enter' && openMatch(m)}
+                      >
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{m.matchedName}</span>
+                            {m.updated && (
+                              <Badge variant="secondary" className="text-[10px] bg-status-possible/15 text-status-possible border-0">
+                                Updated
+                              </Badge>
+                            )}
+                            {m.reviewRequired && (
+                              <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />
+                            )}
+                          </div>
+                          {m.aliases.length > 0 && (
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                              aka: {m.aliases.slice(0, 2).join(', ')}
+                            </p>
+                          )}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>
+                            {m.priorityLevel}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2">
+                            <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                              <div
+                                className={`h-full rounded-full ${strengthColor(m.strength)}`}
+                                style={{ width: `${m.strength}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-mono">{m.strength}%</span>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[10px] border-0`}>
+                            {m.dataset}
+                          </Badge>
+                        </td>
+                        <td className="px-4 py-3 text-xs text-muted-foreground">
+                          {[m.identifiers.nationality, m.identifiers.dob, m.identifiers.gender]
+                            .filter(Boolean)
+                            .join(' · ') || '—'}
+                        </td>
+                        <td className="px-4 py-3">
+                          <Eye className="h-4 w-4 text-muted-foreground" />
                         </td>
                       </tr>
-                    ) : (
-                      filteredMatches.map(m => (
-                        <HoverCard key={m.id} openDelay={300} closeDelay={100}>
-                          <HoverCardTrigger asChild>
-                            <tr
-                              onClick={() => openMatch(m)}
-                              className={`border-b cursor-pointer transition-colors hover:bg-muted/30 ${
-                                m.reviewRequired ? 'bg-status-possible/5' : ''
-                              }`}
-                              tabIndex={0}
-                              onKeyDown={e => e.key === 'Enter' && openMatch(m)}
-                            >
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <span className="font-medium">{m.matchedName}</span>
-                                  {m.updated && (
-                                    <Badge variant="secondary" className="text-[10px] bg-status-possible/15 text-status-possible border-0">
-                                      Updated
-                                    </Badge>
-                                  )}
-                                  {m.reviewRequired && (
-                                    <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />
-                                  )}
-                                </div>
-                                {m.aliases.length > 0 && (
-                                  <p className="text-xs text-muted-foreground mt-0.5">
-                                    aka: {m.aliases.slice(0, 2).join(', ')}
-                                  </p>
-                                )}
-                              </td>
-                              <td className="px-4 py-3">
-                                <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>
-                                  {m.priorityLevel}
-                                </Badge>
-                              </td>
-                              <td className="px-4 py-3">
-                                <div className="flex items-center gap-2">
-                                  <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                                    <div
-                                      className={`h-full rounded-full ${strengthColor(m.strength)}`}
-                                      style={{ width: `${m.strength}%` }}
-                                    />
-                                  </div>
-                                  <span className="text-xs font-mono">{m.strength}%</span>
-                                </div>
-                              </td>
-                              <td className="px-4 py-3">
-                                <Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[10px] border-0`}>
-                                  {m.dataset}
-                                </Badge>
-                              </td>
-                              <td className="px-4 py-3 text-xs text-muted-foreground">
-                                {[m.identifiers.nationality, m.identifiers.dob, m.identifiers.gender]
-                                  .filter(Boolean)
-                                  .join(' · ') || '—'}
-                              </td>
-                              <td className="px-4 py-3">
-                                <Eye className="h-4 w-4 text-muted-foreground" />
-                              </td>
-                            </tr>
-                          </HoverCardTrigger>
-                          <HoverCardContent side="left" className="w-72 p-3">
-                            <p className="text-xs font-semibold mb-2">Why it matched</p>
-                            <ul className="space-y-1 mb-2">
-                              {m.whyMatched.map((wf, i) => (
-                                <li key={i} className="flex items-center gap-1.5 text-xs">
-                                  {fieldResultIcon(wf.result)}
-                                  <span className="text-muted-foreground">{wf.field}:</span>
-                                  <span>{wf.detail}</span>
-                                </li>
-                              ))}
-                            </ul>
-                            <p className="text-[10px] text-muted-foreground italic">{m.matchStrengthExplanation}</p>
-                            <div className="flex flex-wrap gap-1 mt-2">
-                              {m.whyMatched.map((wf, i) => (
-                                <Badge key={i} variant="secondary" className="text-[10px]">{wf.field}</Badge>
-                              ))}
-                            </div>
-                            {m.reviewRequired && m.changeLog.length > 0 && (
-                              <div className="mt-3 pt-2 border-t">
-                                <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
-                                {m.changeLog.slice(0, 2).map((cl, i) => (
-                                  <p key={i} className="text-[10px] text-muted-foreground">
-                                    {cl.field}: {cl.from} → {cl.to}
-                                  </p>
-                                ))}
-                              </div>
-                            )}
-                          </HoverCardContent>
-                        </HoverCard>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </Card>
-          </TabsContent>
-        ))}
-      </Tabs>
+                    </HoverCardTrigger>
+                    <HoverCardContent side="left" className="w-72 p-3">
+                      <p className="text-xs font-semibold mb-2">Why it matched</p>
+                      <ul className="space-y-1 mb-2">
+                        {m.whyMatched.map((wf, i) => (
+                          <li key={i} className="flex items-center gap-1.5 text-xs">
+                            {fieldResultIcon(wf.result)}
+                            <span className="text-muted-foreground">{wf.field}:</span>
+                            <span>{wf.detail}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-[10px] text-muted-foreground italic">{m.matchStrengthExplanation}</p>
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {m.whyMatched.map((wf, i) => (
+                          <Badge key={i} variant="secondary" className="text-[10px]">{wf.field}</Badge>
+                        ))}
+                      </div>
+                      {m.reviewRequired && m.changeLog.length > 0 && (
+                        <div className="mt-3 pt-2 border-t">
+                          <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
+                          {m.changeLog.slice(0, 2).map((cl, i) => (
+                            <p key={i} className="text-[10px] text-muted-foreground">
+                              {cl.field}: {cl.from} → {cl.to}
+                            </p>
+                          ))}
+                        </div>
+                      )}
+                    </HoverCardContent>
+                  </HoverCard>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </Card>
 
       {/* Match Drawer */}
       <MatchDrawer

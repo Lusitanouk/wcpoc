@@ -81,13 +81,14 @@ function generateChangeLog(isReviewReq: boolean): ChangeLogEntry[] {
   }));
 }
 
+// World-Check matches only — Media Check and Passport Check have their own result models
 function generateMatches(caseId: string, count: number): Match[] {
   return Array.from({ length: count }, (_, i) => {
     const isUpdated = Math.random() > 0.7;
     const isReviewReq = isUpdated && Math.random() > 0.4;
     const status: MatchStatus = isReviewReq ? 'Unresolved' : rand(statuses);
     const dataset = rand(datasets);
-    const ct = rand(checkTypes);
+    const ct: CheckType = 'World-Check';
     const matchName = rand(names);
     const strength = randInt(30, 99);
     const alertDate = randDate('2024-12-01', '2025-02-15');
@@ -166,7 +167,11 @@ export const cases: Case[] = Array.from({ length: 30 }, (_, i) => {
     entityType,
     groupId: rand(groups).id,
     mode: 'Single' as const,
-    checkTypes: ['World-Check', ...(Math.random() > 0.5 ? ['Media Check' as const] : [])],
+    checkTypes: [
+      'World-Check' as const,
+      ...(Math.random() > 0.5 ? ['Media Check' as const] : []),
+      ...(entityType === 'Individual' && Math.random() > 0.6 ? ['Passport Check' as const] : []),
+    ],
     ogsEnabled: Math.random() > 0.4,
     createdAt: randDate('2024-01-01', '2025-01-15'),
     lastScreenedAt: randDate('2025-01-01', '2025-02-20'),
