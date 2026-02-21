@@ -108,8 +108,8 @@ export default function CasesPage() {
       if (filters.rating !== 'all' && c.rating !== filters.rating) return false;
       if (filters.entityType !== 'all' && c.entityType !== filters.entityType) return false;
       if (filters.checkType !== 'all' && !c.checkTypes.includes(filters.checkType as CheckType)) return false;
-      if (filters.ogs === 'active' && !c.ogsEnabled) return false;
-      if (filters.ogs === 'off' && c.ogsEnabled) return false;
+      if (filters.ogs === 'active' && !c.ogsWorldCheck && !c.ogsMediaCheck) return false;
+      if (filters.ogs === 'off' && (c.ogsWorldCheck || c.ogsMediaCheck)) return false;
       return true;
     });
   }, [filters, activeCases]);
@@ -397,7 +397,7 @@ export default function CasesPage() {
                     {isCol('entityType') && <td className="px-4 py-3 text-xs">{c.entityType}</td>}
                     {isCol('rating') && <td className="px-4 py-3"><Badge variant="outline" className={`text-[10px] ${c.rating === 'High' ? 'border-destructive text-destructive' : c.rating === 'Medium' ? 'border-amber-500 text-amber-600' : 'border-muted-foreground text-muted-foreground'}`}>{c.rating}</Badge></td>}
                     {isCol('lastScreened') && <td className="px-4 py-3 text-xs">{c.lastScreenedAt}</td>}
-                    {isCol('ogs') && <td className="px-4 py-3"><Badge variant={c.ogsEnabled ? 'default' : 'secondary'} className="text-[10px]">{c.ogsEnabled ? 'Active' : 'Off'}</Badge></td>}
+                    {isCol('ogs') && <td className="px-4 py-3"><div className="flex gap-1">{c.ogsWorldCheck && <Badge variant="default" className="text-[10px]">WC</Badge>}{c.ogsMediaCheck && <Badge variant="default" className="text-[10px]">MC</Badge>}{!c.ogsWorldCheck && !c.ogsMediaCheck && <Badge variant="secondary" className="text-[10px]">Off</Badge>}</div></td>}
                     {isCol('createdAt') && <td className="px-4 py-3 text-xs">{c.createdAt}</td>}
                   </tr>
                 ))

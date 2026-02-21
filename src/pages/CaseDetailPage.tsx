@@ -380,7 +380,9 @@ export default function CaseDetailPage() {
             <span className="hidden sm:inline">•</span>
             <span>Assigned: <span className="text-foreground font-medium">{caseData.assignee}</span></span>
             <span className="hidden sm:inline">•</span>
-            <span>OGS: <span className={caseData.ogsEnabled ? 'text-foreground font-medium' : ''}>{caseData.ogsEnabled ? 'Active' : 'Off'}</span></span>
+            <span>OGS WC: <span className={caseData.ogsWorldCheck ? 'text-foreground font-medium' : ''}>{caseData.ogsWorldCheck ? 'Active' : 'Off'}</span></span>
+            <span className="hidden sm:inline">•</span>
+            <span>OGS MC: <span className={caseData.ogsMediaCheck ? 'text-foreground font-medium' : ''}>{caseData.ogsMediaCheck ? 'Active' : 'Off'}</span></span>
           </div>
         </div>
 
@@ -394,7 +396,8 @@ export default function CaseDetailPage() {
             <DropdownMenuItem onClick={() => { setActionComment(''); setMoveDialog(true); }}><ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> Move Group</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => { setActionComment(''); setRescreenDialog(true); }}><RefreshCw className="h-3.5 w-3.5 mr-2" /> Rescreen</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => addAuditEvent('ogs_toggle', `OGS ${caseData.ogsEnabled ? 'disabled' : 'enabled'}`)}><ToggleRight className="h-3.5 w-3.5 mr-2" /> {caseData.ogsEnabled ? 'Disable' : 'Enable'} OGS</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => addAuditEvent('ogs_toggle', `OGS World-Check ${caseData.ogsWorldCheck ? 'disabled' : 'enabled'}`)}><ToggleRight className="h-3.5 w-3.5 mr-2" /> {caseData.ogsWorldCheck ? 'Disable' : 'Enable'} OGS WC</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => addAuditEvent('ogs_toggle', `OGS Media Check ${caseData.ogsMediaCheck ? 'disabled' : 'enabled'}`)}><ToggleRight className="h-3.5 w-3.5 mr-2" /> {caseData.ogsMediaCheck ? 'Disable' : 'Enable'} OGS MC</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => { setActionComment(''); setArchiveDialog(true); }}><Archive className="h-3.5 w-3.5 mr-2" /> Archive</DropdownMenuItem>
             <DropdownMenuItem className="text-destructive" onClick={() => { setActionComment(''); setDeleteDialog(true); }}><Trash2 className="h-3.5 w-3.5 mr-2" /> Delete</DropdownMenuItem>
@@ -502,7 +505,8 @@ export default function CaseDetailPage() {
                 <span>Created: {caseData.createdAt}</span>
                 <span>Screened: {caseData.lastScreenedAt}</span>
                 <span>Mode: {caseData.mode}</span>
-                <span>OGS: {caseData.ogsEnabled ? group?.ongoingFrequency : 'Off'}</span>
+                <span>OGS WC: {caseData.ogsWorldCheck ? group?.ongoingFrequency : 'Off'}</span>
+                <span>OGS MC: {caseData.ogsMediaCheck ? group?.ongoingFrequency : 'Off'}</span>
               </div>
             </Card>
 
