@@ -13,13 +13,14 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MatchDrawer } from './MatchDrawer';
 import { priorityColor } from '@/lib/priority';
-import type { Match, CheckType, MatchStatus, Dataset, RiskLevel } from '@/types';
+import type { Match, CheckType, MatchStatus, Dataset, RiskLevel, CaseScreeningData } from '@/types';
 
 interface ResultsViewProps {
   matches: Match[];
   caseName: string;
   caseId: string;
   checkTypes?: CheckType[];
+  screeningData?: CaseScreeningData;
 }
 
 const statusColors: Record<MatchStatus, string> = {
@@ -62,7 +63,7 @@ function strengthColor(s: number) {
 
 const BUCKETS: MatchStatus[] = ['Unresolved', 'Positive', 'Possible', 'False', 'Unknown'];
 
-export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
+export function ResultsView({ matches, caseName, caseId, screeningData }: ResultsViewProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -485,6 +486,7 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
         onClose={() => setDrawerOpen(false)}
         caseName={caseName}
         onUpdate={onUpdateMatch}
+        screeningData={screeningData}
         currentIndex={selectedMatchIndex >= 0 ? selectedMatchIndex : undefined}
         totalMatches={filteredMatches.length}
         onNavigate={navigateMatch}
