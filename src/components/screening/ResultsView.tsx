@@ -128,9 +128,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
   const total = matches.length;
   const unresolved = bucketCounts.Unresolved;
   const reviewReq = matches.filter(m => m.reviewRequired).length;
-  const bySanctions = matches.filter(m => m.dataset === 'Sanctions').length;
-  const byPep = matches.filter(m => m.dataset === 'PEP').length;
-  const byLE = matches.filter(m => m.dataset === 'Law Enforcement').length;
 
   const openMatch = (m: Match) => {
     setSelectedMatch(m);
@@ -208,38 +205,49 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
   return (
     <div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
-        <SummaryCard label="Total Matches" value={total} />
-        <SummaryCard label="Unresolved" value={unresolved} accent="text-status-unresolved" />
-        <SummaryCard label="Review Required" value={reviewReq} accent="text-status-possible" />
-        <SummaryCard label="Sanctions" value={bySanctions} accent="text-dataset-sanctions" />
-        <SummaryCard label="PEP" value={byPep} accent="text-dataset-pep" />
-        <SummaryCard label="Law Enforcement" value={byLE} accent="text-dataset-le" />
-      </div>
-
-      {/* Resolution Buckets */}
-      <div className="flex gap-1 mb-4 p-1 bg-muted rounded-lg">
-        {BUCKETS.map(bucket => (
-          <button
-            key={bucket}
-            onClick={() => handleBucketChange(bucket)}
-            className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
-              activeBucket === bucket
-                ? 'bg-background text-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-            }`}
-          >
-            {bucketIcons[bucket]}
-            <span className="hidden sm:inline">{bucket}</span>
-            <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-[10px]">
-              {bucketCounts[bucket]}
-            </Badge>
-            {bucketHasReviewRequired[bucket] && (
-              <AlertTriangle className="h-3 w-3 text-status-possible" />
-            )}
-          </button>
-        ))}
+      {/* Disposition Summary & Bucket Tabs */}
+      <div className="mb-4 rounded-lg border bg-card">
+        {/* Compact stats row */}
+        <div className="flex items-center gap-4 px-4 py-2 border-b bg-muted/30 text-xs">
+          <span className="font-medium text-foreground">{total} matches</span>
+          <span className="text-muted-foreground">·</span>
+          <span className="text-status-unresolved font-medium">{unresolved} unresolved</span>
+          {reviewReq > 0 && (
+            <>
+              <span className="text-muted-foreground">·</span>
+              <span className="text-status-possible font-medium flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" /> {reviewReq} pending review
+              </span>
+            </>
+          )}
+          <span className="text-muted-foreground">·</span>
+          <span className="text-muted-foreground">
+            {bucketCounts.Positive} true · {bucketCounts.Possible} possible · {bucketCounts.False} false · {bucketCounts.Unknown} unknown
+          </span>
+        </div>
+        {/* Bucket tabs */}
+        <div className="flex gap-1 p-1">
+          {BUCKETS.map(bucket => (
+            <button
+              key={bucket}
+              onClick={() => handleBucketChange(bucket)}
+              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                activeBucket === bucket
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+              }`}
+            >
+              {bucketIcons[bucket]}
+              <span className="hidden sm:inline">{bucket}</span>
+              <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-[10px]">
+                {bucketCounts[bucket]}
+              </Badge>
+              {bucketHasReviewRequired[bucket] && (
+                <AlertTriangle className="h-3 w-3 text-status-possible" />
+              )}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Bulk Action Bar + Filters */}
@@ -666,16 +674,5 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-function SummaryCard({ label, value, accent }: { label: string; value: number; accent?: string }) {
-  return (
-    <Card>
-      <CardContent className="p-4">
-        <p className="text-xs text-muted-foreground">{label}</p>
-        <p className={`text-2xl font-bold mt-1 ${accent || ''}`}>{value}</p>
-      </CardContent>
-    </Card>
   );
 }
