@@ -124,7 +124,7 @@ export default function ScreenPage() {
   const caseName = passportOnly ? `${passportData.givenName} ${passportData.lastName}` : data.name;
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       {/* Stepper */}
       <div className="flex items-center gap-2 mb-8">
         {steps.map((s, i) => (
@@ -155,65 +155,94 @@ export default function ScreenPage() {
 
       {/* Step 0: Configure & Enter Data (merged) */}
       {step === 0 && (
-        <div className="animate-fade-in space-y-6">
-          {/* Configuration Section */}
-          <Card>
-            <CardContent className="pt-6 space-y-5">
-              <h2 className="text-lg font-semibold">Screening Configuration</h2>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="space-y-2">
-                  <Label className="text-xs">Group</Label>
-                  <Select value={config.groupId} onValueChange={v => setConfig(c => ({ ...c, groupId: v }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {groups.map(g => (
-                        <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+        <div className="animate-fade-in grid grid-cols-[220px_1fr] gap-4">
+          {/* Left sidebar — single-click selectors */}
+          <div className="space-y-5">
+            <Card>
+              <CardContent className="p-4 space-y-4">
+                {/* Group */}
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Group</Label>
+                  <div className="flex flex-col gap-1">
+                    {groups.map(g => (
+                      <button
+                        key={g.id}
+                        onClick={() => setConfig(c => ({ ...c, groupId: g.id }))}
+                        className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors border text-left ${
+                          config.groupId === g.id
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        {g.name}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs">Mode</Label>
-                  <Select value={config.mode} onValueChange={v => setConfig(c => ({ ...c, mode: v as any }))}>
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Single">Single Screening</SelectItem>
-                      <SelectItem value="Batch">Batch Screening</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <Separator />
+
+                {/* Mode */}
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Mode</Label>
+                  <div className="flex flex-col gap-1">
+                    {(['Single', 'Batch'] as const).map(m => (
+                      <button
+                        key={m}
+                        onClick={() => setConfig(c => ({ ...c, mode: m }))}
+                        className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors border text-left ${
+                          config.mode === m
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        {m === 'Single' ? 'Single Screening' : 'Batch Screening'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs">Entity Type</Label>
-                  <Select
-                    value={config.entityType}
-                    onValueChange={v => setConfig(c => ({ ...c, entityType: v as EntityType }))}
-                    disabled={hasPassportCheck}
-                  >
-                    <SelectTrigger><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      {['Individual', 'Organisation', 'Vessel', 'Unspecified'].map(t => (
-                        <SelectItem key={t} value={t}>{t}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                <Separator />
+
+                {/* Entity Type */}
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Entity Type</Label>
+                  <div className="flex flex-col gap-1">
+                    {(['Individual', 'Organisation', 'Vessel', 'Unspecified'] as EntityType[]).map(t => (
+                      <button
+                        key={t}
+                        onClick={() => !hasPassportCheck && setConfig(c => ({ ...c, entityType: t }))}
+                        disabled={hasPassportCheck && t !== 'Individual'}
+                        className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors border text-left ${
+                          config.entityType === t
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : hasPassportCheck && t !== 'Individual'
+                            ? 'bg-muted/30 text-muted-foreground/40 border-transparent cursor-not-allowed'
+                            : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        {t}
+                      </button>
+                    ))}
+                  </div>
                   {hasPassportCheck && (
                     <p className="text-[10px] text-muted-foreground">Passport Check requires Individual</p>
                   )}
                 </div>
 
-                <div className="space-y-2">
-                  <Label className="text-xs">Check Types</Label>
-                  <div className="flex flex-col gap-1.5 pt-0.5">
+                <Separator />
+
+                {/* Check Types */}
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Check Types</Label>
+                  <div className="flex flex-col gap-1.5">
                     {(['World-Check', 'Media Check', 'Passport Check'] as CheckType[]).map(ct => (
-                      <label key={ct} className="flex items-center gap-2 text-sm cursor-pointer">
+                      <label key={ct} className="flex items-center gap-2 text-xs cursor-pointer">
                         <Checkbox
                           checked={config.checkTypes.includes(ct)}
                           onCheckedChange={() => handleCheckTypeToggle(ct)}
                         />
-                        <span className="text-xs">{ct}</span>
+                        <span>{ct}</span>
                         {ct === 'Media Check' && (
                           <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Articles</Badge>
                         )}
@@ -224,27 +253,30 @@ export default function ScreenPage() {
                     ))}
                   </div>
                 </div>
-              </div>
 
-              {/* OGS - compact inline */}
-              <div className="flex items-center gap-6 p-3 rounded-lg bg-muted text-xs">
-                <div className="flex items-center gap-1.5">
-                  <Label className="text-xs font-medium">OGS</Label>
-                  <span className="text-muted-foreground">({selectedGroup?.ongoingFrequency || 'N/A'})</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={config.ogsWorldCheck} onCheckedChange={v => setConfig(c => ({ ...c, ogsWorldCheck: v }))} />
-                  <span>World-Check</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Switch checked={config.ogsMediaCheck} onCheckedChange={v => setConfig(c => ({ ...c, ogsMediaCheck: v }))} />
-                  <span>Media Check</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                <Separator />
 
-          {/* Data Entry Section */}
+                {/* OGS */}
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">
+                    OGS <span className="font-normal">({selectedGroup?.ongoingFrequency || 'N/A'})</span>
+                  </Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Switch checked={config.ogsWorldCheck} onCheckedChange={v => setConfig(c => ({ ...c, ogsWorldCheck: v }))} />
+                      <span className="text-xs">World-Check</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Switch checked={config.ogsMediaCheck} onCheckedChange={v => setConfig(c => ({ ...c, ogsMediaCheck: v }))} />
+                      <span className="text-xs">Media Check</span>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right side — Data Entry */}
           <Card>
             <CardContent className="pt-6 space-y-5">
               <div className="flex items-center justify-between">
@@ -299,7 +331,7 @@ export default function ScreenPage() {
                     </div>
                   )}
 
-                  {/* Secondary Identifiers - collapsible-style compact row */}
+                  {/* Secondary Identifiers */}
                   <div className="space-y-3">
                     <h3 className="text-xs font-medium text-muted-foreground">Secondary Identifiers</h3>
                     <div className="grid grid-cols-4 gap-3">
