@@ -551,7 +551,7 @@ export default function CaseDetailPage() {
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
           <div className="min-w-0">
             {effectiveTab === 'World-Check' && (
-              <ResultsView matches={matches} caseName={caseData.name} caseId={caseData.id} checkTypes={['World-Check']} />
+              <ResultsView matches={matches} caseName={caseData.name} caseId={caseData.id} checkTypes={['World-Check']} screeningData={caseData.screeningData} />
             )}
             {effectiveTab === 'Media Check' && mediaResult && (
               <MediaCheckResultsView result={mediaResult} caseName={caseData.name} caseId={caseData.id} />
