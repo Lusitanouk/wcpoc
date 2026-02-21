@@ -41,7 +41,6 @@ export function AppHeader() {
 
   return (
     <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-3 shrink-0 sticky top-0 z-30">
-      <SidebarTrigger className="mr-1" />
 
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1.5 text-sm min-w-0">
