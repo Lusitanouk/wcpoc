@@ -37,12 +37,32 @@ export interface CaseScreeningData {
 
 export type AuditEventType = 'note' | 'assign' | 'move' | 'edit' | 'rescreen' | 'ogs_toggle' | 'archive' | 'status_change' | 'created';
 
+export interface AuditMatchDetail {
+  matchId: string;
+  matchedName: string;
+  strength: number;
+  status: MatchStatus;
+  action: 'new' | 'updated' | 'auto_remediated' | 'no_change';
+  dataset?: string;
+}
+
+export interface AuditEventDetails {
+  matchesFound?: number;
+  matchesUpdated?: number;
+  matchesAutoRemediated?: number;
+  matchDetails?: AuditMatchDetail[];
+  previousValue?: string;
+  newValue?: string;
+  fieldChanged?: string;
+}
+
 export interface CaseAuditEvent {
   id: string;
   type: AuditEventType;
   author: string;
   text: string;
   comment?: string;
+  details?: AuditEventDetails;
   createdAt: string;
 }
 
