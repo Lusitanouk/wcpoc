@@ -35,6 +35,17 @@ export interface CaseScreeningData {
   customFields?: Record<string, string>;
 }
 
+export type AuditEventType = 'note' | 'assign' | 'move' | 'edit' | 'rescreen' | 'ogs_toggle' | 'archive' | 'status_change' | 'created';
+
+export interface CaseAuditEvent {
+  id: string;
+  type: AuditEventType;
+  author: string;
+  text: string;
+  comment?: string;
+  createdAt: string;
+}
+
 export interface CaseNote {
   id: string;
   author: string;
@@ -64,6 +75,7 @@ export interface Case {
   status: 'Active' | 'Archived' | 'Deleted';
   screeningData: CaseScreeningData;
   notes: CaseNote[];
+  auditTrail: CaseAuditEvent[];
 }
 
 export interface MatchIdentifiers {
