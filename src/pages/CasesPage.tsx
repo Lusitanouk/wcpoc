@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { toast } from 'sonner';
 import { cases, groups, getGroupById } from '@/data/mock-data';
 import { useAppContext } from '@/context/AppContext';
 import type { CheckType, RiskLevel, EntityType } from '@/types';
@@ -171,7 +172,13 @@ export default function CasesPage() {
 
   const isCol = (key: string) => visibleColumns.includes(key);
   const visibleColCount = visibleColumns.length + 1;
-  const handleBulkAction = () => setSelectedIds(new Set());
+  const handleBulkAction = (action?: string) => {
+    const count = selectedIds.size;
+    setSelectedIds(new Set());
+    if (action) {
+      toast.success(`${action} — ${count} case${count !== 1 ? 's' : ''} updated`);
+    }
+  };
 
   const uniqueAssignees = useMemo(() => [...new Set(activeCases.map(c => c.assignee))].sort(), [activeCases]);
 
@@ -246,11 +253,11 @@ export default function CasesPage() {
             <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkAssignOpen(true)}><UserPlus className="h-3 w-3" /> Assign</Button>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkMoveOpen(true)}><ArrowRightLeft className="h-3 w-3" /> Move</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={handleBulkAction}><RefreshCw className="h-3 w-3" /> Rescreen</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={handleBulkAction}><ToggleRight className="h-3 w-3" /> OGS</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={handleBulkAction}><Archive className="h-3 w-3" /> Archive</Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Re-screen queued')}><RefreshCw className="h-3 w-3" /> Rescreen</Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('OGS toggled')}><ToggleRight className="h-3 w-3" /> OGS</Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Archived')}><Archive className="h-3 w-3" /> Archive</Button>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-destructive" onClick={() => setBulkDeleteOpen(true)}><Trash2 className="h-3 w-3" /> Delete</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={handleBulkAction}><Download className="h-3 w-3" /> Export</Button>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Export started')}><Download className="h-3 w-3" /> Export</Button>
           </div>
         )}
       </div>
@@ -466,7 +473,7 @@ export default function CasesPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setBulkAssignOpen(false)}>Cancel</Button>
-            <Button size="sm" disabled={!bulkAssignee} onClick={() => { handleBulkAction(); setBulkAssignOpen(false); setBulkComment(''); }}>Assign {selectedIds.size} Cases</Button>
+            <Button size="sm" disabled={!bulkAssignee} onClick={() => { handleBulkAction('Assigned'); setBulkAssignOpen(false); setBulkComment(''); }}>Assign {selectedIds.size} Cases</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -492,7 +499,7 @@ export default function CasesPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setBulkMoveOpen(false)}>Cancel</Button>
-            <Button size="sm" disabled={!bulkGroup} onClick={() => { handleBulkAction(); setBulkMoveOpen(false); setBulkComment(''); }}>Move {selectedIds.size} Cases</Button>
+            <Button size="sm" disabled={!bulkGroup} onClick={() => { handleBulkAction('Moved'); setBulkMoveOpen(false); setBulkComment(''); }}>Move {selectedIds.size} Cases</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -509,7 +516,7 @@ export default function CasesPage() {
           </div>
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setBulkDeleteOpen(false)}>Cancel</Button>
-            <Button variant="destructive" size="sm" disabled={!bulkComment.trim()} onClick={() => { handleBulkAction(); setBulkDeleteOpen(false); setBulkComment(''); }}>Delete {selectedIds.size} Cases</Button>
+            <Button variant="destructive" size="sm" disabled={!bulkComment.trim()} onClick={() => { handleBulkAction('Deleted'); setBulkDeleteOpen(false); setBulkComment(''); }}>Delete {selectedIds.size} Cases</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
