@@ -385,7 +385,11 @@ export default function CaseDetailPage() {
 
       {/* ── Case Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
-        <div className="min-w-0">
+        <div className="flex items-start gap-3 min-w-0">
+          <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5">
+            <User className="h-5 w-5 text-primary" />
+          </div>
+          <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h1 className="text-lg sm:text-xl font-bold truncate">{caseData.name}</h1>
             <Badge
@@ -427,6 +431,7 @@ export default function CaseDetailPage() {
               <Edit className="h-2.5 w-2.5 opacity-0 group-hover/ogs:opacity-100 transition-opacity" />
             </span>
           </div>
+        </div>
         </div>
 
         <div className="flex items-center gap-2">
