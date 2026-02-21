@@ -12,7 +12,8 @@ import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
 import { cases, groups, getGroupById } from '@/data/mock-data';
 import { useAppContext } from '@/context/AppContext';
 import type { CheckType, RiskLevel, EntityType } from '@/types';
@@ -122,6 +123,7 @@ export default function CasesPage() {
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
   const [bulkAssignee, setBulkAssignee] = useState('');
   const [bulkGroup, setBulkGroup] = useState('');
+  const [bulkComment, setBulkComment] = useState('');
 
   const activeCases = useMemo(() => cases.filter(c => c.status === 'Active'), []);
 
@@ -443,27 +445,72 @@ export default function CasesPage() {
       </div>
 
       {/* Bulk Dialogs */}
-      <Dialog open={bulkAssignOpen} onOpenChange={setBulkAssignOpen}>
+      <Dialog open={bulkAssignOpen} onOpenChange={v => { setBulkAssignOpen(v); if (!v) { setBulkAssignee(''); setBulkComment(''); } }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Bulk Assign ({selectedIds.size} cases)</DialogTitle></DialogHeader>
-          <Select value={bulkAssignee} onValueChange={setBulkAssignee}><SelectTrigger><SelectValue placeholder="Select analyst..." /></SelectTrigger><SelectContent>{analysts.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent></Select>
-          <DialogFooter><Button variant="outline" size="sm" onClick={() => setBulkAssignOpen(false)}>Cancel</Button><Button size="sm" onClick={() => { handleBulkAction(); setBulkAssignOpen(false); }}>Assign</Button></DialogFooter>
+          <DialogHeader>
+            <DialogTitle>Bulk Assign — {selectedIds.size} Cases</DialogTitle>
+            <DialogDescription>Reassign the selected cases to a different analyst</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Assign To</label>
+              <Select value={bulkAssignee} onValueChange={setBulkAssignee}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select analyst..." /></SelectTrigger>
+                <SelectContent>{analysts.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label>
+              <Textarea value={bulkComment} onChange={e => setBulkComment(e.target.value)} placeholder="Reason for reassignment..." className="min-h-[60px] text-xs resize-none" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBulkAssignOpen(false)}>Cancel</Button>
+            <Button size="sm" disabled={!bulkAssignee} onClick={() => { handleBulkAction(); setBulkAssignOpen(false); setBulkComment(''); }}>Assign {selectedIds.size} Cases</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={bulkMoveOpen} onOpenChange={setBulkMoveOpen}>
+      <Dialog open={bulkMoveOpen} onOpenChange={v => { setBulkMoveOpen(v); if (!v) { setBulkGroup(''); setBulkComment(''); } }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Move {selectedIds.size} cases to group</DialogTitle></DialogHeader>
-          <Select value={bulkGroup} onValueChange={setBulkGroup}><SelectTrigger><SelectValue placeholder="Select group..." /></SelectTrigger><SelectContent>{groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent></Select>
-          <DialogFooter><Button variant="outline" size="sm" onClick={() => setBulkMoveOpen(false)}>Cancel</Button><Button size="sm" onClick={() => { handleBulkAction(); setBulkMoveOpen(false); }}>Move</Button></DialogFooter>
+          <DialogHeader>
+            <DialogTitle>Move Group — {selectedIds.size} Cases</DialogTitle>
+            <DialogDescription>Move the selected cases to a different screening group</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Target Group</label>
+              <Select value={bulkGroup} onValueChange={setBulkGroup}>
+                <SelectTrigger className="h-8 text-sm"><SelectValue placeholder="Select group..." /></SelectTrigger>
+                <SelectContent>{groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
+              </Select>
+            </div>
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label>
+              <Textarea value={bulkComment} onChange={e => setBulkComment(e.target.value)} placeholder="Reason for move..." className="min-h-[60px] text-xs resize-none" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBulkMoveOpen(false)}>Cancel</Button>
+            <Button size="sm" disabled={!bulkGroup} onClick={() => { handleBulkAction(); setBulkMoveOpen(false); setBulkComment(''); }}>Move {selectedIds.size} Cases</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={bulkDeleteOpen} onOpenChange={setBulkDeleteOpen}>
+      <Dialog open={bulkDeleteOpen} onOpenChange={v => { setBulkDeleteOpen(v); if (!v) setBulkComment(''); }}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader><DialogTitle>Delete {selectedIds.size} cases?</DialogTitle></DialogHeader>
-          <p className="text-sm text-muted-foreground">This action cannot be undone.</p>
-          <DialogFooter><Button variant="outline" size="sm" onClick={() => setBulkDeleteOpen(false)}>Cancel</Button><Button variant="destructive" size="sm" onClick={() => { handleBulkAction(); setBulkDeleteOpen(false); }}>Delete</Button></DialogFooter>
+          <DialogHeader>
+            <DialogTitle>Delete {selectedIds.size} Cases</DialogTitle>
+            <DialogDescription>This action cannot be undone. All screening data and matches will be permanently removed.</DialogDescription>
+          </DialogHeader>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (required)</label>
+            <Textarea value={bulkComment} onChange={e => setBulkComment(e.target.value)} placeholder="Reason for deletion..." className="min-h-[60px] text-xs resize-none" />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBulkDeleteOpen(false)}>Cancel</Button>
+            <Button variant="destructive" size="sm" disabled={!bulkComment.trim()} onClick={() => { handleBulkAction(); setBulkDeleteOpen(false); setBulkComment(''); }}>Delete {selectedIds.size} Cases</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
