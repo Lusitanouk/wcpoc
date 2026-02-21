@@ -266,7 +266,7 @@ export default function CaseDetailPage() {
 
   // Tab from URL: 'summary' or a CheckType
   // Default to first check type with action required if no tab specified
-  const defaultTab = useMemo((): CaseTab => {
+  const activeTab = useMemo((): CaseTab => {
     if (searchParams.has('tab')) return searchParams.get('tab') === 'summary' ? 'summary' : searchParams.get('tab') as CheckType;
     if (!caseData?.mandatoryAction) return 'summary';
     const wcAction = matches.some(m => m.reviewRequired || m.status === 'Unresolved');
@@ -274,8 +274,7 @@ export default function CaseDetailPage() {
     if (caseData.checkTypes.includes('Media Check')) return 'Media Check';
     if (caseData.checkTypes.includes('Passport Check')) return 'Passport Check';
     return 'summary';
-  }, []);
-  const activeTab: CaseTab = defaultTab;
+  }, [searchParams, caseData, matches]);
 
   const setActiveTab = (tab: CaseTab) => {
     const params: Record<string, string> = { tab };
