@@ -7,6 +7,8 @@ export type UserRole = 'Analyst' | 'Supervisor';
 export type ScreeningMode = 'Single' | 'Batch';
 export type PriorityLevel = 'High' | 'Medium' | 'Low';
 export type MatchFieldResult = 'match' | 'partial' | 'mismatch' | 'missing';
+export type DocumentType = 'Passport' | 'ID-Card Type 1' | 'ID-Card Type 2';
+export type MediaRiskLevel = 'High' | 'Medium' | 'Low' | 'No Risk' | 'Unknown';
 
 export interface Group {
   id: string;
@@ -35,7 +37,6 @@ export interface Case {
   mandatoryAction: boolean;
   unresolvedCount: number;
   reviewRequiredCount: number;
-  // Bucket counts
   positiveCount: number;
   possibleCount: number;
   falseCount: number;
@@ -111,4 +112,69 @@ export interface ScreeningData {
   country: string;
   idType: string;
   idNumber: string;
+}
+
+// --- Media Check Types ---
+
+export interface MediaArticle {
+  id: string;
+  caseId: string;
+  headline: string;
+  publication: string;
+  publishedDate: string;
+  wordCount: number;
+  snippet: string;
+  fullText: string;
+  topics: string[];
+  countries: string[];
+  matchedEntity: string;
+  riskLevel: MediaRiskLevel;
+  riskReason: string;
+  attached: boolean;
+  visited: boolean;
+  smartFilterRelevant: boolean;
+  highlightedTerms: string[];
+  sourceType: string;
+}
+
+export interface MediaCheckResult {
+  caseId: string;
+  entityName: string;
+  totalArticles: number;
+  reviewRequired: number;
+  attachedCount: number;
+  matchedEntities: { name: string; count: number }[];
+  articles: MediaArticle[];
+  smartFilterEnabled: boolean;
+  dateRange: 'last2years' | 'older' | 'all';
+}
+
+// --- Passport Check Types ---
+
+export interface PassportData {
+  givenName: string;
+  lastName: string;
+  gender: string;
+  issuingState: string;
+  nationality: string;
+  dob: string;
+  documentType: DocumentType;
+  identificationNumber: string;
+  dateOfExpiry: string;
+}
+
+export interface PassportCheckResult {
+  caseId: string;
+  passportData: PassportData;
+  mrzLine1: string;
+  mrzLine2: string;
+  mrzMatch: 'yes' | 'no' | 'pending';
+  verificationStatus: 'verified' | 'invalid' | 'pending';
+  controlDigitsValid: boolean;
+  fieldVerifications: {
+    field: string;
+    entered: string;
+    computed: string;
+    matches: boolean;
+  }[];
 }
