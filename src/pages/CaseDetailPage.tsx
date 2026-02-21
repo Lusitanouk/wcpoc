@@ -4,7 +4,7 @@ import {
   ArrowLeft, Shield, Newspaper, CreditCard, User, MapPin, Calendar, Hash,
   Edit, UserPlus, ArrowRightLeft, Archive, Trash2, RefreshCw, ToggleRight,
   ChevronDown, MessageSquare, Send, Clock, FileText, Activity, AlertTriangle,
-  ChevronUp, LayoutDashboard, ChevronRight, Eye
+  ChevronUp, LayoutDashboard, ChevronRight, Eye, Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +21,8 @@ import { generatePassportCheckResult } from '@/data/passport-mock-data';
 import { ResultsView } from '@/components/screening/ResultsView';
 import { MediaCheckResultsView } from '@/components/screening/MediaCheckResultsView';
 import { PassportCheckResultsView } from '@/components/screening/PassportCheckResultsView';
-import type { CheckType, MediaCheckResult, PassportCheckResult, CaseAuditEvent, AuditEventType } from '@/types';
+import type { CheckType, MediaCheckResult, PassportCheckResult, CaseAuditEvent, AuditEventType, AuditEventDetails } from '@/types';
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 
 // ─── Constants ───────────────────────────────────────────────
 const checkTypeIcons: Record<CheckType, React.ReactNode> = {
@@ -53,6 +54,51 @@ const auditTypeLabel: Record<AuditEventType, string> = {
 type CaseTab = 'summary' | CheckType;
 const AUDIT_PAGE_SIZE = 20;
 
+// ─── Verbose Event Detail ────────────────────────────────────
+function AuditEventDetailView({ details, type }: { details: AuditEventDetails; type: AuditEventType }) {
+  if (type === 'rescreen' || type === 'created') {
+    return (
+      <div className="mt-1.5 p-2 rounded bg-muted/60 text-[11px] space-y-1.5">
+        <div className="flex gap-3 text-muted-foreground">
+          <span>Found: <span className="text-foreground font-medium">{details.matchesFound}</span></span>
+          <span>Updated: <span className="text-foreground font-medium">{details.matchesUpdated}</span></span>
+          <span>Auto-remediated: <span className="text-foreground font-medium">{details.matchesAutoRemediated}</span></span>
+        </div>
+        {details.matchDetails && details.matchDetails.length > 0 && (
+          <div className="border-t border-border/50 pt-1.5 space-y-1">
+            {details.matchDetails.map(m => (
+              <div key={m.matchId} className="flex items-center gap-2">
+                <span className="font-mono text-muted-foreground w-14 shrink-0">{m.matchId}</span>
+                <span className="truncate flex-1">{m.matchedName}</span>
+                <span className="text-muted-foreground">{m.strength}%</span>
+                <Badge variant="outline" className={`text-[9px] px-1 py-0 ${
+                  m.action === 'new' ? 'border-blue-500 text-blue-600'
+                  : m.action === 'updated' ? 'border-amber-500 text-amber-600'
+                  : m.action === 'auto_remediated' ? 'border-green-500 text-green-600'
+                  : 'border-muted-foreground text-muted-foreground'
+                }`}>
+                  {m.action === 'auto_remediated' ? 'auto-rem.' : m.action === 'no_change' ? 'unchanged' : m.action}
+                </Badge>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+  if (type === 'edit' || type === 'status_change') {
+    return (
+      <div className="mt-1.5 p-2 rounded bg-muted/60 text-[11px] flex items-center gap-2">
+        {details.fieldChanged && <span className="text-muted-foreground">{details.fieldChanged}:</span>}
+        <span className="line-through text-muted-foreground">{details.previousValue}</span>
+        <span>→</span>
+        <span className="font-medium text-foreground">{details.newValue}</span>
+      </div>
+    );
+  }
+  return null;
+}
+
 // ─── Audit Trail Component (paginated) ──────────────────────
 function AuditTrailPanel({
   allEvents,
@@ -66,6 +112,15 @@ function AuditTrailPanel({
   const [filter, setFilter] = useState<'all' | AuditEventType>('all');
   const [visibleCount, setVisibleCount] = useState(AUDIT_PAGE_SIZE);
   const [newNote, setNewNote] = useState('');
+  const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
+
+  const toggleEvent = (id: string) => {
+    setExpandedEvents(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
 
   const merged = useMemo(() => {
     const combined = [...allEvents, ...localEvents].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
@@ -115,32 +170,48 @@ function AuditTrailPanel({
           {visible.length === 0 && (
             <p className="text-xs text-muted-foreground py-4 text-center">No matching events.</p>
           )}
-          {visible.map((event, idx) => (
-            <div key={event.id} className="relative pl-6 pb-3">
-              {idx < visible.length - 1 && (
-                <div className="absolute left-[9px] top-5 bottom-0 w-px bg-border" />
-              )}
-              <div className={`absolute left-0 top-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center ${
-                event.type === 'created' ? 'bg-primary text-primary-foreground'
-                : event.type === 'status_change' ? 'bg-status-positive/20 text-foreground'
-                : 'bg-muted text-muted-foreground'
-              }`}>
-                {auditTypeIcon[event.type]}
-              </div>
-              <div className="text-xs">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <span className="font-medium text-foreground">{event.author}</span>
-                  <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" />{event.createdAt}</span>
-                </div>
-                <p className="mt-0.5">{event.text}</p>
-                {event.comment && (
-                  <div className="mt-1 p-1.5 rounded bg-muted/50 text-muted-foreground italic text-[11px]">
-                    "{event.comment}"
-                  </div>
+          {visible.map((event, idx) => {
+            const hasDetails = !!event.details;
+            const isExpanded = expandedEvents.has(event.id);
+            return (
+              <div key={event.id} className="relative pl-6 pb-3">
+                {idx < visible.length - 1 && (
+                  <div className="absolute left-[9px] top-5 bottom-0 w-px bg-border" />
                 )}
+                <div className={`absolute left-0 top-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center ${
+                  event.type === 'created' ? 'bg-primary text-primary-foreground'
+                  : event.type === 'status_change' ? 'bg-status-positive/20 text-foreground'
+                  : 'bg-muted text-muted-foreground'
+                }`}>
+                  {auditTypeIcon[event.type]}
+                </div>
+                <div className="text-xs">
+                  <div className="flex items-center gap-1.5 text-muted-foreground">
+                    <span className="font-medium text-foreground">{event.author}</span>
+                    <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" />{event.createdAt}</span>
+                    {hasDetails && (
+                      <button
+                        onClick={() => toggleEvent(event.id)}
+                        className="ml-auto flex items-center gap-0.5 text-[10px] text-primary hover:underline"
+                      >
+                        <Info className="h-2.5 w-2.5" />
+                        {isExpanded ? 'Hide' : 'Details'}
+                      </button>
+                    )}
+                  </div>
+                  <p className="mt-0.5">{event.text}</p>
+                  {event.comment && (
+                    <div className="mt-1 p-1.5 rounded bg-muted/50 text-muted-foreground italic text-[11px]">
+                      "{event.comment}"
+                    </div>
+                  )}
+                  {hasDetails && isExpanded && (
+                    <AuditEventDetailView details={event.details!} type={event.type} />
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
           {hasMore && (
             <div className="pt-1 pb-2 text-center">
               <Button
@@ -339,140 +410,102 @@ export default function CaseDetailPage() {
       {effectiveTab === 'summary' && (
         <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
           <div className="space-y-4">
-            {/* Risk overview cards */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <Card className="p-3">
-                <span className="text-[11px] text-muted-foreground">Risk Rating</span>
-                <div className={`text-lg font-bold mt-0.5 ${
+            {/* Combined risk & resolution strip */}
+            <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
+              <Card className="p-2.5 text-center col-span-1">
+                <span className="text-[10px] text-muted-foreground block">Rating</span>
+                <div className={`text-base font-bold ${
                   caseData.rating === 'High' ? 'text-destructive'
                   : caseData.rating === 'Medium' ? 'text-amber-600'
                   : 'text-foreground'
                 }`}>{caseData.rating}</div>
               </Card>
-              <Card className="p-3">
-                <span className="text-[11px] text-muted-foreground">WC Matches</span>
-                <div className="text-lg font-bold mt-0.5">{wcMatches}</div>
-                {highRiskMatches > 0 && <span className="text-[10px] text-destructive">{highRiskMatches} high risk</span>}
+              <Card className="p-2.5 text-center col-span-1">
+                <span className="text-[10px] text-muted-foreground block">Matches</span>
+                <div className="text-base font-bold">{wcMatches}</div>
+                {highRiskMatches > 0 && <span className="text-[9px] text-destructive">{highRiskMatches} high</span>}
               </Card>
-              <Card className="p-3">
-                <span className="text-[11px] text-muted-foreground">Unresolved</span>
-                <div className="text-lg font-bold mt-0.5 status-unresolved">{caseData.unresolvedCount}</div>
-              </Card>
-              <Card className="p-3">
-                <span className="text-[11px] text-muted-foreground">Last Screened</span>
-                <div className="text-sm font-semibold mt-1">{caseData.lastScreenedAt}</div>
-              </Card>
+              {([
+                { label: 'Unres.', count: caseData.unresolvedCount, cls: 'status-unresolved' },
+                { label: 'Pos.', count: caseData.positiveCount, cls: 'status-positive' },
+                { label: 'Poss.', count: caseData.possibleCount, cls: 'status-possible' },
+                { label: 'False', count: caseData.falseCount, cls: 'status-false' },
+                { label: 'Unk.', count: caseData.unknownCount, cls: 'status-unknown' },
+              ] as const).map(b => (
+                <Card key={b.label} className="p-2.5 text-center col-span-1">
+                  <span className="text-[10px] text-muted-foreground block">{b.label}</span>
+                  <div className={`text-base font-bold ${b.cls}`}>{b.count}</div>
+                </Card>
+              ))}
             </div>
 
-            {/* Resolution buckets */}
-            <Card className="p-4">
-              <h3 className="text-sm font-semibold mb-3">Resolution Status</h3>
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
-                {([
-                  { label: 'Unresolved', count: caseData.unresolvedCount, cls: 'status-unresolved' },
-                  { label: 'Positive', count: caseData.positiveCount, cls: 'status-positive' },
-                  { label: 'Possible', count: caseData.possibleCount, cls: 'status-possible' },
-                  { label: 'False', count: caseData.falseCount, cls: 'status-false' },
-                  { label: 'Unknown', count: caseData.unknownCount, cls: 'status-unknown' },
-                ] as const).map(b => (
-                  <div key={b.label} className="text-center p-2 rounded-md bg-muted/50">
-                    <div className={`text-xl font-bold ${b.cls}`}>{b.count}</div>
-                    <span className="text-muted-foreground">{b.label}</span>
-                  </div>
-                ))}
-              </div>
-            </Card>
-
-            {/* Screening Data */}
+            {/* Screening Data & Identifiers */}
             <Card className="p-4">
               <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
-                <FileText className="h-3.5 w-3.5" /> Screening Data & Identifiers
+                <FileText className="h-3.5 w-3.5" /> Screening Data
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2.5 text-xs">
-                {sd.dob && <div><span className="text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> Date of Birth</span><span className="font-medium block mt-0.5">{sd.dob}</span></div>}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-6 gap-y-2.5 text-xs">
+                {sd.dob && <div><span className="text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> DOB</span><span className="font-medium block mt-0.5">{sd.dob}</span></div>}
                 {sd.gender && <div><span className="text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Gender</span><span className="font-medium block mt-0.5">{sd.gender}</span></div>}
                 {sd.nationality && <div><span className="text-muted-foreground">Nationality</span><span className="font-medium block mt-0.5">{sd.nationality}</span></div>}
                 {sd.country && <div><span className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Country</span><span className="font-medium block mt-0.5">{sd.country}</span></div>}
               </div>
               {(sd.idType || sd.secondaryIdType) && (
-                <div className="mt-3 pt-3 border-t">
-                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Identification</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-2 text-xs">
-                    {sd.idType && (
-                      <div className="flex items-start gap-2 p-2 rounded-md bg-muted/50">
-                        <Hash className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                        <div><span className="text-muted-foreground text-[11px]">Primary — {sd.idType}</span><span className="font-medium font-mono block">{sd.idNumber || '—'}</span></div>
-                      </div>
-                    )}
-                    {sd.secondaryIdType && (
-                      <div className="flex items-start gap-2 p-2 rounded-md bg-muted/50">
-                        <Hash className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                        <div><span className="text-muted-foreground text-[11px]">Secondary — {sd.secondaryIdType}</span><span className="font-medium font-mono block">{sd.secondaryIdNumber || '—'}</span></div>
-                      </div>
-                    )}
-                  </div>
+                <div className="mt-3 pt-3 border-t grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                  {sd.idType && (
+                    <div className="flex items-start gap-2 p-2 rounded-md bg-muted/50">
+                      <Hash className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div><span className="text-muted-foreground text-[11px]">{sd.idType}</span><span className="font-medium font-mono block">{sd.idNumber || '—'}</span></div>
+                    </div>
+                  )}
+                  {sd.secondaryIdType && (
+                    <div className="flex items-start gap-2 p-2 rounded-md bg-muted/50">
+                      <Hash className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
+                      <div><span className="text-muted-foreground text-[11px]">{sd.secondaryIdType}</span><span className="font-medium font-mono block">{sd.secondaryIdNumber || '—'}</span></div>
+                    </div>
+                  )}
                 </div>
               )}
               {sd.customFields && Object.keys(sd.customFields).length > 0 && (
-                <div className="mt-3 pt-3 border-t">
-                  <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Custom Fields</span>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 mt-2 text-xs">
-                    {Object.entries(sd.customFields).map(([key, val]) => (
-                      <div key={key}><span className="text-muted-foreground">{key}</span><span className="font-medium block mt-0.5">{val}</span></div>
-                    ))}
-                  </div>
+                <div className="mt-3 pt-3 border-t grid grid-cols-2 sm:grid-cols-3 gap-x-6 gap-y-2 text-xs">
+                  {Object.entries(sd.customFields).map(([key, val]) => (
+                    <div key={key}><span className="text-muted-foreground">{key}</span><span className="font-medium block mt-0.5">{val}</span></div>
+                  ))}
                 </div>
               )}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 pt-3 border-t text-[11px] text-muted-foreground">
                 <span>Created: {caseData.createdAt}</span>
+                <span>Screened: {caseData.lastScreenedAt}</span>
                 <span>Mode: {caseData.mode}</span>
-                <span>OGS Freq: {group?.ongoingFrequency || '—'}</span>
+                <span>OGS: {caseData.ogsEnabled ? group?.ongoingFrequency : 'Off'}</span>
               </div>
             </Card>
 
-            {/* Check type summary cards */}
-            <Card className="p-4">
-              <h3 className="text-sm font-semibold mb-3">Active Checks</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                {caseData.checkTypes.map(ct => (
-                  <button
-                    key={ct}
-                    onClick={() => setActiveTab(ct)}
-                    className="flex items-center justify-between p-3 rounded-md border bg-background hover:bg-muted/50 transition-colors text-left"
-                  >
-                    <div className="flex items-center gap-2">
-                      {checkTypeIcons[ct]}
-                      <div>
-                        <span className="text-sm font-medium">{ct}</span>
-                        {ct === 'World-Check' && <span className="text-[11px] text-muted-foreground block">{wcMatches} matches</span>}
-                        {ct === 'Media Check' && mediaResult && <span className="text-[11px] text-muted-foreground block">{mediaResult.totalArticles} articles</span>}
-                        {ct === 'Passport Check' && passportResult && (
-                          <span className={`text-[11px] block ${passportResult.verificationStatus === 'verified' ? 'status-positive' : 'status-unresolved'}`}>
-                            {passportResult.verificationStatus === 'verified' ? 'Verified' : 'Pending'}
-                          </span>
-                        )}
-                      </div>
+            {/* Active Checks - compact row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {caseData.checkTypes.map(ct => (
+                <button
+                  key={ct}
+                  onClick={() => setActiveTab(ct)}
+                  className="flex items-center justify-between p-3 rounded-md border bg-card hover:bg-muted/50 transition-colors text-left"
+                >
+                  <div className="flex items-center gap-2">
+                    {checkTypeIcons[ct]}
+                    <div>
+                      <span className="text-sm font-medium">{ct}</span>
+                      {ct === 'World-Check' && <span className="text-[11px] text-muted-foreground block">{wcMatches} matches</span>}
+                      {ct === 'Media Check' && mediaResult && <span className="text-[11px] text-muted-foreground block">{mediaResult.totalArticles} articles</span>}
+                      {ct === 'Passport Check' && passportResult && (
+                        <span className={`text-[11px] block ${passportResult.verificationStatus === 'verified' ? 'status-positive' : 'status-unresolved'}`}>
+                          {passportResult.verificationStatus === 'verified' ? 'Verified' : 'Pending'}
+                        </span>
+                      )}
                     </div>
-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                ))}
-              </div>
-            </Card>
-
-            {/* Case metadata */}
-            <Card className="p-4">
-              <h3 className="text-sm font-semibold mb-3">Case Details</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8 text-xs">
-                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Case ID</span><span className="font-mono font-medium">{caseData.id}</span></div>
-                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Group</span><span className="font-medium">{group?.name || '—'}</span></div>
-                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Assignee</span><span className="font-medium">{caseData.assignee}</span></div>
-                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Entity Type</span><span className="font-medium">{caseData.entityType}</span></div>
-                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">OGS</span><span className="font-medium">{caseData.ogsEnabled ? `Active (${group?.ongoingFrequency})` : 'Disabled'}</span></div>
-                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Created</span><span className="font-medium">{caseData.createdAt}</span></div>
-                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Last Screened</span><span className="font-medium">{caseData.lastScreenedAt}</span></div>
-                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Status</span><span className="font-medium">{caseData.status}</span></div>
-              </div>
-            </Card>
+                  </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </button>
+              ))}
+            </div>
           </div>
 
           {/* Audit panel */}

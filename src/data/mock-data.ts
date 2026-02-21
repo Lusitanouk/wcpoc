@@ -1,4 +1,4 @@
-import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult, CaseNote, CaseAuditEvent, AuditEventType } from '@/types';
+import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult, CaseNote, CaseAuditEvent, AuditEventType, AuditMatchDetail, AuditEventDetails } from '@/types';
 import { computePriorityScore, priorityLevel } from '@/lib/priority';
 
 export const groups: Group[] = [
@@ -65,9 +65,37 @@ const auditEventTemplates: { type: AuditEventType; text: string }[] = [
   { type: 'assign', text: 'Reassigned from {analyst} to {analyst2}' },
 ];
 
+function generateScreeningDetails(): AuditEventDetails {
+  const matchCount = randInt(2, 6);
+  const actions: AuditMatchDetail['action'][] = ['new', 'updated', 'auto_remediated', 'no_change'];
+  const matchDetails: AuditMatchDetail[] = Array.from({ length: matchCount }, (_, i) => ({
+    matchId: `WC-M${i + 1}`,
+    matchedName: rand(names),
+    strength: randInt(30, 99),
+    status: rand(statuses),
+    action: rand(actions),
+    dataset: rand(datasets as unknown as string[]),
+  }));
+  return {
+    matchesFound: matchCount,
+    matchesUpdated: matchDetails.filter(m => m.action === 'updated').length,
+    matchesAutoRemediated: matchDetails.filter(m => m.action === 'auto_remediated').length,
+    matchDetails,
+  };
+}
+
+function generateEditDetails(): AuditEventDetails {
+  const field = rand(changeFields);
+  return {
+    fieldChanged: field,
+    previousValue: rand(['Active', 'PEP Class 1', 'US', 'None']),
+    newValue: rand(['Inactive', 'PEP Class 2', 'RU', 'Listed']),
+  };
+}
+
 function generateAuditTrail(caseId: string, createdAt: string): CaseAuditEvent[] {
   const events: CaseAuditEvent[] = [
-    { id: `${caseId}-audit-0`, type: 'created', author: 'System', text: 'Case created and initial screening completed', createdAt },
+    { id: `${caseId}-audit-0`, type: 'created', author: 'System', text: 'Case created and initial screening completed', details: generateScreeningDetails(), createdAt },
   ];
   const count = randInt(15, 60);
   for (let i = 1; i <= count; i++) {
@@ -75,12 +103,17 @@ function generateAuditTrail(caseId: string, createdAt: string): CaseAuditEvent[]
     const author = tmpl.type === 'rescreen' ? 'System' : rand(analysts.filter(a => a !== 'Unassigned'));
     let text = tmpl.text.replace('{analyst}', rand(analysts.filter(a => a !== 'Unassigned'))).replace('{analyst2}', rand(analysts.filter(a => a !== 'Unassigned')));
     const hasComment = Math.random() > 0.6;
+    let details: AuditEventDetails | undefined;
+    if (tmpl.type === 'rescreen') details = generateScreeningDetails();
+    else if (tmpl.type === 'edit') details = generateEditDetails();
+    else if (tmpl.type === 'status_change') details = { fieldChanged: 'Status', previousValue: rand(statuses), newValue: rand(statuses) };
     events.push({
       id: `${caseId}-audit-${i}`,
       type: tmpl.type,
       author,
       text,
       comment: hasComment ? rand(noteTexts) : undefined,
+      details,
       createdAt: randDate(createdAt, '2025-02-20'),
     });
   }
