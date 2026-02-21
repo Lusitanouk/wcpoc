@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -71,6 +72,7 @@ function strengthColor(s: number) {
 const BUCKETS: MatchStatus[] = ['Unresolved', 'Positive', 'Possible', 'False', 'Unknown'];
 
 export function ResultsView({ matches, caseName, caseId, screeningData }: ResultsViewProps) {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -618,68 +620,74 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             </table>
           </div>
 
-          {/* Resolution: Status | Risk Level | Reason + Comment */}
-          <div className="flex gap-4 items-start">
-            <div className="space-y-1.5 shrink-0">
-              <Label className="text-xs">Status</Label>
-              <div className="flex flex-col gap-1">
-                {(['Positive', 'Possible', 'False', 'Unknown', 'Unresolved'] as MatchStatus[]).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setBulkStatus(s)}
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
-                      bulkStatus === s
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
-                    }`}
-                  >
-                    {s}
-                  </button>
-                ))}
+          {/* Resolution controls — matches MatchDrawer disposition */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">{t('match.resolution')}</h4>
+            <div className="flex gap-4 items-start">
+              <div className="space-y-1.5 shrink-0">
+                <Label className="text-xs">{t('match.status')}</Label>
+                <div className="flex flex-col gap-1">
+                  {(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setBulkStatus(s)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                        bulkStatus === s
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {t(`match.${s.toLowerCase()}`)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="space-y-1.5 shrink-0">
-              <Label className="text-xs">Risk Level</Label>
-              <div className="flex flex-col gap-1">
-                {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setBulkRisk(r)}
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
-                      bulkRisk === r
-                        ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
-                          : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
-                          : 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
-                    }`}
-                  >
-                    {r}
-                  </button>
-                ))}
+              <div className="space-y-1.5 shrink-0">
+                <Label className="text-xs">{t('match.riskLevel')}</Label>
+                <div className="flex flex-col gap-1">
+                  {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setBulkRisk(r)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                        bulkRisk === r
+                          ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
+                            : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
+                            : 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {t(`match.${r.toLowerCase()}`)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="flex-1 min-w-0 space-y-3">
-              <div className="space-y-1.5">
-                <Label className="text-xs">Reason (required)</Label>
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <Label className="text-xs">{t('match.reason')}</Label>
                 <Textarea
                   value={bulkReason}
                   onChange={e => setBulkReason(e.target.value)}
-                  rows={2}
-                  placeholder="Reason for bulk resolution..."
-                  className="text-xs resize-none"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">Comment (optional)</Label>
-                <Textarea
-                  value={bulkComment}
-                  onChange={e => setBulkComment(e.target.value)}
-                  rows={2}
-                  placeholder="Additional comment..."
+                  rows={3}
+                  placeholder={t('match.resolutionReason')}
                   className="text-xs resize-none"
                 />
               </div>
             </div>
+          </div>
+
+          {/* Divider */}
+          <div className="border-t" />
+
+          {/* Review comment — matches MatchDrawer */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">{t('match.reviewComment')}</h4>
+            <Textarea
+              value={bulkComment}
+              onChange={e => setBulkComment(e.target.value)}
+              rows={2}
+              placeholder={t('match.optionalComment')}
+              className="text-xs resize-none"
+            />
           </div>
 
           <DialogFooter>
