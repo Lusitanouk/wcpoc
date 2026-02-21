@@ -488,74 +488,76 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
           </div>
         </div>
 
-        {/* Resolution Controls — in fullscreen this is a right sidebar */}
-        <div className={`p-6 space-y-4 ${isFullscreen ? 'overflow-y-auto' : ''}`}>
-          <h4 className="text-sm font-semibold">
-            {match.status === 'Unresolved' ? t('match.resolution') : t('match.updateResolution')}
-          </h4>
-
-          {/* Resolution: Status | Risk Level | Reason + Comment */}
-          <div className="flex gap-4 items-start">
-            <div className="space-y-1.5 shrink-0">
-              <Label className="text-xs">{t('match.status')}</Label>
-              <div className="flex flex-col gap-1">
-                {(['Positive', 'Possible', 'False', 'Unknown', 'Unresolved'] as MatchStatus[]).map(s => (
-                  <button
-                    key={s}
-                    onClick={() => setStatus(s)}
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
-                      status === s
-                        ? 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
-                    }`}
-                  >
-                    {t(`match.${s.toLowerCase()}`)}
-                  </button>
-                ))}
+        {/* Resolution & Review Controls — in fullscreen this is a right sidebar */}
+        <div className={`p-6 space-y-6 ${isFullscreen ? 'overflow-y-auto' : ''}`}>
+          {/* ── Section 1: Resolve ── */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">{t('match.resolution')}</h4>
+            <div className="flex gap-4 items-start">
+              <div className="space-y-1.5 shrink-0">
+                <Label className="text-xs">{t('match.status')}</Label>
+                <div className="flex flex-col gap-1">
+                  {(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setStatus(s)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                        status === s
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {t(`match.${s.toLowerCase()}`)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="space-y-1.5 shrink-0">
-              <Label className="text-xs">{t('match.riskLevel')}</Label>
-              <div className="flex flex-col gap-1">
-                {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
-                  <button
-                    key={r}
-                    onClick={() => setRisk(r)}
-                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
-                      risk === r
-                        ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
-                          : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
-                          : 'bg-primary text-primary-foreground border-primary'
-                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
-                    }`}
-                  >
-                    {t(`match.${r.toLowerCase()}`)}
-                  </button>
-                ))}
+              <div className="space-y-1.5 shrink-0">
+                <Label className="text-xs">{t('match.riskLevel')}</Label>
+                <div className="flex flex-col gap-1">
+                  {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setRisk(r)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                        risk === r
+                          ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
+                            : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
+                            : 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {t(`match.${r.toLowerCase()}`)}
+                    </button>
+                  ))}
+                </div>
               </div>
-            </div>
-            <div className="flex-1 min-w-0 space-y-3">
-              <div className="space-y-1.5">
+              <div className="flex-1 min-w-0 space-y-1.5">
                 <Label className="text-xs">{t('match.reason')}</Label>
                 <Textarea
                   value={reason}
                   onChange={e => setReason(e.target.value)}
-                  rows={2}
+                  rows={3}
                   placeholder={t('match.resolutionReason')}
                   className="text-xs resize-none"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="text-xs">{t('match.reviewComment')}</Label>
-                <Textarea
-                  value={comment}
-                  onChange={e => setComment(e.target.value)}
-                  rows={2}
-                  placeholder={t('match.optionalComment')}
-                  className="text-xs resize-none"
-                />
-              </div>
             </div>
+          </div>
+
+          {/* ── Divider ── */}
+          <div className="border-t" />
+
+          {/* ── Section 2: Review ── */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">{t('match.reviewComment')}</h4>
+            <Textarea
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              rows={2}
+              placeholder={t('match.optionalComment')}
+              className="text-xs resize-none"
+            />
           </div>
 
           <Button onClick={handleSave} className="w-full">{t('match.saveResolution')}</Button>
