@@ -109,7 +109,11 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
   const handleBucketChange = (bucket: MatchStatus) => {
     setActiveBucket(bucket);
     setSelectedIds(new Set());
-    setSearchParams({ bucket: bucket.toLowerCase() }, { replace: true });
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      next.set('bucket', bucket.toLowerCase());
+      return next;
+    }, { replace: true });
   };
 
   const filteredMatches = useMemo(() => {
