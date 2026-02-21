@@ -1,15 +1,19 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
 import { MatchDrawer } from './MatchDrawer';
 import { priorityColor } from '@/lib/priority';
-import type { Match, CheckType, MatchStatus, Dataset } from '@/types';
+import type { Match, CheckType, MatchStatus, Dataset, RiskLevel } from '@/types';
 
 interface ResultsViewProps {
   matches: Match[];
@@ -67,6 +71,14 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
   const [filterDataset, setFilterDataset] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
 
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDialog, setBulkDialog] = useState<'resolve' | 'review' | null>(null);
+  const [bulkStatus, setBulkStatus] = useState<MatchStatus>('False');
+  const [bulkRisk, setBulkRisk] = useState<RiskLevel>('None');
+  const [bulkReason, setBulkReason] = useState('');
+  const [bulkComment, setBulkComment] = useState('');
+
   // Bucket counts
   const bucketCounts = useMemo(() => {
     const counts: Record<MatchStatus, number> = { Unresolved: 0, Positive: 0, Possible: 0, False: 0, Unknown: 0 };
@@ -80,7 +92,6 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
     return map;
   }, [matches]);
 
-  // Default bucket from URL or auto-detect
   const defaultBucket = useMemo(() => {
     const param = searchParams.get('bucket');
     if (param) {
@@ -96,6 +107,7 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
 
   const handleBucketChange = (bucket: MatchStatus) => {
     setActiveBucket(bucket);
+    setSelectedIds(new Set());
     setSearchParams({ bucket: bucket.toLowerCase() }, { replace: true });
   };
 
@@ -128,6 +140,61 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
     setSelectedMatch(updated);
   };
 
+  // Bulk selection helpers
+  const allSelected = filteredMatches.length > 0 && filteredMatches.every(m => selectedIds.has(m.id));
+  const someSelected = filteredMatches.some(m => selectedIds.has(m.id));
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(filteredMatches.map(m => m.id)));
+    }
+  };
+
+  const toggleOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const selectedCount = selectedIds.size;
+  const selectedMatches = filteredMatches.filter(m => selectedIds.has(m.id));
+
+  const openBulkDialog = (type: 'resolve' | 'review') => {
+    setBulkStatus('False');
+    setBulkRisk('None');
+    setBulkReason('');
+    setBulkComment('');
+    setBulkDialog(type);
+  };
+
+  const handleBulkResolve = () => {
+    // In a real app this would persist; here we just close
+    setBulkDialog(null);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkReview = () => {
+    setBulkDialog(null);
+    setSelectedIds(new Set());
+  };
+
+  // Summary of selected for dialog
+  const selectionSummary = useMemo(() => {
+    const byDataset: Record<string, number> = {};
+    const byPriority: Record<string, number> = {};
+    let reviewCount = 0;
+    selectedMatches.forEach(m => {
+      byDataset[m.dataset] = (byDataset[m.dataset] || 0) + 1;
+      byPriority[m.priorityLevel] = (byPriority[m.priorityLevel] || 0) + 1;
+      if (m.reviewRequired) reviewCount++;
+    });
+    return { byDataset, byPriority, reviewCount };
+  }, [selectedMatches]);
+
   return (
     <div>
       {/* Case Header */}
@@ -145,7 +212,7 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-6 gap-3 mb-6">
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
         <SummaryCard label="Total Matches" value={total} />
         <SummaryCard label="Unresolved" value={unresolved} accent="text-status-unresolved" />
         <SummaryCard label="Review Required" value={reviewReq} accent="text-status-possible" />
@@ -167,7 +234,7 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
             }`}
           >
             {bucketIcons[bucket]}
-            {bucket}
+            <span className="hidden sm:inline">{bucket}</span>
             <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-[10px]">
               {bucketCounts[bucket]}
             </Badge>
@@ -178,13 +245,32 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
         ))}
       </div>
 
-      {/* Filters */}
-      <div className="flex items-center justify-end mb-4">
+      {/* Bulk Action Bar + Filters */}
+      <div className="flex items-center justify-between mb-4 gap-2">
+        {selectedCount > 0 ? (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 flex-1 animate-fade-in">
+            <CheckSquare className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{selectedCount} selected</span>
+            <div className="flex gap-1.5 ml-2">
+              <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
+                <Check className="h-3 w-3" /> Bulk Resolve
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
+                <Eye className="h-3 w-3" /> Mark Reviewed
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div />
+        )}
         <Button
           variant={showFilters ? 'secondary' : 'outline'}
           size="sm"
           onClick={() => setShowFilters(!showFilters)}
-          className="gap-1"
+          className="gap-1 shrink-0"
         >
           <Filter className="h-3.5 w-3.5" />
           Filters
@@ -198,7 +284,7 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
       {showFilters && (
         <Card className="mb-4 animate-fade-in">
           <CardContent className="pt-4 pb-4">
-            <div className="grid grid-cols-4 gap-4 items-end">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-end">
               <div className="space-y-2">
                 <label className="text-xs font-medium text-muted-foreground">Min Match Strength</label>
                 <div className="flex items-center gap-2">
@@ -255,6 +341,15 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
+                <th className="px-3 py-3 w-10">
+                  <Checkbox
+                    checked={allSelected}
+                    onCheckedChange={toggleAll}
+                    aria-label="Select all"
+                    className="h-4 w-4"
+                    {...(someSelected && !allSelected ? { 'data-state': 'indeterminate' } : {})}
+                  />
+                </th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Matched Name / Alias</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">Priority</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground w-32">Strength</th>
@@ -266,101 +361,111 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
             <tbody>
               {filteredMatches.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
                     No matches in this bucket for the current filters.
                   </td>
                 </tr>
               ) : (
-                filteredMatches.map(m => (
-                  <HoverCard key={m.id} openDelay={300} closeDelay={100}>
-                    <HoverCardTrigger asChild>
-                      <tr
-                        onClick={() => openMatch(m)}
-                        className={`border-b cursor-pointer transition-colors hover:bg-muted/30 ${
-                          m.reviewRequired ? 'bg-status-possible/5' : ''
-                        }`}
-                        tabIndex={0}
-                        onKeyDown={e => e.key === 'Enter' && openMatch(m)}
-                      >
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium">{m.matchedName}</span>
-                            {m.updated && (
-                              <Badge variant="secondary" className="text-[10px] bg-status-possible/15 text-status-possible border-0">
-                                Updated
-                              </Badge>
-                            )}
-                            {m.reviewRequired && (
-                              <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />
-                            )}
-                          </div>
-                          {m.aliases.length > 0 && (
-                            <p className="text-xs text-muted-foreground mt-0.5">
-                              aka: {m.aliases.slice(0, 2).join(', ')}
-                            </p>
-                          )}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>
-                            {m.priorityLevel}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                              <div
-                                className={`h-full rounded-full ${strengthColor(m.strength)}`}
-                                style={{ width: `${m.strength}%` }}
-                              />
+                filteredMatches.map(m => {
+                  const isSelected = selectedIds.has(m.id);
+                  return (
+                    <HoverCard key={m.id} openDelay={300} closeDelay={100}>
+                      <HoverCardTrigger asChild>
+                        <tr
+                          className={`border-b cursor-pointer transition-colors hover:bg-muted/30 ${
+                            m.reviewRequired ? 'bg-status-possible/5' : ''
+                          } ${isSelected ? 'bg-primary/5' : ''}`}
+                          tabIndex={0}
+                          onKeyDown={e => e.key === 'Enter' && openMatch(m)}
+                        >
+                          <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                            <Checkbox
+                              checked={isSelected}
+                              onCheckedChange={() => toggleOne(m.id)}
+                              aria-label={`Select ${m.matchedName}`}
+                              className="h-4 w-4"
+                            />
+                          </td>
+                          <td className="px-4 py-3" onClick={() => openMatch(m)}>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{m.matchedName}</span>
+                              {m.updated && (
+                                <Badge variant="secondary" className="text-[10px] bg-status-possible/15 text-status-possible border-0">
+                                  Updated
+                                </Badge>
+                              )}
+                              {m.reviewRequired && (
+                                <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />
+                              )}
                             </div>
-                            <span className="text-xs font-mono">{m.strength}%</span>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[10px] border-0`}>
-                            {m.dataset}
-                          </Badge>
-                        </td>
-                        <td className="px-4 py-3 text-xs text-muted-foreground">
-                          {[m.identifiers.nationality, m.identifiers.dob, m.identifiers.gender]
-                            .filter(Boolean)
-                            .join(' · ') || '—'}
-                        </td>
-                        <td className="px-4 py-3">
-                          <Eye className="h-4 w-4 text-muted-foreground" />
-                        </td>
-                      </tr>
-                    </HoverCardTrigger>
-                    <HoverCardContent side="left" className="w-72 p-3">
-                      <p className="text-xs font-semibold mb-2">Why it matched</p>
-                      <ul className="space-y-1 mb-2">
-                        {m.whyMatched.map((wf, i) => (
-                          <li key={i} className="flex items-center gap-1.5 text-xs">
-                            {fieldResultIcon(wf.result)}
-                            <span className="text-muted-foreground">{wf.field}:</span>
-                            <span>{wf.detail}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      <p className="text-[10px] text-muted-foreground italic">{m.matchStrengthExplanation}</p>
-                      <div className="flex flex-wrap gap-1 mt-2">
-                        {m.whyMatched.map((wf, i) => (
-                          <Badge key={i} variant="secondary" className="text-[10px]">{wf.field}</Badge>
-                        ))}
-                      </div>
-                      {m.reviewRequired && m.changeLog.length > 0 && (
-                        <div className="mt-3 pt-2 border-t">
-                          <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
-                          {m.changeLog.slice(0, 2).map((cl, i) => (
-                            <p key={i} className="text-[10px] text-muted-foreground">
-                              {cl.field}: {cl.from} → {cl.to}
-                            </p>
+                            {m.aliases.length > 0 && (
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                aka: {m.aliases.slice(0, 2).join(', ')}
+                              </p>
+                            )}
+                          </td>
+                          <td className="px-4 py-3" onClick={() => openMatch(m)}>
+                            <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>
+                              {m.priorityLevel}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3" onClick={() => openMatch(m)}>
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                                <div
+                                  className={`h-full rounded-full ${strengthColor(m.strength)}`}
+                                  style={{ width: `${m.strength}%` }}
+                                />
+                              </div>
+                              <span className="text-xs font-mono">{m.strength}%</span>
+                            </div>
+                          </td>
+                          <td className="px-4 py-3" onClick={() => openMatch(m)}>
+                            <Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[10px] border-0`}>
+                              {m.dataset}
+                            </Badge>
+                          </td>
+                          <td className="px-4 py-3 text-xs text-muted-foreground" onClick={() => openMatch(m)}>
+                            {[m.identifiers.nationality, m.identifiers.dob, m.identifiers.gender]
+                              .filter(Boolean)
+                              .join(' · ') || '—'}
+                          </td>
+                          <td className="px-4 py-3" onClick={() => openMatch(m)}>
+                            <Eye className="h-4 w-4 text-muted-foreground" />
+                          </td>
+                        </tr>
+                      </HoverCardTrigger>
+                      <HoverCardContent side="left" className="w-72 p-3">
+                        <p className="text-xs font-semibold mb-2">Why it matched</p>
+                        <ul className="space-y-1 mb-2">
+                          {m.whyMatched.map((wf, i) => (
+                            <li key={i} className="flex items-center gap-1.5 text-xs">
+                              {fieldResultIcon(wf.result)}
+                              <span className="text-muted-foreground">{wf.field}:</span>
+                              <span>{wf.detail}</span>
+                            </li>
+                          ))}
+                        </ul>
+                        <p className="text-[10px] text-muted-foreground italic">{m.matchStrengthExplanation}</p>
+                        <div className="flex flex-wrap gap-1 mt-2">
+                          {m.whyMatched.map((wf, i) => (
+                            <Badge key={i} variant="secondary" className="text-[10px]">{wf.field}</Badge>
                           ))}
                         </div>
-                      )}
-                    </HoverCardContent>
-                  </HoverCard>
-                ))
+                        {m.reviewRequired && m.changeLog.length > 0 && (
+                          <div className="mt-3 pt-2 border-t">
+                            <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
+                            {m.changeLog.slice(0, 2).map((cl, i) => (
+                              <p key={i} className="text-[10px] text-muted-foreground">
+                                {cl.field}: {cl.from} → {cl.to}
+                              </p>
+                            ))}
+                          </div>
+                        )}
+                      </HoverCardContent>
+                    </HoverCard>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -375,6 +480,180 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
         caseName={caseName}
         onUpdate={onUpdateMatch}
       />
+
+      {/* Bulk Resolve Dialog */}
+      <Dialog open={bulkDialog === 'resolve'} onOpenChange={v => !v && setBulkDialog(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Bulk Resolve — {selectedCount} Matches</DialogTitle>
+            <DialogDescription>Apply the same resolution status to all selected matches.</DialogDescription>
+          </DialogHeader>
+
+          {/* Selection summary */}
+          <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(selectionSummary.byDataset).map(([ds, count]) => (
+                <Badge key={ds} variant="secondary" className="text-[10px]">{ds}: {count}</Badge>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(selectionSummary.byPriority).map(([p, count]) => (
+                <Badge key={p} variant="outline" className="text-[10px]">{p} priority: {count}</Badge>
+              ))}
+            </div>
+            {selectionSummary.reviewCount > 0 && (
+              <div className="flex items-center gap-1 text-status-possible">
+                <AlertTriangle className="h-3 w-3" />
+                <span>{selectionSummary.reviewCount} require review</span>
+              </div>
+            )}
+          </div>
+
+          {/* Matches being resolved */}
+          <div className="max-h-40 overflow-y-auto border rounded-md">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b bg-muted/50 sticky top-0">
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Strength</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Dataset</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Current</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedMatches.map(m => (
+                  <tr key={m.id} className="border-b">
+                    <td className="px-3 py-1.5 font-medium">{m.matchedName}</td>
+                    <td className="px-3 py-1.5 font-mono">{m.strength}%</td>
+                    <td className="px-3 py-1.5"><Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[9px] border-0`}>{m.dataset}</Badge></td>
+                    <td className="px-3 py-1.5 text-muted-foreground">{m.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label className="text-xs">New Status</Label>
+              <Select value={bulkStatus} onValueChange={v => setBulkStatus(v as MatchStatus)}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Positive">Positive</SelectItem>
+                  <SelectItem value="Possible">Possible</SelectItem>
+                  <SelectItem value="False">False</SelectItem>
+                  <SelectItem value="Unknown">Unknown</SelectItem>
+                  <SelectItem value="Unresolved">Unresolved</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label className="text-xs">Risk Level</Label>
+              <Select value={bulkRisk} onValueChange={v => setBulkRisk(v as RiskLevel)}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="High">High</SelectItem>
+                  <SelectItem value="Medium">Medium</SelectItem>
+                  <SelectItem value="Low">Low</SelectItem>
+                  <SelectItem value="None">None</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Reason (required)</Label>
+            <Textarea
+              value={bulkReason}
+              onChange={e => setBulkReason(e.target.value)}
+              rows={2}
+              placeholder="Reason for bulk resolution..."
+              className="text-xs resize-none"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Comment (optional)</Label>
+            <Textarea
+              value={bulkComment}
+              onChange={e => setBulkComment(e.target.value)}
+              rows={2}
+              placeholder="Additional comment..."
+              className="text-xs resize-none"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
+            <Button size="sm" disabled={!bulkReason.trim()} onClick={handleBulkResolve}>
+              Resolve {selectedCount} Matches
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Review Dialog */}
+      <Dialog open={bulkDialog === 'review'} onOpenChange={v => !v && setBulkDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark as Reviewed — {selectedCount} Matches</DialogTitle>
+            <DialogDescription>Confirm that the selected matches have been reviewed. Their status will remain unchanged.</DialogDescription>
+          </DialogHeader>
+
+          <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(selectionSummary.byDataset).map(([ds, count]) => (
+                <Badge key={ds} variant="secondary" className="text-[10px]">{ds}: {count}</Badge>
+              ))}
+            </div>
+            {selectionSummary.reviewCount > 0 && (
+              <div className="flex items-center gap-1 text-status-possible">
+                <AlertTriangle className="h-3 w-3" />
+                <span>{selectionSummary.reviewCount} flagged for review</span>
+              </div>
+            )}
+          </div>
+
+          <div className="max-h-32 overflow-y-auto border rounded-md">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b bg-muted/50 sticky top-0">
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Strength</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedMatches.map(m => (
+                  <tr key={m.id} className="border-b">
+                    <td className="px-3 py-1.5 font-medium">{m.matchedName}</td>
+                    <td className="px-3 py-1.5 font-mono">{m.strength}%</td>
+                    <td className="px-3 py-1.5 text-muted-foreground">{m.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Review Comment (optional)</Label>
+            <Textarea
+              value={bulkComment}
+              onChange={e => setBulkComment(e.target.value)}
+              rows={2}
+              placeholder="Review notes..."
+              className="text-xs resize-none"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
+            <Button size="sm" onClick={handleBulkReview}>
+              Confirm Reviewed
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
