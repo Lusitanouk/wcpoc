@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, Download, FileText } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,8 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { MatchDrawer } from './MatchDrawer';
 import { priorityColor } from '@/lib/priority';
 import type { Match, CheckType, MatchStatus, Dataset, RiskLevel, CaseScreeningData } from '@/types';
+import { exportMatchesToCsv } from '@/lib/export';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface ResultsViewProps {
   matches: Match[];
@@ -285,24 +287,41 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
         })()}
       </div>
 
-      {/* Bulk Action Bar (only when items selected) */}
-      {selectedCount > 0 && (
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 mb-4 animate-fade-in">
-          <CheckSquare className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">{selectedCount} selected</span>
-          <div className="flex gap-1.5 ml-2">
-            <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
-              <Check className="h-3 w-3" /> Bulk Resolve
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
-              <Eye className="h-3 w-3" /> Mark Reviewed
-            </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
-              <X className="h-3 w-3" />
-            </Button>
+      {/* Bulk Action Bar / Export */}
+      <div className="flex items-center justify-between mb-4 gap-2">
+        {selectedCount > 0 ? (
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 flex-1 animate-fade-in">
+            <CheckSquare className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{selectedCount} selected</span>
+            <div className="flex gap-1.5 ml-2">
+              <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
+                <Check className="h-3 w-3" /> Bulk Resolve
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
+                <Eye className="h-3 w-3" /> Mark Reviewed
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
-        </div>
-      )}
+        ) : <div />}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1 shrink-0 h-7 text-xs">
+              <Download className="h-3.5 w-3.5" /> Export
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => exportMatchesToCsv(filteredMatches, caseName)}>
+              <FileText className="h-3.5 w-3.5 mr-2" /> Export CSV ({filteredMatches.length} matches)
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => exportMatchesToCsv(matches, caseName)}>
+              <FileText className="h-3.5 w-3.5 mr-2" /> Export All CSV ({matches.length} matches)
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       <div className={`grid gap-4 ${showFilters ? 'grid-cols-[220px_1fr]' : 'grid-cols-1'}`}>
         {/* Left Filter Sidebar */}
