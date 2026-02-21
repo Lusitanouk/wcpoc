@@ -1,6 +1,7 @@
 import {
   Search, Briefcase, AlertTriangle, FileText, Settings,
 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { NavLink } from '@/components/NavLink';
 import {
   Sidebar,
@@ -13,15 +14,17 @@ import {
   SidebarMenuButton,
 } from '@/components/ui/sidebar';
 
-const navItems = [
-  { title: 'Screen', url: '/screen', icon: Search },
-  { title: 'Cases', url: '/cases', icon: Briefcase },
-  { title: 'Alerts', url: '/alerts', icon: AlertTriangle },
-  { title: 'Reports', url: '/reports', icon: FileText },
-  { title: 'Admin', url: '/admin', icon: Settings },
-];
-
 export function AppSidebar() {
+  const { t } = useTranslation();
+
+  const navItems = [
+    { title: t('nav.screen'), url: '/screen', icon: Search },
+    { title: t('nav.cases'), url: '/cases', icon: Briefcase },
+    { title: t('nav.alerts'), url: '/alerts', icon: AlertTriangle },
+    { title: t('nav.reports'), url: '/reports', icon: FileText },
+    { title: t('nav.admin'), url: '/admin', icon: Settings },
+  ];
+
   return (
     <Sidebar collapsible="icon">
       <div className="h-14 flex items-center px-4 border-b border-sidebar-border">
@@ -31,11 +34,11 @@ export function AppSidebar() {
       </div>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          <SidebarGroupLabel>{t('nav.navigation')}</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
+                <SidebarMenuItem key={item.url}>
                   <SidebarMenuButton asChild tooltip={item.title}>
                     <NavLink
                       to={item.url}

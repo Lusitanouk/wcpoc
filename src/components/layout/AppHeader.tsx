@@ -1,6 +1,7 @@
 import { Search, Shield, Sun, Moon, User, ChevronDown } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -11,19 +12,21 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
-
-const breadcrumbMap: Record<string, string> = {
-  '/screen': 'New Screening',
-  '/cases': 'Case Manager',
-  '/alerts': 'Alerts',
-  '/reports': 'Reports',
-  '/admin': 'Administration',
-};
+import { SettingsDialog } from '@/components/SettingsDialog';
 
 export function AppHeader() {
+  const { t } = useTranslation();
   const { role, setRole, isDark, toggleTheme } = useAppContext();
   const location = useLocation();
   const [search, setSearch] = useState('');
+
+  const breadcrumbMap: Record<string, string> = {
+    '/screen': t('header.newScreening'),
+    '/cases': t('header.caseManager'),
+    '/alerts': t('nav.alerts'),
+    '/reports': t('nav.reports'),
+    '/admin': t('header.administration'),
+  };
 
   const pathSegments = location.pathname.split('/').filter(Boolean);
   const breadcrumbs = pathSegments.map((_, i) => {
@@ -37,7 +40,7 @@ export function AppHeader() {
 
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1.5 text-sm">
-        <span className="text-muted-foreground">Home</span>
+        <span className="text-muted-foreground">{t('nav.home')}</span>
         {breadcrumbs.map((b) => (
           <span key={b.path} className="flex items-center gap-1.5">
             <span className="text-muted-foreground">/</span>
@@ -53,7 +56,7 @@ export function AppHeader() {
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Search cases & screenings..."
+            placeholder={t('header.searchPlaceholder')}
             className="pl-9 w-64 h-8 text-sm bg-background"
           />
         </div>
@@ -72,6 +75,9 @@ export function AppHeader() {
             <DropdownMenuItem onClick={() => setRole('Supervisor')}>Supervisor</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+
+        {/* Settings */}
+        <SettingsDialog />
 
         {/* Theme Toggle */}
         <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={toggleTheme}>
