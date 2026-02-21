@@ -230,7 +230,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           {BUCKETS.map(bucket => (
             <button
               key={bucket}
-              onClick={() => handleBucketChange(bucket)}
+              onClick={(e) => { e.stopPropagation(); handleBucketChange(bucket); }}
               className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all ${
                 activeBucket === bucket
                   ? 'bg-background text-foreground shadow-sm'
