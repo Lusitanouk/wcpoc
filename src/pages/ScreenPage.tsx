@@ -328,29 +328,35 @@ export default function ScreenPage() {
                   <div className="space-y-3">
                     <h3 className="text-xs font-medium text-muted-foreground">Secondary Identifiers</h3>
                     <div className="grid grid-cols-4 gap-3">
+                      {config.entityType !== 'Organisation' && (
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Date of Birth</Label>
+                          <Input type="date" value={data.dob} onChange={e => setData(d => ({ ...d, dob: e.target.value }))} className="h-8 text-xs" />
+                        </div>
+                      )}
+                      {config.entityType !== 'Organisation' && (
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Gender</Label>
+                          <Select value={data.gender} onValueChange={v => setData(d => ({ ...d, gender: v }))}>
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Male">Male</SelectItem>
+                              <SelectItem value="Female">Female</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      )}
+                      {config.entityType !== 'Organisation' && (
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Nationality</Label>
+                          <Input value={data.nationality} onChange={e => setData(d => ({ ...d, nationality: e.target.value }))} placeholder="e.g. US" className="h-8 text-xs" />
+                        </div>
+                      )}
                       <div className="space-y-1">
-                        <Label className="text-[10px]">Date of Birth</Label>
-                        <Input type="date" value={data.dob} onChange={e => setData(d => ({ ...d, dob: e.target.value }))} className="h-8 text-xs" />
+                        <Label className="text-[10px]">{config.entityType === 'Organisation' ? 'Registered Country' : 'Country / Location'}</Label>
+                        <Input value={data.country} onChange={e => setData(d => ({ ...d, country: e.target.value }))} placeholder={config.entityType === 'Organisation' ? 'e.g. United Kingdom' : 'e.g. United States'} className="h-8 text-xs" />
                       </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Gender</Label>
-                        <Select value={data.gender} onValueChange={v => setData(d => ({ ...d, gender: v }))}>
-                          <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select..." /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="Male">Male</SelectItem>
-                            <SelectItem value="Female">Female</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Nationality</Label>
-                        <Input value={data.nationality} onChange={e => setData(d => ({ ...d, nationality: e.target.value }))} placeholder="e.g. US" className="h-8 text-xs" />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">Country / Location</Label>
-                        <Input value={data.country} onChange={e => setData(d => ({ ...d, country: e.target.value }))} placeholder="e.g. United States" className="h-8 text-xs" />
-                      </div>
-                      {hasMediaCheck && (
+                      {hasMediaCheck && config.entityType !== 'Organisation' && (
                         <div className="space-y-1">
                           <Label className="text-[10px]">Place of Birth</Label>
                           <Input placeholder="e.g. New York" className="h-8 text-xs" />
