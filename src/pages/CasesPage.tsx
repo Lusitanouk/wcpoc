@@ -194,11 +194,6 @@ export default function CasesPage() {
 
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search cases..." className="pl-9 h-8 text-sm" />
-        </div>
-
         <Button
           variant={showFilters ? 'secondary' : 'outline'}
           size="sm"
@@ -209,6 +204,11 @@ export default function CasesPage() {
           {showFilters ? 'Hide' : 'Filters'}
           {activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
         </Button>
+
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search cases..." className="pl-9 h-8 text-sm" />
+        </div>
 
         {/* Column Customisation */}
         <Popover>
@@ -262,11 +262,10 @@ export default function CasesPage() {
         )}
       </div>
 
-      <div className={`grid gap-4 ${showFilters ? 'grid-cols-[220px_1fr]' : 'grid-cols-1'}`}>
-        {/* Left Filter Sidebar */}
-        {showFilters && (
-          <Card className="h-fit sticky top-4 animate-fade-in">
-            <CardContent className="p-4 space-y-4">
+      <Card>
+        <div className="flex">
+          {showFilters && (
+            <div className="w-[220px] shrink-0 border-r p-4 space-y-4 animate-fade-in">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Filters</h3>
                 {activeFilterCount > 0 && (
@@ -401,13 +400,11 @@ export default function CasesPage() {
                   </div>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        )}
+            </div>
+          )}
 
-        {/* Cases Table */}
-        <Card>
-          <div className="overflow-x-auto">
+          {/* Table */}
+          <div className="flex-1 overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b bg-muted/50">
@@ -448,8 +445,8 @@ export default function CasesPage() {
               </tbody>
             </table>
           </div>
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       {/* Bulk Dialogs */}
       <Dialog open={bulkAssignOpen} onOpenChange={v => { setBulkAssignOpen(v); if (!v) { setBulkAssignee(''); setBulkComment(''); } }}>
