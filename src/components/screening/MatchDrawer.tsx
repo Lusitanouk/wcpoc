@@ -393,7 +393,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
           {/* Record Tabs */}
           <div className="p-6 border-b">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
-              <TabsList className="w-full justify-start h-8 mb-3 flex-wrap">
+              <TabsList className="w-full justify-start h-auto flex-wrap gap-1 p-1 mb-3">
                 <TabsTrigger value="key-data" className="text-xs">{t('match.keyData')}</TabsTrigger>
                 <TabsTrigger value="further" className="text-xs">{t('match.furtherInfo')}</TabsTrigger>
                 <TabsTrigger value="aliases" className="text-xs">{t('match.aliases')}</TabsTrigger>
@@ -419,7 +419,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
               </TabsContent>
 
               <TabsContent value="further">
-                <div className={`text-sm leading-relaxed ${isFullscreen ? '' : 'max-h-64 overflow-y-auto'}`}>
+                <div className="text-sm leading-relaxed">
                   <p>
                     {rd.furtherInfo}
                     <SourceCitation sources={rd.sources} indices={rd.sources.map((_, i) => i)} />
