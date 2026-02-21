@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, Download, FileText } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,8 +14,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { MatchDrawer } from './MatchDrawer';
 import { priorityColor } from '@/lib/priority';
 import type { Match, CheckType, MatchStatus, Dataset, RiskLevel, CaseScreeningData } from '@/types';
-import { exportMatchesToCsv } from '@/lib/export';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 interface ResultsViewProps {
   matches: Match[];
@@ -313,21 +311,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             </div>
           </div>
         ) : <div />}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1 shrink-0 h-7 text-xs">
-              <Download className="h-3.5 w-3.5" /> Export
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => exportMatchesToCsv(filteredMatches, caseName)}>
-              <FileText className="h-3.5 w-3.5 mr-2" /> Export CSV ({filteredMatches.length} matches)
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => exportMatchesToCsv(matches, caseName)}>
-              <FileText className="h-3.5 w-3.5 mr-2" /> Export All CSV ({matches.length} matches)
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       <div className={`grid gap-4 ${showFilters ? 'grid-cols-[220px_1fr]' : 'grid-cols-1'}`}>
