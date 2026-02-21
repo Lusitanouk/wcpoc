@@ -13,6 +13,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getCaseById, getMatchesForCase, getGroupById, groups, cases } from '@/data/mock-data';
@@ -290,6 +291,9 @@ export default function CaseDetailPage() {
   const [ratingDialog, setRatingDialog] = useState(false);
   const [newRating, setNewRating] = useState<RiskLevel>(caseData?.rating || 'Low');
   const [ratingHistory, setRatingHistory] = useState<{ from: string; to: string; comment: string; author: string; date: string }[]>([]);
+  const [ogsDialog, setOgsDialog] = useState(false);
+  const [ogsWcLocal, setOgsWcLocal] = useState(caseData?.ogsWorldCheck ?? false);
+  const [ogsMcLocal, setOgsMcLocal] = useState(caseData?.ogsMediaCheck ?? false);
   const [actionComment, setActionComment] = useState('');
   const [localAuditEvents, setLocalAuditEvents] = useState<CaseAuditEvent[]>([]);
 
@@ -396,14 +400,11 @@ export default function CaseDetailPage() {
               <Edit className="h-2.5 w-2.5 opacity-0 group-hover/assign:opacity-100 transition-opacity" />
             </span>
             <span className="hidden sm:inline">•</span>
-            <span className="group/ogswc inline-flex items-center gap-1 cursor-pointer hover:text-foreground" onClick={() => addAuditEvent('ogs_toggle', `OGS World-Check ${caseData.ogsWorldCheck ? 'disabled' : 'enabled'}`)}>
-              OGS WC: <span className={caseData.ogsWorldCheck ? 'text-foreground font-medium' : ''}>{caseData.ogsWorldCheck ? 'Active' : 'Off'}</span>
-              <ToggleRight className="h-2.5 w-2.5 opacity-0 group-hover/ogswc:opacity-100 transition-opacity" />
-            </span>
-            <span className="hidden sm:inline">•</span>
-            <span className="group/ogsmc inline-flex items-center gap-1 cursor-pointer hover:text-foreground" onClick={() => addAuditEvent('ogs_toggle', `OGS Media Check ${caseData.ogsMediaCheck ? 'disabled' : 'enabled'}`)}>
-              OGS MC: <span className={caseData.ogsMediaCheck ? 'text-foreground font-medium' : ''}>{caseData.ogsMediaCheck ? 'Active' : 'Off'}</span>
-              <ToggleRight className="h-2.5 w-2.5 opacity-0 group-hover/ogsmc:opacity-100 transition-opacity" />
+            <span className="group/ogs inline-flex items-center gap-1 cursor-pointer hover:text-foreground" onClick={() => { setOgsWcLocal(caseData.ogsWorldCheck); setOgsMcLocal(caseData.ogsMediaCheck); setActionComment(''); setOgsDialog(true); }}>
+              OGS: <span className={caseData.ogsWorldCheck || caseData.ogsMediaCheck ? 'text-foreground font-medium' : ''}>
+                {caseData.ogsWorldCheck && caseData.ogsMediaCheck ? 'WC + MC' : caseData.ogsWorldCheck ? 'WC' : caseData.ogsMediaCheck ? 'MC' : 'Off'}
+              </span>
+              <Edit className="h-2.5 w-2.5 opacity-0 group-hover/ogs:opacity-100 transition-opacity" />
             </span>
           </div>
         </div>
@@ -754,6 +755,54 @@ export default function CaseDetailPage() {
               }}
             >
               Update Rating
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* OGS Dialog */}
+      <Dialog open={ogsDialog} onOpenChange={setOgsDialog}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Ongoing Screening</DialogTitle>
+            <DialogDescription>Configure OGS monitoring for {caseData.name}</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between p-3 rounded-md border">
+                <div>
+                  <span className="text-sm font-medium">World-Check</span>
+                  <span className="text-[11px] text-muted-foreground block">Sanctions, PEP & watchlist monitoring</span>
+                </div>
+                <Switch checked={ogsWcLocal} onCheckedChange={setOgsWcLocal} />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-md border">
+                <div>
+                  <span className="text-sm font-medium">Media Check</span>
+                  <span className="text-[11px] text-muted-foreground block">Adverse media monitoring</span>
+                </div>
+                <Switch checked={ogsMcLocal} onCheckedChange={setOgsMcLocal} />
+              </div>
+            </div>
+            {group?.ongoingFrequency && (
+              <p className="text-[11px] text-muted-foreground">Frequency: <span className="font-medium text-foreground">{group.ongoingFrequency}</span></p>
+            )}
+            <div>
+              <label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label>
+              <Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for change..." className="min-h-[60px] text-xs resize-none" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setOgsDialog(false)}>Cancel</Button>
+            <Button size="sm" onClick={() => {
+              const changes: string[] = [];
+              if (ogsWcLocal !== caseData.ogsWorldCheck) changes.push(`OGS World-Check ${ogsWcLocal ? 'enabled' : 'disabled'}`);
+              if (ogsMcLocal !== caseData.ogsMediaCheck) changes.push(`OGS Media Check ${ogsMcLocal ? 'enabled' : 'disabled'}`);
+              if (changes.length > 0) addAuditEvent('ogs_toggle', changes.join(', '), actionComment || undefined);
+              setActionComment('');
+              setOgsDialog(false);
+            }}>
+              Save
             </Button>
           </DialogFooter>
         </DialogContent>
