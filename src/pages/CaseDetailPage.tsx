@@ -364,11 +364,18 @@ export default function CaseDetailPage() {
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
             <h1 className="text-lg sm:text-xl font-bold truncate">{caseData.name}</h1>
-            <Badge variant="outline" className={`text-[10px] shrink-0 ${
-              caseData.rating === 'High' ? 'border-destructive text-destructive'
-              : caseData.rating === 'Medium' ? 'border-amber-500 text-amber-600'
-              : 'border-muted-foreground text-muted-foreground'
-            }`}>{caseData.rating} Risk</Badge>
+            <Badge
+              variant="outline"
+              className={`text-[10px] shrink-0 cursor-pointer hover:opacity-80 transition-opacity gap-1 ${
+                caseData.rating === 'High' ? 'border-destructive text-destructive'
+                : caseData.rating === 'Medium' ? 'border-amber-500 text-amber-600'
+                : 'border-muted-foreground text-muted-foreground'
+              }`}
+              onClick={() => { setActionComment(''); setRatingDialog(true); }}
+            >
+              {caseData.rating === 'None' ? 'Not Rated' : `${caseData.rating} Risk`}
+              <Edit className="h-2.5 w-2.5" />
+            </Badge>
             <Badge variant="secondary" className="text-[10px] shrink-0">{caseData.entityType}</Badge>
             {caseData.mandatoryAction && (
               <Badge variant="destructive" className="text-[10px] shrink-0 gap-0.5">
@@ -379,13 +386,25 @@ export default function CaseDetailPage() {
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
             <span className="font-mono">{caseData.id}</span>
             <span className="hidden sm:inline">•</span>
-            <span>{group?.name || '—'}</span>
+            <span className="group/grp inline-flex items-center gap-1 cursor-pointer hover:text-foreground" onClick={() => { setActionComment(''); setMoveDialog(true); }}>
+              {group?.name || '—'}
+              <Edit className="h-2.5 w-2.5 opacity-0 group-hover/grp:opacity-100 transition-opacity" />
+            </span>
             <span className="hidden sm:inline">•</span>
-            <span>Assigned: <span className="text-foreground font-medium">{caseData.assignee}</span></span>
+            <span className="group/assign inline-flex items-center gap-1 cursor-pointer hover:text-foreground" onClick={() => { setActionComment(''); setAssignDialog(true); }}>
+              Assigned: <span className="text-foreground font-medium">{caseData.assignee}</span>
+              <Edit className="h-2.5 w-2.5 opacity-0 group-hover/assign:opacity-100 transition-opacity" />
+            </span>
             <span className="hidden sm:inline">•</span>
-            <span>OGS WC: <span className={caseData.ogsWorldCheck ? 'text-foreground font-medium' : ''}>{caseData.ogsWorldCheck ? 'Active' : 'Off'}</span></span>
+            <span className="group/ogswc inline-flex items-center gap-1 cursor-pointer hover:text-foreground" onClick={() => addAuditEvent('ogs_toggle', `OGS World-Check ${caseData.ogsWorldCheck ? 'disabled' : 'enabled'}`)}>
+              OGS WC: <span className={caseData.ogsWorldCheck ? 'text-foreground font-medium' : ''}>{caseData.ogsWorldCheck ? 'Active' : 'Off'}</span>
+              <ToggleRight className="h-2.5 w-2.5 opacity-0 group-hover/ogswc:opacity-100 transition-opacity" />
+            </span>
             <span className="hidden sm:inline">•</span>
-            <span>OGS MC: <span className={caseData.ogsMediaCheck ? 'text-foreground font-medium' : ''}>{caseData.ogsMediaCheck ? 'Active' : 'Off'}</span></span>
+            <span className="group/ogsmc inline-flex items-center gap-1 cursor-pointer hover:text-foreground" onClick={() => addAuditEvent('ogs_toggle', `OGS Media Check ${caseData.ogsMediaCheck ? 'disabled' : 'enabled'}`)}>
+              OGS MC: <span className={caseData.ogsMediaCheck ? 'text-foreground font-medium' : ''}>{caseData.ogsMediaCheck ? 'Active' : 'Off'}</span>
+              <ToggleRight className="h-2.5 w-2.5 opacity-0 group-hover/ogsmc:opacity-100 transition-opacity" />
+            </span>
           </div>
         </div>
 
@@ -450,7 +469,7 @@ export default function CaseDetailPage() {
                   caseData.rating === 'High' ? 'text-destructive'
                   : caseData.rating === 'Medium' ? 'text-amber-600'
                   : 'text-foreground'
-                }`}>{caseData.rating}</div>
+                }`}>{caseData.rating === 'None' ? 'Not Rated' : caseData.rating}</div>
                 <button
                   onClick={() => { setActionComment(''); setRatingDialog(true); }}
                   className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity p-0.5 rounded hover:bg-muted"
