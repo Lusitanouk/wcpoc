@@ -140,6 +140,15 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
     setSelectedMatch(updated);
   };
 
+  // Match navigation
+  const selectedMatchIndex = selectedMatch ? filteredMatches.findIndex(m => m.id === selectedMatch.id) : -1;
+  const navigateMatch = (direction: 'prev' | 'next') => {
+    const newIndex = direction === 'prev' ? selectedMatchIndex - 1 : selectedMatchIndex + 1;
+    if (newIndex >= 0 && newIndex < filteredMatches.length) {
+      setSelectedMatch(filteredMatches[newIndex]);
+    }
+  };
+
   // Bulk selection helpers
   const allSelected = filteredMatches.length > 0 && filteredMatches.every(m => selectedIds.has(m.id));
   const someSelected = filteredMatches.some(m => selectedIds.has(m.id));
@@ -476,6 +485,9 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
         onClose={() => setDrawerOpen(false)}
         caseName={caseName}
         onUpdate={onUpdateMatch}
+        currentIndex={selectedMatchIndex >= 0 ? selectedMatchIndex : undefined}
+        totalMatches={filteredMatches.length}
+        onNavigate={navigateMatch}
       />
 
       {/* Bulk Resolve Dialog */}
