@@ -123,6 +123,16 @@ export interface WhyMatchedField {
   detail: string;
 }
 
+export interface ResolutionHistoryEntry {
+  id: string;
+  status: MatchStatus;
+  riskLevel: RiskLevel;
+  reason: string;
+  comment?: string;
+  author: string;
+  createdAt: string;
+}
+
 export interface Match {
   id: string;
   caseId: string;
@@ -146,6 +156,7 @@ export interface Match {
   matchStrengthExplanation: string;
   identifiers: MatchIdentifiers;
   recordData: MatchRecord;
+  resolutionHistory: ResolutionHistoryEntry[];
 }
 
 export interface ScreeningConfig {
