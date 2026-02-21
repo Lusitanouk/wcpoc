@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, ChevronRight } from 'lucide-react';
+import { ChevronRight, Check, HelpCircle, XCircle, CircleOff } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,17 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { priorityColor } from '@/lib/priority';
 import type { Match, MatchStatus, RiskLevel } from '@/types';
+
+const fieldResultIcon = (result: string) => {
+  switch (result) {
+    case 'match': return <Check className="h-3 w-3 text-status-positive" />;
+    case 'partial': return <HelpCircle className="h-3 w-3 text-status-possible" />;
+    case 'mismatch': return <XCircle className="h-3 w-3 text-status-unresolved" />;
+    default: return <CircleOff className="h-3 w-3 text-muted-foreground" />;
+  }
+};
 
 interface MatchDrawerProps {
   match: Match | null;
@@ -23,11 +33,6 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate }: MatchD
   const [reason, setReason] = useState(match?.reason || '');
   const [comment, setComment] = useState('');
   const [activeTab, setActiveTab] = useState('key-data');
-
-  // Reset local state when match changes
-  if (match && status !== match.status && reason === '') {
-    // Sync on new match selection
-  }
 
   if (!match) return null;
 
@@ -48,6 +53,9 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate }: MatchD
           <div className="flex items-center gap-2 mt-2">
             <Badge variant="outline" className="text-[10px]">{match.dataset}</Badge>
             <Badge variant="outline" className="text-[10px]">{match.strength}% match</Badge>
+            <Badge variant="outline" className={`text-[10px] ${priorityColor(match.priorityLevel)}`}>
+              {match.priorityLevel} Priority
+            </Badge>
             {match.updated && (
               <Badge className="text-[10px] bg-status-possible/15 text-status-possible border-0">Updated</Badge>
             )}
@@ -59,6 +67,56 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate }: MatchD
             </div>
           )}
         </SheetHeader>
+
+        {/* Why it matched */}
+        <div className="p-6 border-b">
+          <h4 className="text-xs font-semibold mb-2">Why it matched</h4>
+          <ul className="space-y-1.5 mb-2">
+            {match.whyMatched.map((wf, i) => (
+              <li key={i} className="flex items-center gap-2 text-xs">
+                {fieldResultIcon(wf.result)}
+                <span className="font-medium w-20">{wf.field}</span>
+                <span className="text-muted-foreground">{wf.detail}</span>
+              </li>
+            ))}
+          </ul>
+          <p className="text-[10px] text-muted-foreground italic mt-1">{match.matchStrengthExplanation}</p>
+          <div className="flex flex-wrap gap-1 mt-2">
+            {match.whyMatched.map((wf, i) => (
+              <Badge key={i} variant="secondary" className="text-[10px]">{wf.field}</Badge>
+            ))}
+          </div>
+        </div>
+
+        {/* What changed (for review required) */}
+        {match.reviewRequired && match.changeLog.length > 0 && (
+          <div className="p-6 border-b">
+            <h4 className="text-xs font-semibold text-status-possible mb-2">What changed</h4>
+            <div className="text-xs mb-2 text-muted-foreground">
+              {match.reviewRequiredReasons.join(' · ')}
+            </div>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b">
+                  <th className="text-left py-1.5 font-medium text-muted-foreground">Field</th>
+                  <th className="text-left py-1.5 font-medium text-muted-foreground">From</th>
+                  <th className="text-left py-1.5 font-medium text-muted-foreground">To</th>
+                  <th className="text-left py-1.5 font-medium text-muted-foreground">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {match.changeLog.map((cl, i) => (
+                  <tr key={i} className={`border-b border-dashed ${i === 0 ? 'bg-status-possible/5' : ''}`}>
+                    <td className="py-1.5 font-medium">{cl.field}</td>
+                    <td className="py-1.5 text-muted-foreground">{cl.from}</td>
+                    <td className="py-1.5">{cl.to}</td>
+                    <td className="py-1.5 text-muted-foreground">{cl.changedAt}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
 
         {/* Comparison */}
         <div className="p-6 border-b">
