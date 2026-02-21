@@ -494,8 +494,9 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
             {match.status === 'Unresolved' ? t('match.resolution') : t('match.updateResolution')}
           </h4>
 
-          <div className="space-y-3">
-            <div className="space-y-1.5">
+          {/* Row 1: Status > Risk Level > Reason */}
+          <div className="flex gap-3 items-start">
+            <div className="space-y-1.5 shrink-0">
               <Label className="text-xs">{t('match.status')}</Label>
               <div className="flex flex-wrap gap-1">
                 {(['Positive', 'Possible', 'False', 'Unknown', 'Unresolved'] as MatchStatus[]).map(s => (
@@ -513,7 +514,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
                 ))}
               </div>
             </div>
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 shrink-0">
               <Label className="text-xs">{t('match.riskLevel')}</Label>
               <div className="flex flex-wrap gap-1">
                 {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
@@ -533,27 +534,27 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
                 ))}
               </div>
             </div>
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <Label className="text-xs">{t('match.reason')}</Label>
+              <Textarea
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                rows={2}
+                placeholder={t('match.resolutionReason')}
+                className="text-xs resize-none"
+              />
+            </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs">{t('match.reason')}</Label>
-            <Textarea
-              value={reason}
-              onChange={e => setReason(e.target.value)}
-              rows={2}
-              placeholder={t('match.resolutionReason')}
-              className="text-sm"
-            />
-          </div>
-
-          <div className="space-y-2">
+          {/* Row 2: Review Comment */}
+          <div className="space-y-1.5">
             <Label className="text-xs">{t('match.reviewComment')}</Label>
             <Textarea
               value={comment}
               onChange={e => setComment(e.target.value)}
               rows={2}
               placeholder={t('match.optionalComment')}
-              className="text-sm"
+              className="text-xs resize-none"
             />
           </div>
 

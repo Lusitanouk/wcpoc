@@ -631,46 +631,60 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             </table>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs">New Status</Label>
-              <Select value={bulkStatus} onValueChange={v => setBulkStatus(v as MatchStatus)}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Positive">Positive</SelectItem>
-                  <SelectItem value="Possible">Possible</SelectItem>
-                  <SelectItem value="False">False</SelectItem>
-                  <SelectItem value="Unknown">Unknown</SelectItem>
-                  <SelectItem value="Unresolved">Unresolved</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Row 1: Status > Risk Level > Reason */}
+          <div className="flex gap-3 items-start">
+            <div className="space-y-1.5 shrink-0">
+              <Label className="text-xs">Status</Label>
+              <div className="flex flex-wrap gap-1">
+                {(['Positive', 'Possible', 'False', 'Unknown', 'Unresolved'] as MatchStatus[]).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setBulkStatus(s)}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border ${
+                      bulkStatus === s
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    {s}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5 shrink-0">
               <Label className="text-xs">Risk Level</Label>
-              <Select value={bulkRisk} onValueChange={v => setBulkRisk(v as RiskLevel)}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Low">Low</SelectItem>
-                  <SelectItem value="None">None</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap gap-1">
+                {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setBulkRisk(r)}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border ${
+                      bulkRisk === r
+                        ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
+                          : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
+                          : 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5 flex-1 min-w-0">
+              <Label className="text-xs">Reason (required)</Label>
+              <Textarea
+                value={bulkReason}
+                onChange={e => setBulkReason(e.target.value)}
+                rows={2}
+                placeholder="Reason for bulk resolution..."
+                className="text-xs resize-none"
+              />
             </div>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs">Reason (required)</Label>
-            <Textarea
-              value={bulkReason}
-              onChange={e => setBulkReason(e.target.value)}
-              rows={2}
-              placeholder="Reason for bulk resolution..."
-              className="text-xs resize-none"
-            />
-          </div>
-
-          <div className="space-y-2">
+          {/* Row 2: Comment */}
+          <div className="space-y-1.5">
             <Label className="text-xs">Comment (optional)</Label>
             <Textarea
               value={bulkComment}
