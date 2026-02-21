@@ -392,7 +392,7 @@ export default function CaseDetailPage() {
             <Badge variant="secondary" className="text-[10px] shrink-0">{caseData.entityType}</Badge>
             {caseData.mandatoryAction && (
               <Badge variant="destructive" className="text-[10px] shrink-0 gap-0.5">
-                <AlertTriangle className="h-2.5 w-2.5" /> Action Required {actionCheckTypes.length > 0 && `(${actionCheckTypes.join(', ')})`}
+                <AlertTriangle className="h-2.5 w-2.5" /> Action Required
               </Badge>
             )}
           </div>
@@ -448,6 +448,14 @@ export default function CaseDetailPage() {
           const shortLabel = tab === 'summary' ? 'Summary'
             : tab === 'World-Check' ? 'WC'
             : tab === 'Media Check' ? 'MC' : 'PC';
+          // Determine if this tab has items requiring action
+          const hasAction = tab === 'World-Check'
+            ? matches.some(m => m.reviewRequired || m.status === 'Unresolved')
+            : tab === 'Media Check'
+            ? (mediaResult?.reviewRequired ?? 0) > 0
+            : tab === 'Passport Check'
+            ? passportResult?.verificationStatus === 'pending'
+            : false;
           return (
             <button
               key={tab}
@@ -461,6 +469,9 @@ export default function CaseDetailPage() {
               {icon}
               <span className="hidden sm:inline">{label}</span>
               <span className="sm:hidden">{shortLabel}</span>
+              {hasAction && (
+                <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />
+              )}
             </button>
           );
         })}
