@@ -67,7 +67,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [minStrength, setMinStrength] = useState(0);
   const [filterDataset, setFilterDataset] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
@@ -206,6 +206,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
     return { byDataset, byPriority, reviewCount };
   }, [selectedMatches]);
 
+  const activeFilterCount = (minStrength > 0 ? 1 : 0) + (filterDataset !== 'all' ? 1 : 0) + (filterPriority !== 'all' ? 1 : 0);
+
   return (
     <div>
 
@@ -239,16 +241,13 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           const bucketMatches = matches.filter(m => m.status === activeBucket);
           const bucketTotal = bucketMatches.length;
           const bucketReview = bucketMatches.filter(m => m.reviewRequired).length;
-          // Dataset breakdown
           const datasetCounts: Record<string, number> = {};
           bucketMatches.forEach(m => { datasetCounts[m.dataset] = (datasetCounts[m.dataset] || 0) + 1; });
-          // Risk level breakdown
           const riskCounts: Record<string, number> = {};
           bucketMatches.forEach(m => { riskCounts[m.riskLevel] = (riskCounts[m.riskLevel] || 0) + 1; });
           return (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 border-t bg-muted/30 text-xs">
               <span className="font-medium text-foreground">{bucketTotal} {activeBucket.toLowerCase()}</span>
-              {/* Match type / dataset breakdown */}
               {Object.keys(datasetCounts).length > 0 && (
                 <>
                   <span className="text-muted-foreground">·</span>
@@ -259,7 +258,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                   </span>
                 </>
               )}
-              {/* Risk level breakdown - only show non-None levels */}
               {Object.entries(riskCounts).filter(([level]) => level !== 'None').length > 0 && (
                 <>
                   <span className="text-muted-foreground">·</span>
@@ -274,7 +272,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                   </span>
                 </>
               )}
-              {/* Review required - only show if > 0 */}
               {bucketReview > 0 && (
                 <>
                   <span className="text-muted-foreground">·</span>
@@ -288,7 +285,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
         })()}
       </div>
 
-      {/* Bulk Action Bar + Filters */}
+      {/* Bulk Action Bar + Filter Toggle */}
       <div className="flex items-center justify-between mb-4 gap-2">
         {selectedCount > 0 ? (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 flex-1 animate-fade-in">
@@ -316,20 +313,29 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           className="gap-1 shrink-0"
         >
           <Filter className="h-3.5 w-3.5" />
-          Filters
-          {(minStrength > 0 || filterDataset !== 'all' || filterPriority !== 'all') && (
-            <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">!</Badge>
+          {showFilters ? 'Hide' : 'Filters'}
+          {activeFilterCount > 0 && (
+            <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">{activeFilterCount}</Badge>
           )}
         </Button>
       </div>
 
-      {/* Filters Panel */}
-      {showFilters && (
-        <Card className="mb-4 animate-fade-in">
-          <CardContent className="pt-4 pb-4">
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-end">
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Min Match Strength</label>
+      <div className={`grid gap-4 ${showFilters ? 'grid-cols-[220px_1fr]' : 'grid-cols-1'}`}>
+        {/* Left Filter Sidebar */}
+        {showFilters && (
+          <Card className="h-fit sticky top-4 animate-fade-in">
+            <CardContent className="p-4 space-y-5">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Filters</h3>
+                {activeFilterCount > 0 && (
+                  <Button variant="ghost" size="sm" className="h-5 text-[10px] px-1.5 gap-0.5" onClick={() => { setMinStrength(0); setFilterDataset('all'); setFilterPriority('all'); }}>
+                    <X className="h-2.5 w-2.5" /> Clear
+                  </Button>
+                )}
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground">Match Strength</label>
                 <div className="flex items-center gap-2">
                   <Slider
                     value={[minStrength]}
@@ -338,10 +344,11 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                     step={5}
                     className="flex-1"
                   />
-                  <span className="text-xs font-mono w-8">{minStrength}%</span>
+                  <span className="text-xs font-mono w-8 text-right">{minStrength}%</span>
                 </div>
               </div>
-              <div className="space-y-2">
+
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Dataset</label>
                 <Select value={filterDataset} onValueChange={setFilterDataset}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -354,7 +361,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
+
+              <div className="space-y-1.5">
                 <label className="text-xs font-medium text-muted-foreground">Priority</label>
                 <Select value={filterPriority} onValueChange={setFilterPriority}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
@@ -365,21 +373,39 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                   </SelectContent>
                 </Select>
               </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => { setMinStrength(0); setFilterDataset('all'); setFilterPriority('all'); }}
-                className="gap-1"
-              >
-                <X className="h-3 w-3" /> Clear
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
-      {/* Matches Table */}
-      <Card>
+              {/* Active filter chips */}
+              {activeFilterCount > 0 && (
+                <div className="pt-3 border-t space-y-1">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Active</p>
+                  <div className="flex flex-wrap gap-1">
+                    {minStrength > 0 && (
+                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
+                        ≥{minStrength}%
+                        <button onClick={() => setMinStrength(0)}><X className="h-2.5 w-2.5" /></button>
+                      </Badge>
+                    )}
+                    {filterDataset !== 'all' && (
+                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
+                        {filterDataset}
+                        <button onClick={() => setFilterDataset('all')}><X className="h-2.5 w-2.5" /></button>
+                      </Badge>
+                    )}
+                    {filterPriority !== 'all' && (
+                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
+                        {filterPriority}
+                        <button onClick={() => setFilterPriority('all')}><X className="h-2.5 w-2.5" /></button>
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Matches Table */}
+        <Card>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -524,6 +550,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           </table>
         </div>
       </Card>
+      </div>
 
       {/* Match Drawer */}
       <MatchDrawer
