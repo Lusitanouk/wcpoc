@@ -134,6 +134,9 @@ export default function ScreenPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
+      <h1 className="text-xl font-bold flex items-center gap-2 mb-6">
+        <Search className="h-5 w-5 text-primary" /> New Screening
+      </h1>
       {/* Stepper */}
       <div className="flex items-center gap-2 mb-8">
         {steps.map((s, i) => (
