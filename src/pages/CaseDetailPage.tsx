@@ -430,6 +430,12 @@ export default function CaseDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+        <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => exportCasePdf(caseData, matches)}>
+          <Download className="h-3.5 w-3.5" /> Export
+        </Button>
+        <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => setAuditDrawerOpen(true)}>
+          <Activity className="h-3.5 w-3.5" /> Audit / Notes
+        </Button>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-1 shrink-0">Actions <ChevronDown className="h-3 w-3" /></Button>
@@ -447,12 +453,6 @@ export default function CaseDetailPage() {
             <DropdownMenuItem className="text-destructive" onClick={() => { setActionComment(''); setDeleteDialog(true); }}><Trash2 className="h-3.5 w-3.5 mr-2" /> Delete</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => setAuditDrawerOpen(true)}>
-          <Activity className="h-3.5 w-3.5" /> Audit
-        </Button>
-        <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => exportCasePdf(caseData, matches)}>
-          <Download className="h-3.5 w-3.5" /> Export
-        </Button>
         </div>
       </div>
 
