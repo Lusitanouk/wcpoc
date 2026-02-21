@@ -29,7 +29,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <div className="h-14 flex items-center px-4 border-b border-sidebar-border">
+      <div className="h-14 flex items-center px-4 border-b border-sidebar-border gap-2">
+        <SidebarTrigger />
         <span className="font-bold text-sidebar-primary text-lg group-data-[collapsible=icon]:hidden">
           World-Check One
         </span>
@@ -57,9 +58,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
-        <SidebarTrigger className="w-full" />
-      </SidebarFooter>
+      <SidebarFooter />
     </Sidebar>
   );
 }
