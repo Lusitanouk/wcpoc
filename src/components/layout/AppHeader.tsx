@@ -15,7 +15,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 const breadcrumbMap: Record<string, string> = {
   '/screen': 'New Screening',
   '/cases': 'Case Manager',
-  '/reviews': 'Reviews',
+  '/alerts': 'Alerts',
   '/reports': 'Reports',
   '/admin': 'Administration',
 };
