@@ -265,8 +265,17 @@ export default function CaseDetailPage() {
   };
 
   // Tab from URL: 'summary' or a CheckType
-  const tabParam = searchParams.get('tab') || 'summary';
-  const activeTab: CaseTab = tabParam === 'summary' ? 'summary' : (tabParam as CheckType);
+  // Default to first check type with action required if no tab specified
+  const defaultTab = useMemo((): CaseTab => {
+    if (searchParams.has('tab')) return searchParams.get('tab') === 'summary' ? 'summary' : searchParams.get('tab') as CheckType;
+    if (!caseData?.mandatoryAction) return 'summary';
+    const wcAction = matches.some(m => m.reviewRequired || m.status === 'Unresolved');
+    if (wcAction && caseData.checkTypes.includes('World-Check')) return 'World-Check';
+    if (caseData.checkTypes.includes('Media Check')) return 'Media Check';
+    if (caseData.checkTypes.includes('Passport Check')) return 'Passport Check';
+    return 'summary';
+  }, []);
+  const activeTab: CaseTab = defaultTab;
 
   const setActiveTab = (tab: CaseTab) => {
     const params: Record<string, string> = { tab };
