@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronRight, Check, HelpCircle, XCircle, CircleOff } from 'lucide-react';
+import { ChevronRight, Check, HelpCircle, XCircle, CircleOff, Clock, User, History } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
 import { priorityColor } from '@/lib/priority';
 import type { Match, MatchStatus, RiskLevel } from '@/types';
 
@@ -203,9 +204,85 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate }: MatchD
           </Tabs>
         </div>
 
+        {/* Current Resolution / Review Info */}
+        {match.status !== 'Unresolved' && match.resolutionHistory.length > 0 && (
+          <div className="p-6 border-b">
+            <h4 className="text-xs font-semibold mb-2">Current Resolution</h4>
+            <div className="p-3 rounded-md bg-muted/50 space-y-2 text-xs">
+              <div className="flex items-center gap-3">
+                <div>
+                  <span className="text-muted-foreground">Status:</span>{' '}
+                  <span className="font-medium">{match.resolutionHistory[0].status}</span>
+                </div>
+                <div>
+                  <span className="text-muted-foreground">Risk:</span>{' '}
+                  <span className="font-medium">{match.resolutionHistory[0].riskLevel}</span>
+                </div>
+              </div>
+              <div>
+                <span className="text-muted-foreground">Reason:</span>{' '}
+                <span>{match.resolutionHistory[0].reason}</span>
+              </div>
+              {match.resolutionHistory[0].comment && (
+                <div className="p-2 rounded bg-background border text-[11px] italic text-muted-foreground">
+                  "{match.resolutionHistory[0].comment}"
+                </div>
+              )}
+              <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                <User className="h-3 w-3" />
+                <span>{match.resolutionHistory[0].author}</span>
+                <Clock className="h-3 w-3 ml-1" />
+                <span>{match.resolutionHistory[0].createdAt}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Resolution History */}
+        {match.resolutionHistory.length > 1 && (
+          <div className="p-6 border-b">
+            <h4 className="text-xs font-semibold mb-2 flex items-center gap-1.5">
+              <History className="h-3.5 w-3.5" /> Resolution History
+              <Badge variant="secondary" className="text-[10px] ml-auto">{match.resolutionHistory.length} entries</Badge>
+            </h4>
+            <ScrollArea className="max-h-48">
+              <div className="space-y-0">
+                {match.resolutionHistory.map((entry, idx) => (
+                  <div key={entry.id} className="relative pl-5 pb-3">
+                    {idx < match.resolutionHistory.length - 1 && (
+                      <div className="absolute left-[7px] top-4 bottom-0 w-px bg-border" />
+                    )}
+                    <div className={`absolute left-0 top-0.5 w-[14px] h-[14px] rounded-full flex items-center justify-center ${
+                      idx === 0 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'
+                    }`}>
+                      <Check className="h-2.5 w-2.5" />
+                    </div>
+                    <div className="text-xs">
+                      <div className="flex items-center gap-2">
+                        <Badge variant="outline" className="text-[9px] px-1 py-0">{entry.status}</Badge>
+                        <Badge variant="outline" className="text-[9px] px-1 py-0">{entry.riskLevel}</Badge>
+                        {idx === 0 && <Badge className="text-[9px] px-1 py-0 bg-primary/10 text-primary border-0">Current</Badge>}
+                      </div>
+                      <p className="mt-1 text-muted-foreground">{entry.reason}</p>
+                      {entry.comment && (
+                        <p className="mt-1 italic text-[11px] text-muted-foreground">"{entry.comment}"</p>
+                      )}
+                      <div className="flex items-center gap-1.5 mt-1 text-[10px] text-muted-foreground">
+                        <span>{entry.author}</span>
+                        <span>·</span>
+                        <span>{entry.createdAt}</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </ScrollArea>
+          </div>
+        )}
+
         {/* Resolution Controls */}
         <div className="p-6 space-y-4">
-          <h4 className="text-sm font-semibold">Resolution</h4>
+          <h4 className="text-sm font-semibold">{match.status === 'Unresolved' ? 'Resolution' : 'Update Resolution'}</h4>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">

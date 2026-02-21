@@ -197,19 +197,6 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
 
   return (
     <div>
-      {/* Case Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Shield className="h-5 w-5 text-primary" />
-            {caseName}
-          </h1>
-          <p className="text-sm text-muted-foreground">Case ID: {caseId}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="text-xs">Audit Trail</Badge>
-        </div>
-      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-6">
@@ -397,10 +384,20 @@ export function ResultsView({ matches, caseName, caseId }: ResultsViewProps) {
                               {m.reviewRequired && (
                                 <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />
                               )}
+                              {m.resolutionHistory.length > 1 && (
+                                <Badge variant="outline" className="text-[9px] px-1 py-0 text-muted-foreground">
+                                  {m.resolutionHistory.length} reviews
+                                </Badge>
+                              )}
                             </div>
                             {m.aliases.length > 0 && (
                               <p className="text-xs text-muted-foreground mt-0.5">
                                 aka: {m.aliases.slice(0, 2).join(', ')}
+                              </p>
+                            )}
+                            {m.status !== 'Unresolved' && m.resolutionHistory.length > 0 && (
+                              <p className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[300px]" title={m.resolutionHistory[0].reason}>
+                                {m.resolutionHistory[0].author}: {m.resolutionHistory[0].reason}
                               </p>
                             )}
                           </td>

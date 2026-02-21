@@ -77,21 +77,6 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
 
   return (
     <div>
-      {/* Case Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <Newspaper className="h-5 w-5 text-primary" />
-            Media Check — {caseName}
-          </h1>
-          <p className="text-sm text-muted-foreground">Case ID: {caseId}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline" size="sm" className="gap-1">
-            <FileText className="h-3.5 w-3.5" /> Export Report
-          </Button>
-        </div>
-      </div>
 
       {/* Summary Row */}
       <div className="grid grid-cols-5 gap-3 mb-6">

@@ -25,26 +25,17 @@ export function PassportCheckResultsView({ result, caseName, caseId }: PassportC
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-xl font-bold flex items-center gap-2">
-            <CreditCard className="h-5 w-5 text-primary" />
-            Passport Check — {caseName}
-          </h1>
-          <p className="text-sm text-muted-foreground">Case ID: {caseId}</p>
-        </div>
-        <div className="flex items-center gap-2">
-          <Badge
-            variant="outline"
-            className={`text-xs ${isVerified ? 'border-status-positive text-status-positive' : isInvalid ? 'border-status-unresolved text-status-unresolved' : 'border-status-unknown text-status-unknown'}`}
-          >
-            {isVerified ? '✓ Verified' : isInvalid ? '✗ Invalid' : '◌ Pending'}
-          </Badge>
-          <Button variant="outline" size="sm" className="gap-1">
-            <FileText className="h-3.5 w-3.5" /> Export to PDF
-          </Button>
-        </div>
+      {/* Verification Status */}
+      <div className="flex items-center justify-end mb-4 gap-2">
+        <Badge
+          variant="outline"
+          className={`text-xs ${isVerified ? 'border-status-positive text-status-positive' : isInvalid ? 'border-status-unresolved text-status-unresolved' : 'border-status-unknown text-status-unknown'}`}
+        >
+          {isVerified ? '✓ Verified' : isInvalid ? '✗ Invalid' : '◌ Pending'}
+        </Badge>
+        <Button variant="outline" size="sm" className="gap-1">
+          <FileText className="h-3.5 w-3.5" /> Export to PDF
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 gap-6">

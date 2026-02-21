@@ -1,4 +1,4 @@
-import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult, CaseNote, CaseAuditEvent, AuditEventType, AuditMatchDetail, AuditEventDetails } from '@/types';
+import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult, CaseNote, CaseAuditEvent, AuditEventType, AuditMatchDetail, AuditEventDetails, ResolutionHistoryEntry } from '@/types';
 import { computePriorityScore, priorityLevel } from '@/lib/priority';
 
 export const groups: Group[] = [
@@ -170,6 +170,34 @@ function generateChangeLog(isReviewReq: boolean): ChangeLogEntry[] {
   }));
 }
 
+const resolutionReasons = [
+  'No matching identifiers found — cleared as false positive.',
+  'Confirmed match against sanctions list entry.',
+  'Partial name match only — insufficient evidence to confirm.',
+  'Entity confirmed via secondary ID verification.',
+  'Auto-remediated: record removed from source list.',
+  'Reviewed and confirmed as possible match pending further info.',
+  'Duplicate entry — already resolved under separate case.',
+];
+
+function generateResolutionHistory(currentStatus: MatchStatus, currentRisk: RiskLevel): ResolutionHistoryEntry[] {
+  const count = randInt(1, 4);
+  const entries: ResolutionHistoryEntry[] = [];
+  for (let i = 0; i < count; i++) {
+    const isLatest = i === 0;
+    entries.push({
+      id: `rh-${Date.now()}-${i}-${Math.random().toString(36).slice(2, 6)}`,
+      status: isLatest ? currentStatus : rand(statuses.filter(s => s !== 'Unresolved')),
+      riskLevel: isLatest ? currentRisk : rand(riskLevels),
+      reason: rand(resolutionReasons),
+      comment: Math.random() > 0.4 ? rand(noteTexts) : undefined,
+      author: rand(analysts.filter(a => a !== 'Unassigned')),
+      createdAt: randDate(isLatest ? '2025-01-15' : '2024-06-01', isLatest ? '2025-02-15' : '2025-01-14'),
+    });
+  }
+  return entries.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
 // World-Check matches only — Media Check and Passport Check have their own result models
 function generateMatches(caseId: string, count: number): Match[] {
   return Array.from({ length: count }, (_, i) => {
@@ -230,6 +258,7 @@ function generateMatches(caseId: string, count: number): Match[] {
           { name: 'EU Sanctions List', url: '#' },
         ].slice(0, randInt(1, 3)),
       },
+      resolutionHistory: status !== 'Unresolved' ? generateResolutionHistory(status, rand(riskLevels)) : (Math.random() > 0.5 ? generateResolutionHistory(rand(statuses.filter(s => s !== 'Unresolved')), rand(riskLevels)) : []),
     };
 
     const score = computePriorityScore(partial);
