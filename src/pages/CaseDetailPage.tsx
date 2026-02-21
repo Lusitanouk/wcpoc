@@ -448,14 +448,14 @@ export default function CaseDetailPage() {
           const shortLabel = tab === 'summary' ? 'Summary'
             : tab === 'World-Check' ? 'WC'
             : tab === 'Media Check' ? 'MC' : 'PC';
-          // Determine if this tab has items requiring action
-          const hasAction = tab === 'World-Check'
-            ? matches.some(m => m.reviewRequired || m.status === 'Unresolved')
+          // Count of items requiring action
+          const actionCount = tab === 'World-Check'
+            ? matches.filter(m => m.reviewRequired || m.status === 'Unresolved').length
             : tab === 'Media Check'
-            ? (mediaResult?.reviewRequired ?? 0) > 0
+            ? (mediaResult?.reviewRequired ?? 0)
             : tab === 'Passport Check'
-            ? passportResult?.verificationStatus === 'pending'
-            : false;
+            ? (passportResult?.verificationStatus === 'pending' ? 1 : 0)
+            : 0;
           return (
             <button
               key={tab}
@@ -469,8 +469,10 @@ export default function CaseDetailPage() {
               {icon}
               <span className="hidden sm:inline">{label}</span>
               <span className="sm:hidden">{shortLabel}</span>
-              {hasAction && (
-                <AlertTriangle className="h-3 w-3 text-destructive shrink-0" />
+              {actionCount > 0 && (
+                <Badge variant="destructive" className="h-4 min-w-[16px] px-1 text-[10px] shrink-0">
+                  {actionCount}
+                </Badge>
               )}
             </button>
           );
