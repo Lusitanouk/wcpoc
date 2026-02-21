@@ -169,6 +169,12 @@ export interface ScreeningConfig {
   ogsMediaCheck: boolean;
 }
 
+export interface IdentificationDocument {
+  type: string;
+  number: string;
+  country: string;
+}
+
 export interface ScreeningData {
   name: string;
   nameTransposition: boolean;
@@ -176,10 +182,12 @@ export interface ScreeningData {
   autoGenerateId: boolean;
   dob: string;
   gender: string;
-  nationality: string;
-  country: string;
+  nationalities: string[];
+  countries: string[];
+  placeOfBirth: string[];
   idType: string;
   idNumber: string;
+  identificationDocuments: IdentificationDocument[];
 }
 
 // --- Media Check Types ---

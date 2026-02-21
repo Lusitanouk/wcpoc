@@ -16,7 +16,8 @@ import { ResultsView } from '@/components/screening/ResultsView';
 import { MediaCheckResultsView } from '@/components/screening/MediaCheckResultsView';
 import { PassportCheckResultsView } from '@/components/screening/PassportCheckResultsView';
 import { PassportCheckForm } from '@/components/screening/PassportCheckForm';
-import type { ScreeningConfig, ScreeningData, CheckType, EntityType, Match, PassportData, MediaCheckResult, PassportCheckResult } from '@/types';
+import type { ScreeningConfig, ScreeningData, CheckType, EntityType, Match, PassportData, MediaCheckResult, PassportCheckResult, IdentificationDocument } from '@/types';
+import { CountryMultiSelect, COUNTRIES } from '@/components/screening/CountryMultiSelect';
 
 const steps = ['Configure & Enter Data', 'Results'];
 
@@ -36,10 +37,12 @@ const defaultData: ScreeningData = {
   autoGenerateId: true,
   dob: '',
   gender: '',
-  nationality: '',
-  country: '',
+  nationalities: [],
+  countries: [],
+  placeOfBirth: [],
   idType: '',
   idNumber: '',
+  identificationDocuments: [],
 };
 
 const defaultPassportData: PassportData = {
@@ -327,7 +330,7 @@ export default function ScreenPage() {
                   {/* Secondary Identifiers */}
                   <div className="space-y-3">
                     <h3 className="text-xs font-medium text-muted-foreground">Secondary Identifiers</h3>
-                    <div className="grid grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 gap-3">
                       {config.entityType !== 'Organisation' && (
                         <div className="space-y-1">
                           <Label className="text-[10px]">Date of Birth</Label>
@@ -348,42 +351,130 @@ export default function ScreenPage() {
                       )}
                       {config.entityType !== 'Organisation' && (
                         <div className="space-y-1">
-                          <Label className="text-[10px]">Nationality</Label>
-                          <Input value={data.nationality} onChange={e => setData(d => ({ ...d, nationality: e.target.value }))} placeholder="e.g. US" className="h-8 text-xs" />
+                          <Label className="text-[10px]">Citizenship <span className="text-muted-foreground">(up to 3)</span></Label>
+                          <CountryMultiSelect
+                            value={data.nationalities}
+                            onChange={v => setData(d => ({ ...d, nationalities: v }))}
+                            max={3}
+                            placeholder="Select citizenship..."
+                          />
                         </div>
                       )}
                       <div className="space-y-1">
-                        <Label className="text-[10px]">{config.entityType === 'Organisation' ? 'Registered Country' : 'Country / Location'}</Label>
-                        <Input value={data.country} onChange={e => setData(d => ({ ...d, country: e.target.value }))} placeholder={config.entityType === 'Organisation' ? 'e.g. United Kingdom' : 'e.g. United States'} className="h-8 text-xs" />
+                        <Label className="text-[10px]">{config.entityType === 'Organisation' ? 'Registered Country' : 'Country / Location'} <span className="text-muted-foreground">(up to 3)</span></Label>
+                        <CountryMultiSelect
+                          value={data.countries}
+                          onChange={v => setData(d => ({ ...d, countries: v }))}
+                          max={3}
+                          placeholder={config.entityType === 'Organisation' ? 'Select country...' : 'Select country/location...'}
+                        />
                       </div>
                       {hasMediaCheck && config.entityType !== 'Organisation' && (
                         <div className="space-y-1">
-                          <Label className="text-[10px]">Place of Birth</Label>
-                          <Input placeholder="e.g. New York" className="h-8 text-xs" />
+                          <Label className="text-[10px]">Place of Birth <span className="text-muted-foreground">(up to 3)</span></Label>
+                          <CountryMultiSelect
+                            value={data.placeOfBirth}
+                            onChange={v => setData(d => ({ ...d, placeOfBirth: v }))}
+                            max={3}
+                            placeholder="Select place of birth..."
+                          />
                         </div>
                       )}
                     </div>
                   </div>
 
-                  {/* Custom Fields */}
-                  <button
-                    onClick={() => setShowCustomFields(!showCustomFields)}
-                    className="text-xs text-primary hover:underline"
-                  >
-                    {showCustomFields ? '▼' : '▶'} Custom Fields
-                  </button>
-                  {showCustomFields && (
-                    <div className="grid grid-cols-2 gap-3 p-3 rounded-lg bg-muted animate-fade-in">
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">ID Type</Label>
-                        <Input value={data.idType} onChange={e => setData(d => ({ ...d, idType: e.target.value }))} placeholder="e.g. Passport" className="h-8 text-xs" />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-[10px]">ID Number</Label>
-                        <Input value={data.idNumber} onChange={e => setData(d => ({ ...d, idNumber: e.target.value }))} placeholder="e.g. AB123456" className="h-8 text-xs" />
-                      </div>
+                  {/* Identification Documents */}
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-xs font-medium text-muted-foreground">Identification Documents</h3>
+                      {data.identificationDocuments.length < 3 && data.identificationDocuments.length > 0 && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 text-[10px] gap-1"
+                          onClick={() => setData(d => ({
+                            ...d,
+                            identificationDocuments: [...d.identificationDocuments, { type: '', number: '', country: '' }]
+                          }))}
+                        >
+                          + Add Document
+                        </Button>
+                      )}
                     </div>
-                  )}
+                    {data.identificationDocuments.length === 0 && (
+                      <button
+                        onClick={() => setData(d => ({
+                          ...d,
+                          identificationDocuments: [{ type: '', number: '', country: '' }]
+                        }))}
+                        className="w-full border border-dashed rounded-md py-3 text-xs text-muted-foreground hover:bg-muted/50 hover:text-foreground transition-colors"
+                      >
+                        + Add Identification Document
+                      </button>
+                    )}
+                    {data.identificationDocuments.map((doc, idx) => (
+                      <div key={idx} className="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 items-end">
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Document Type</Label>
+                          <Select
+                            value={doc.type}
+                            onValueChange={v => setData(d => {
+                              const docs = [...d.identificationDocuments];
+                              docs[idx] = { ...docs[idx], type: v };
+                              return { ...d, identificationDocuments: docs };
+                            })}
+                          >
+                            <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select type..." /></SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Passport">Passport</SelectItem>
+                              <SelectItem value="National ID">National ID</SelectItem>
+                              <SelectItem value="Driving License">Driving License</SelectItem>
+                              <SelectItem value="Tax ID">Tax ID</SelectItem>
+                              <SelectItem value="Company Registration">Company Registration</SelectItem>
+                              <SelectItem value="Other">Other</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Document Number</Label>
+                          <Input
+                            value={doc.number}
+                            onChange={e => setData(d => {
+                              const docs = [...d.identificationDocuments];
+                              docs[idx] = { ...docs[idx], number: e.target.value };
+                              return { ...d, identificationDocuments: docs };
+                            })}
+                            placeholder="e.g. AB123456"
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">Issuing Country</Label>
+                          <CountryMultiSelect
+                            value={doc.country ? [doc.country] : []}
+                            onChange={v => setData(d => {
+                              const docs = [...d.identificationDocuments];
+                              docs[idx] = { ...docs[idx], country: v[0] || '' };
+                              return { ...d, identificationDocuments: docs };
+                            })}
+                            max={1}
+                            placeholder="Select..."
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => setData(d => ({
+                            ...d,
+                            identificationDocuments: d.identificationDocuments.filter((_, i) => i !== idx)
+                          }))}
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </>
               )}
 
