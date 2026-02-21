@@ -12,7 +12,9 @@ import {
   SidebarMenu,
   SidebarMenuItem,
   SidebarMenuButton,
+  SidebarFooter,
 } from '@/components/ui/sidebar';
+import { SidebarTrigger } from '@/components/ui/sidebar';
 
 export function AppSidebar() {
   const { t } = useTranslation();
@@ -55,6 +57,9 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
+      <SidebarFooter>
+        <SidebarTrigger className="w-full" />
+      </SidebarFooter>
     </Sidebar>
   );
 }
