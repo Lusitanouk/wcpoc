@@ -1,10 +1,10 @@
 import { useState, useMemo } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Shield, Newspaper, CreditCard, User, MapPin, Calendar, Hash,
   Edit, UserPlus, ArrowRightLeft, Archive, Trash2, RefreshCw, ToggleRight,
   ChevronDown, MessageSquare, Send, Clock, FileText, Activity, AlertTriangle,
-  ChevronUp, LayoutDashboard, ChevronRight, Eye, Info
+  ChevronUp, LayoutDashboard, ChevronRight, ChevronLeft, Eye, Info
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { getCaseById, getMatchesForCase, getGroupById, groups } from '@/data/mock-data';
+import { getCaseById, getMatchesForCase, getGroupById, groups, cases } from '@/data/mock-data';
 import { generateMediaCheckResult } from '@/data/media-mock-data';
 import { generatePassportCheckResult } from '@/data/passport-mock-data';
 import { ResultsView } from '@/components/screening/ResultsView';
@@ -247,9 +247,21 @@ function AuditTrailPanel({
 // ─── Main Component ──────────────────────────────────────────
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const caseData = id ? getCaseById(id) : undefined;
   const matches = id ? getMatchesForCase(id) : [];
+
+  // Case-level navigation
+  const caseIndex = caseData ? cases.findIndex(c => c.id === caseData.id) : -1;
+  const hasPrevCase = caseIndex > 0;
+  const hasNextCase = caseIndex >= 0 && caseIndex < cases.length - 1;
+  const goToCase = (direction: 'prev' | 'next') => {
+    const newIndex = direction === 'prev' ? caseIndex - 1 : caseIndex + 1;
+    if (newIndex >= 0 && newIndex < cases.length) {
+      navigate(`/cases/${cases[newIndex].id}`);
+    }
+  };
 
   // Tab from URL: 'summary' or a CheckType
   const tabParam = searchParams.get('tab') || 'summary';
@@ -327,9 +339,22 @@ export default function CaseDetailPage() {
 
   return (
     <div className="min-w-0">
-      <Link to="/cases" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-3">
-        <ArrowLeft className="h-3.5 w-3.5" /> Back to Cases
-      </Link>
+      <div className="flex items-center justify-between mb-3">
+        <Link to="/cases" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft className="h-3.5 w-3.5" /> Back to Cases
+        </Link>
+        {cases.length > 1 && (
+          <div className="flex items-center gap-1">
+            <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" disabled={!hasPrevCase} onClick={() => goToCase('prev')}>
+              <ChevronLeft className="h-3.5 w-3.5" /> Prev
+            </Button>
+            <span className="text-xs text-muted-foreground font-mono px-1">{caseIndex + 1}/{cases.length}</span>
+            <Button variant="outline" size="sm" className="h-7 px-2 text-xs gap-1" disabled={!hasNextCase} onClick={() => goToCase('next')}>
+              Next <ChevronRight className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        )}
+      </div>
 
       {/* ── Case Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
