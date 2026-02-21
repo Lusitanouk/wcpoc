@@ -16,7 +16,7 @@ import {
 const navItems = [
   { title: 'Screen', url: '/screen', icon: Search },
   { title: 'Cases', url: '/cases', icon: Briefcase },
-  { title: 'Reviews', url: '/reviews', icon: AlertTriangle },
+  { title: 'Alerts', url: '/alerts', icon: AlertTriangle },
   { title: 'Reports', url: '/reports', icon: FileText },
   { title: 'Admin', url: '/admin', icon: Settings },
 ];

@@ -9,7 +9,7 @@ import Index from "./pages/Index";
 import ScreenPage from "./pages/ScreenPage";
 import CasesPage from "./pages/CasesPage";
 import CaseDetailPage from "./pages/CaseDetailPage";
-import ReviewsPage from "./pages/ReviewsPage";
+import AlertsPage from "./pages/ReviewsPage";
 import ReportsPage from "./pages/ReportsPage";
 import AdminPage from "./pages/AdminPage";
 import NotFound from "./pages/NotFound";
@@ -29,7 +29,7 @@ const App = () => (
               <Route path="/screen" element={<ScreenPage />} />
               <Route path="/cases" element={<CasesPage />} />
               <Route path="/cases/:id" element={<CaseDetailPage />} />
-              <Route path="/reviews" element={<ReviewsPage />} />
+              <Route path="/alerts" element={<AlertsPage />} />
               <Route path="/reports" element={<ReportsPage />} />
               <Route path="/admin" element={<AdminPage />} />
             </Route>

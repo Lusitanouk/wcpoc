@@ -1,47 +1,137 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Clock, Info } from 'lucide-react';
+import { AlertTriangle, Clock, Info, ChevronDown, ChevronRight, ArrowUpDown, Calendar, Layers } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cases, allMatches, getCaseById } from '@/data/mock-data';
 import { priorityColor } from '@/lib/priority';
+import type { Match, PriorityLevel } from '@/types';
 
-export default function ReviewsPage() {
+function alertAgeDays(m: Match): number {
+  const ref = m.reviewRequired && m.reviewRequiredAt ? m.reviewRequiredAt : m.alertDate;
+  const diff = Date.now() - new Date(ref).getTime();
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+}
+
+function ageLabel(days: number): string {
+  if (days > 30) return '30+ days';
+  if (days >= 14) return '14–30 days';
+  if (days >= 7) return '7–13 days';
+  return '< 7 days';
+}
+
+function ageBadgeClass(days: number): string {
+  if (days > 30) return 'border-status-unresolved text-status-unresolved';
+  if (days >= 14) return 'border-status-possible text-status-possible';
+  return 'border-muted-foreground text-muted-foreground';
+}
+
+type SortKey = 'priority' | 'age' | 'strength';
+
+interface CaseAlertGroup {
+  caseId: string;
+  caseName: string;
+  alerts: Match[];
+  highestPriority: PriorityLevel;
+  oldestAge: number;
+}
+
+export default function AlertsPage() {
   const navigate = useNavigate();
   const [tab, setTab] = useState('unresolved');
   const [priorityFilter, setPriorityFilter] = useState<string>('all');
+  const [ageFilter, setAgeFilter] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<SortKey>('priority');
+  const [groupByCase, setGroupByCase] = useState(false);
+  const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
+
+  const filterAndSort = (list: Match[]) => {
+    return list
+      .filter(m => priorityFilter === 'all' || m.priorityLevel === priorityFilter)
+      .filter(m => {
+        if (ageFilter === 'all') return true;
+        const days = alertAgeDays(m);
+        if (ageFilter === '30+') return days > 30;
+        if (ageFilter === '14-30') return days >= 14 && days <= 30;
+        if (ageFilter === '7-13') return days >= 7 && days <= 13;
+        if (ageFilter === '<7') return days < 7;
+        return true;
+      })
+      .sort((a, b) => {
+        if (sortBy === 'priority') return b.priorityScore - a.priorityScore;
+        if (sortBy === 'age') return alertAgeDays(b) - alertAgeDays(a);
+        return b.strength - a.strength;
+      });
+  };
 
   const unresolvedMatches = useMemo(() =>
-    allMatches
-      .filter(m => m.status === 'Unresolved')
-      .filter(m => priorityFilter === 'all' || m.priorityLevel === priorityFilter)
-      .sort((a, b) => b.priorityScore - a.priorityScore),
-    [priorityFilter]
+    filterAndSort(allMatches.filter(m => m.status === 'Unresolved')),
+    [priorityFilter, ageFilter, sortBy]
   );
 
   const reviewRequiredMatches = useMemo(() =>
-    allMatches
-      .filter(m => m.reviewRequired)
-      .filter(m => priorityFilter === 'all' || m.priorityLevel === priorityFilter)
-      .sort((a, b) => b.priorityScore - a.priorityScore),
-    [priorityFilter]
+    filterAndSort(allMatches.filter(m => m.reviewRequired)),
+    [priorityFilter, ageFilter, sortBy]
   );
 
+  const activeList = tab === 'unresolved' ? unresolvedMatches : reviewRequiredMatches;
+
+  const caseGroups = useMemo((): CaseAlertGroup[] => {
+    const map = new Map<string, Match[]>();
+    activeList.forEach(m => {
+      const arr = map.get(m.caseId) || [];
+      arr.push(m);
+      map.set(m.caseId, arr);
+    });
+    const groups: CaseAlertGroup[] = [];
+    map.forEach((alerts, caseId) => {
+      const c = getCaseById(caseId);
+      const priorityOrder: PriorityLevel[] = ['High', 'Medium', 'Low'];
+      const highestPriority = priorityOrder.find(p => alerts.some(a => a.priorityLevel === p)) || 'Low';
+      groups.push({
+        caseId,
+        caseName: c?.name || caseId,
+        alerts,
+        highestPriority,
+        oldestAge: Math.max(...alerts.map(alertAgeDays)),
+      });
+    });
+    groups.sort((a, b) => {
+      if (sortBy === 'age') return b.oldestAge - a.oldestAge;
+      return Math.max(...b.alerts.map(x => x.priorityScore)) - Math.max(...a.alerts.map(x => x.priorityScore));
+    });
+    return groups;
+  }, [activeList, sortBy]);
+
+  const multiAlertCaseCount = caseGroups.filter(g => g.alerts.length > 1).length;
+
   const casesWithMandatory = cases.filter(c => c.mandatoryAction);
+
+  const toggleExpanded = (caseId: string) => {
+    setExpandedCases(prev => {
+      const next = new Set(prev);
+      next.has(caseId) ? next.delete(caseId) : next.add(caseId);
+      return next;
+    });
+  };
+
+  const highCount = activeList.filter(m => m.priorityLevel === 'High').length;
+  const aged30 = activeList.filter(m => alertAgeDays(m) > 30).length;
 
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-xl font-bold flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-status-possible" />
-          Reviews
+          Alerts
         </h1>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-40 h-8 text-xs"><SelectValue placeholder="All Priorities" /></SelectTrigger>
+            <SelectTrigger className="w-36 h-8 text-xs"><SelectValue placeholder="All Priorities" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Priorities</SelectItem>
               <SelectItem value="High">High Only</SelectItem>
@@ -49,30 +139,76 @@ export default function ReviewsPage() {
               <SelectItem value="Low">Low Only</SelectItem>
             </SelectContent>
           </Select>
-          <Badge variant="secondary" className="text-xs">
-            {casesWithMandatory.length} cases with mandatory actions
-          </Badge>
+          <Select value={ageFilter} onValueChange={setAgeFilter}>
+            <SelectTrigger className="w-36 h-8 text-xs">
+              <Calendar className="h-3 w-3 mr-1" />
+              <SelectValue placeholder="All Ages" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Ages</SelectItem>
+              <SelectItem value="30+">30+ days</SelectItem>
+              <SelectItem value="14-30">14–30 days</SelectItem>
+              <SelectItem value="7-13">7–13 days</SelectItem>
+              <SelectItem value="<7">{'< 7 days'}</SelectItem>
+            </SelectContent>
+          </Select>
+          <Select value={sortBy} onValueChange={v => setSortBy(v as SortKey)}>
+            <SelectTrigger className="w-36 h-8 text-xs">
+              <ArrowUpDown className="h-3 w-3 mr-1" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="priority">Sort: Priority</SelectItem>
+              <SelectItem value="age">Sort: Age</SelectItem>
+              <SelectItem value="strength">Sort: Strength</SelectItem>
+            </SelectContent>
+          </Select>
+          <Button
+            variant={groupByCase ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => setGroupByCase(!groupByCase)}
+          >
+            <Layers className="h-3.5 w-3.5" />
+            Group by Case
+          </Button>
         </div>
       </div>
 
       {/* Summary */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-5 gap-3 mb-6">
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Unresolved Matches</p>
-            <p className="text-2xl font-bold text-status-unresolved mt-1">{unresolvedMatches.length}</p>
+            <p className="text-xs text-muted-foreground">Unresolved</p>
+            <p className="text-2xl font-bold text-status-unresolved mt-1">
+              {allMatches.filter(m => m.status === 'Unresolved').length}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
             <p className="text-xs text-muted-foreground">Review Required</p>
-            <p className="text-2xl font-bold text-status-possible mt-1">{reviewRequiredMatches.length}</p>
+            <p className="text-2xl font-bold text-status-possible mt-1">
+              {allMatches.filter(m => m.reviewRequired).length}
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Mandatory Action Cases</p>
-            <p className="text-2xl font-bold mt-1">{casesWithMandatory.length}</p>
+            <p className="text-xs text-muted-foreground">High Priority</p>
+            <p className="text-2xl font-bold text-status-unresolved mt-1">{highCount}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Aged 30+ days</p>
+            <p className="text-2xl font-bold mt-1">{aged30}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="p-4">
+            <p className="text-xs text-muted-foreground">Multi-Alert Cases</p>
+            <p className="text-2xl font-bold mt-1">{multiAlertCaseCount}</p>
           </CardContent>
         </Card>
       </div>
@@ -89,155 +225,196 @@ export default function ReviewsPage() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="unresolved">
-          <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Case</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Matched Name</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">Priority</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Strength</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Dataset</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Identifiers</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {unresolvedMatches.length === 0 ? (
-                    <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">All matches have been resolved. 🎉</td></tr>
-                  ) : (
-                    unresolvedMatches.map(m => {
-                      const c = getCaseById(m.caseId);
-                      return (
-                        <tr
+        {['unresolved', 'review'].map(tabKey => (
+          <TabsContent key={tabKey} value={tabKey}>
+            <Card>
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/50">
+                      {groupByCase && <th className="w-8 px-2" />}
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Case</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Matched Name</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">Priority</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">Age</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Strength</th>
+                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Dataset</th>
+                      {tabKey === 'review' && (
+                        <th className="text-left px-4 py-3 font-medium text-muted-foreground">What Changed</th>
+                      )}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {activeList.length === 0 ? (
+                      <tr>
+                        <td colSpan={groupByCase ? 8 : 7} className="px-4 py-12 text-center text-muted-foreground">
+                          {tabKey === 'unresolved' ? 'All matches have been resolved. 🎉' : 'No reviews pending.'}
+                        </td>
+                      </tr>
+                    ) : groupByCase ? (
+                      caseGroups.map(group => {
+                        const isExpanded = expandedCases.has(group.caseId);
+                        return (
+                          <GroupRows
+                            key={group.caseId}
+                            group={group}
+                            isExpanded={isExpanded}
+                            onToggle={() => toggleExpanded(group.caseId)}
+                            onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)}
+                            showChanges={tabKey === 'review'}
+                          />
+                        );
+                      })
+                    ) : (
+                      activeList.map(m => (
+                        <AlertRow
                           key={m.id}
-                          className="border-b cursor-pointer hover:bg-muted/30 transition-colors"
-                          onClick={() => navigate(`/cases/${m.caseId}?bucket=unresolved`)}
-                          tabIndex={0}
-                          onKeyDown={e => e.key === 'Enter' && navigate(`/cases/${m.caseId}?bucket=unresolved`)}
-                        >
-                          <td className="px-4 py-3">
-                            <span className="font-medium">{c?.name || m.caseId}</span>
-                            <span className="text-xs text-muted-foreground ml-2">{m.caseId}</span>
-                          </td>
-                          <td className="px-4 py-3 font-medium">{m.matchedName}</td>
-                          <td className="px-4 py-3">
-                            <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>
-                              {m.priorityLevel}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3 font-mono text-xs">{m.strength}%</td>
-                          <td className="px-4 py-3">
-                            <Badge variant="secondary" className="text-[10px]">{m.dataset}</Badge>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground">
-                            {[m.identifiers.nationality, m.identifiers.dob].filter(Boolean).join(' · ') || '—'}
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="review">
-          <Card>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/50">
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Case</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Matched Name</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">Priority</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Strength</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">What Changed</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">Reasons</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {reviewRequiredMatches.length === 0 ? (
-                    <tr><td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">No reviews pending.</td></tr>
-                  ) : (
-                    reviewRequiredMatches.map(m => {
-                      const c = getCaseById(m.caseId);
-                      return (
-                        <tr
-                          key={m.id}
-                          className="border-b cursor-pointer hover:bg-muted/30 transition-colors bg-status-possible/5"
-                          onClick={() => navigate(`/cases/${m.caseId}?bucket=unresolved`)}
-                          tabIndex={0}
-                          onKeyDown={e => e.key === 'Enter' && navigate(`/cases/${m.caseId}?bucket=unresolved`)}
-                        >
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />
-                              <span className="font-medium">{c?.name || m.caseId}</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{m.matchedName}</span>
-                              <Badge className="text-[10px] bg-status-possible/15 text-status-possible border-0">Updated</Badge>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3">
-                            <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>
-                              {m.priorityLevel}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3 font-mono text-xs">{m.strength}%</td>
-                          <td className="px-4 py-3">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="text-xs text-muted-foreground cursor-help max-w-[180px] truncate">
-                                  {m.changeLog.length > 0
-                                    ? m.changeLog.map(cl => `${cl.field}: ${cl.from}→${cl.to}`).join('; ')
-                                    : '—'}
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent className="max-w-xs">
-                                {m.changeLog.length > 0 ? (
-                                  <table className="text-xs">
-                                    <thead><tr><th className="pr-2 text-left">Field</th><th className="pr-2 text-left">From</th><th className="pr-2 text-left">To</th><th className="text-left">Date</th></tr></thead>
-                                    <tbody>
-                                      {m.changeLog.map((cl, i) => (
-                                        <tr key={i}><td className="pr-2">{cl.field}</td><td className="pr-2">{cl.from}</td><td className="pr-2">{cl.to}</td><td>{cl.changedAt}</td></tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                ) : <span>No change details</span>}
-                              </TooltipContent>
-                            </Tooltip>
-                          </td>
-                          <td className="px-4 py-3">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center gap-1 cursor-help">
-                                  <Info className="h-3 w-3 text-muted-foreground" />
-                                  <span className="text-xs">{m.reviewRequiredReasons.length} reason(s)</span>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <ul className="text-xs space-y-0.5">
-                                  {m.reviewRequiredReasons.map((r, i) => <li key={i}>• {r}</li>)}
-                                </ul>
-                              </TooltipContent>
-                            </Tooltip>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </Card>
-        </TabsContent>
+                          m={m}
+                          onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)}
+                          showChanges={tabKey === 'review'}
+                          showGroupCol={false}
+                        />
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </Card>
+          </TabsContent>
+        ))}
       </Tabs>
     </div>
+  );
+}
+
+function AlertRow({ m, onNavigate, showChanges, showGroupCol }: {
+  m: Match;
+  onNavigate: (caseId: string) => void;
+  showChanges: boolean;
+  showGroupCol: boolean;
+}) {
+  const c = getCaseById(m.caseId);
+  const days = alertAgeDays(m);
+  const caseAlertCount = allMatches.filter(x => x.caseId === m.caseId && (x.status === 'Unresolved' || x.reviewRequired)).length;
+
+  return (
+    <tr
+      className={`border-b cursor-pointer hover:bg-muted/30 transition-colors ${
+        m.reviewRequired ? 'bg-status-possible/5' : ''
+      }`}
+      onClick={() => onNavigate(m.caseId)}
+      tabIndex={0}
+      onKeyDown={e => e.key === 'Enter' && onNavigate(m.caseId)}
+    >
+      {showGroupCol && <td className="w-8 px-2" />}
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{c?.name || m.caseId}</span>
+          {caseAlertCount > 1 && (
+            <Badge variant="outline" className="text-[10px] gap-0.5">
+              <Layers className="h-2.5 w-2.5" />
+              {caseAlertCount}
+            </Badge>
+          )}
+        </div>
+        <span className="text-[10px] text-muted-foreground">{m.caseId}</span>
+      </td>
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-2">
+          <span className="font-medium">{m.matchedName}</span>
+          {m.updated && (
+            <Badge className="text-[10px] bg-status-possible/15 text-status-possible border-0">Updated</Badge>
+          )}
+        </div>
+      </td>
+      <td className="px-4 py-3">
+        <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>
+          {m.priorityLevel}
+        </Badge>
+      </td>
+      <td className="px-4 py-3">
+        <Badge variant="outline" className={`text-[10px] ${ageBadgeClass(days)}`}>
+          {ageLabel(days)}
+        </Badge>
+      </td>
+      <td className="px-4 py-3 font-mono text-xs">{m.strength}%</td>
+      <td className="px-4 py-3">
+        <Badge variant="secondary" className="text-[10px]">{m.dataset}</Badge>
+      </td>
+      {showChanges && (
+        <td className="px-4 py-3">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="text-xs text-muted-foreground cursor-help max-w-[180px] truncate">
+                {m.changeLog.length > 0
+                  ? m.changeLog.map(cl => `${cl.field}: ${cl.from}→${cl.to}`).join('; ')
+                  : '—'}
+              </div>
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              {m.changeLog.length > 0 ? (
+                <table className="text-xs">
+                  <thead><tr><th className="pr-2 text-left">Field</th><th className="pr-2 text-left">From</th><th className="pr-2 text-left">To</th><th className="text-left">Date</th></tr></thead>
+                  <tbody>
+                    {m.changeLog.map((cl, i) => (
+                      <tr key={i}><td className="pr-2">{cl.field}</td><td className="pr-2">{cl.from}</td><td className="pr-2">{cl.to}</td><td>{cl.changedAt}</td></tr>
+                    ))}
+                  </tbody>
+                </table>
+              ) : <span>No change details</span>}
+            </TooltipContent>
+          </Tooltip>
+        </td>
+      )}
+    </tr>
+  );
+}
+
+function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges }: {
+  group: CaseAlertGroup;
+  isExpanded: boolean;
+  onToggle: () => void;
+  onNavigate: (caseId: string) => void;
+  showChanges: boolean;
+}) {
+  const colSpan = showChanges ? 7 : 6;
+  return (
+    <>
+      <tr
+        className="border-b bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
+        onClick={onToggle}
+      >
+        <td className="w-8 px-2 py-2.5">
+          {isExpanded ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
+        </td>
+        <td colSpan={colSpan} className="px-4 py-2.5">
+          <div className="flex items-center gap-3">
+            <span className="font-semibold text-sm">{group.caseName}</span>
+            <span className="text-[10px] text-muted-foreground font-mono">{group.caseId}</span>
+            <Badge variant="outline" className="text-[10px] gap-0.5">
+              <Layers className="h-2.5 w-2.5" />
+              {group.alerts.length} alert{group.alerts.length > 1 ? 's' : ''}
+            </Badge>
+            <Badge variant="outline" className={`text-[10px] ${priorityColor(group.highestPriority)}`}>
+              {group.highestPriority}
+            </Badge>
+            {group.oldestAge > 30 && (
+              <Badge variant="outline" className="text-[10px] border-status-unresolved text-status-unresolved">
+                {group.oldestAge}d oldest
+              </Badge>
+            )}
+          </div>
+        </td>
+      </tr>
+      {isExpanded && group.alerts.map(m => (
+        <AlertRow
+          key={m.id}
+          m={m}
+          onNavigate={onNavigate}
+          showChanges={showChanges}
+          showGroupCol={true}
+        />
+      ))}
+    </>
   );
 }
