@@ -285,40 +285,24 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
         })()}
       </div>
 
-      {/* Bulk Action Bar + Filter Toggle */}
-      <div className="flex items-center justify-between mb-4 gap-2">
-        {selectedCount > 0 ? (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 flex-1 animate-fade-in">
-            <CheckSquare className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">{selectedCount} selected</span>
-            <div className="flex gap-1.5 ml-2">
-              <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
-                <Check className="h-3 w-3" /> Bulk Resolve
-              </Button>
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
-                <Eye className="h-3 w-3" /> Mark Reviewed
-              </Button>
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
+      {/* Bulk Action Bar (only when items selected) */}
+      {selectedCount > 0 && (
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 mb-4 animate-fade-in">
+          <CheckSquare className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">{selectedCount} selected</span>
+          <div className="flex gap-1.5 ml-2">
+            <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
+              <Check className="h-3 w-3" /> Bulk Resolve
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
+              <Eye className="h-3 w-3" /> Mark Reviewed
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+              <X className="h-3 w-3" />
+            </Button>
           </div>
-        ) : (
-          <div />
-        )}
-        <Button
-          variant={showFilters ? 'secondary' : 'outline'}
-          size="sm"
-          onClick={() => setShowFilters(!showFilters)}
-          className="gap-1 shrink-0"
-        >
-          <Filter className="h-3.5 w-3.5" />
-          {showFilters ? 'Hide' : 'Filters'}
-          {activeFilterCount > 0 && (
-            <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">{activeFilterCount}</Badge>
-          )}
-        </Button>
-      </div>
+        </div>
+      )}
 
       <div className={`grid gap-4 ${showFilters ? 'grid-cols-[220px_1fr]' : 'grid-cols-1'}`}>
         {/* Left Filter Sidebar */}
@@ -327,11 +311,16 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             <CardContent className="p-4 space-y-5">
               <div className="flex items-center justify-between">
                 <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Filters</h3>
-                {activeFilterCount > 0 && (
-                  <Button variant="ghost" size="sm" className="h-5 text-[10px] px-1.5 gap-0.5" onClick={() => { setMinStrength(0); setFilterDataset('all'); setFilterPriority('all'); }}>
-                    <X className="h-2.5 w-2.5" /> Clear
+                <div className="flex items-center gap-1">
+                  {activeFilterCount > 0 && (
+                    <Button variant="ghost" size="sm" className="h-5 text-[10px] px-1.5 gap-0.5" onClick={() => { setMinStrength(0); setFilterDataset('all'); setFilterPriority('all'); }}>
+                      <X className="h-2.5 w-2.5" /> Clear
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" className="h-5 w-5 p-0" onClick={() => setShowFilters(false)}>
+                    <X className="h-3 w-3" />
                   </Button>
-                )}
+                </div>
               </div>
 
               <div className="space-y-1.5">
@@ -406,6 +395,22 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
 
         {/* Matches Table */}
         <Card>
+        {!showFilters && (
+          <div className="flex items-center justify-between px-4 py-2 border-b bg-muted/30">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowFilters(true)}
+              className="gap-1.5 h-7 text-xs"
+            >
+              <Filter className="h-3.5 w-3.5" />
+              Filters
+              {activeFilterCount > 0 && (
+                <Badge className="ml-1 h-4 w-4 p-0 flex items-center justify-center text-[10px]">{activeFilterCount}</Badge>
+              )}
+            </Button>
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
