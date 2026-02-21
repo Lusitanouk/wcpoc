@@ -69,7 +69,7 @@ function generateAuditTrail(caseId: string, createdAt: string): CaseAuditEvent[]
   const events: CaseAuditEvent[] = [
     { id: `${caseId}-audit-0`, type: 'created', author: 'System', text: 'Case created and initial screening completed', createdAt },
   ];
-  const count = randInt(3, 8);
+  const count = randInt(15, 60);
   for (let i = 1; i <= count; i++) {
     const tmpl = rand(auditEventTemplates.filter(t => t.type !== 'created'));
     const author = tmpl.type === 'rescreen' ? 'System' : rand(analysts.filter(a => a !== 'Unassigned'));

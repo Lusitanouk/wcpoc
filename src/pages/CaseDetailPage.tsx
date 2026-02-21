@@ -4,7 +4,7 @@ import {
   ArrowLeft, Shield, Newspaper, CreditCard, User, MapPin, Calendar, Hash,
   Edit, UserPlus, ArrowRightLeft, Archive, Trash2, RefreshCw, ToggleRight,
   ChevronDown, MessageSquare, Send, Clock, FileText, Activity, AlertTriangle,
-  ChevronUp
+  ChevronUp, LayoutDashboard, ChevronRight, Eye
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { getCaseById, getMatchesForCase, getGroupById, groups } from '@/data/mock-data';
 import { generateMediaCheckResult } from '@/data/media-mock-data';
@@ -24,6 +23,7 @@ import { MediaCheckResultsView } from '@/components/screening/MediaCheckResultsV
 import { PassportCheckResultsView } from '@/components/screening/PassportCheckResultsView';
 import type { CheckType, MediaCheckResult, PassportCheckResult, CaseAuditEvent, AuditEventType } from '@/types';
 
+// ─── Constants ───────────────────────────────────────────────
 const checkTypeIcons: Record<CheckType, React.ReactNode> = {
   'World-Check': <Shield className="h-3.5 w-3.5" />,
   'Media Check': <Newspaper className="h-3.5 w-3.5" />,
@@ -50,21 +50,152 @@ const auditTypeLabel: Record<AuditEventType, string> = {
   status_change: 'Resolution', created: 'Created',
 };
 
+type CaseTab = 'summary' | CheckType;
+const AUDIT_PAGE_SIZE = 20;
+
+// ─── Audit Trail Component (paginated) ──────────────────────
+function AuditTrailPanel({
+  allEvents,
+  localEvents,
+  onAddNote,
+}: {
+  allEvents: CaseAuditEvent[];
+  localEvents: CaseAuditEvent[];
+  onAddNote: (text: string) => void;
+}) {
+  const [filter, setFilter] = useState<'all' | AuditEventType>('all');
+  const [visibleCount, setVisibleCount] = useState(AUDIT_PAGE_SIZE);
+  const [newNote, setNewNote] = useState('');
+
+  const merged = useMemo(() => {
+    const combined = [...allEvents, ...localEvents].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    if (filter === 'all') return combined;
+    return combined.filter(e => e.type === filter);
+  }, [allEvents, localEvents, filter]);
+
+  const visible = merged.slice(0, visibleCount);
+  const hasMore = visibleCount < merged.length;
+  const totalCount = allEvents.length + localEvents.length;
+
+  const handleAddNote = () => {
+    if (!newNote.trim()) return;
+    onAddNote(newNote.trim());
+    setNewNote('');
+  };
+
+  return (
+    <Card className="p-3 sm:p-4 h-fit xl:sticky xl:top-4">
+      <div className="flex items-center justify-between mb-3">
+        <h3 className="text-sm font-semibold flex items-center gap-1.5">
+          <Activity className="h-3.5 w-3.5" /> Audit Trail
+        </h3>
+        <Badge variant="secondary" className="text-[10px]">{totalCount} events</Badge>
+      </div>
+
+      {/* Filter chips */}
+      <div className="flex flex-wrap gap-1 mb-3">
+        {(['all', 'note', 'assign', 'edit', 'rescreen', 'status_change', 'move'] as const).map(f => (
+          <button
+            key={f}
+            onClick={() => { setFilter(f); setVisibleCount(AUDIT_PAGE_SIZE); }}
+            className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
+              filter === f
+                ? 'bg-primary text-primary-foreground'
+                : 'bg-muted text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            {f === 'all' ? 'All' : auditTypeLabel[f]}
+          </button>
+        ))}
+      </div>
+
+      {/* Timeline with load-more */}
+      <ScrollArea className="h-[350px] xl:h-[450px]">
+        <div className="space-y-0">
+          {visible.length === 0 && (
+            <p className="text-xs text-muted-foreground py-4 text-center">No matching events.</p>
+          )}
+          {visible.map((event, idx) => (
+            <div key={event.id} className="relative pl-6 pb-3">
+              {idx < visible.length - 1 && (
+                <div className="absolute left-[9px] top-5 bottom-0 w-px bg-border" />
+              )}
+              <div className={`absolute left-0 top-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center ${
+                event.type === 'created' ? 'bg-primary text-primary-foreground'
+                : event.type === 'status_change' ? 'bg-status-positive/20 text-foreground'
+                : 'bg-muted text-muted-foreground'
+              }`}>
+                {auditTypeIcon[event.type]}
+              </div>
+              <div className="text-xs">
+                <div className="flex items-center gap-1.5 text-muted-foreground">
+                  <span className="font-medium text-foreground">{event.author}</span>
+                  <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" />{event.createdAt}</span>
+                </div>
+                <p className="mt-0.5">{event.text}</p>
+                {event.comment && (
+                  <div className="mt-1 p-1.5 rounded bg-muted/50 text-muted-foreground italic text-[11px]">
+                    "{event.comment}"
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          {hasMore && (
+            <div className="pt-1 pb-2 text-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[11px] text-muted-foreground"
+                onClick={() => setVisibleCount(c => c + AUDIT_PAGE_SIZE)}
+              >
+                Load {Math.min(AUDIT_PAGE_SIZE, merged.length - visibleCount)} more of {merged.length - visibleCount} remaining
+              </Button>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+
+      {/* Add note */}
+      <div className="border-t pt-3 mt-2">
+        <Textarea
+          value={newNote}
+          onChange={e => setNewNote(e.target.value)}
+          placeholder="Add a note or comment..."
+          className="min-h-[60px] text-xs mb-2 resize-none"
+          rows={2}
+        />
+        <Button size="sm" className="w-full h-7 text-xs gap-1" onClick={handleAddNote} disabled={!newNote.trim()}>
+          <Send className="h-3 w-3" /> Add Note
+        </Button>
+      </div>
+    </Card>
+  );
+}
+
+// ─── Main Component ──────────────────────────────────────────
 export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const caseData = id ? getCaseById(id) : undefined;
   const matches = id ? getMatchesForCase(id) : [];
 
-  const activeCheckType = (searchParams.get('check') as CheckType) || caseData?.checkTypes[0] || 'World-Check';
-  const setActiveCheckType = (ct: CheckType) => {
-    const params: Record<string, string> = { check: ct };
-    if (ct === 'World-Check') {
+  // Tab from URL: 'summary' or a CheckType
+  const tabParam = searchParams.get('tab') || 'summary';
+  const activeTab: CaseTab = tabParam === 'summary' ? 'summary' : (tabParam as CheckType);
+
+  const setActiveTab = (tab: CaseTab) => {
+    const params: Record<string, string> = { tab };
+    if (tab !== 'summary' && tab !== 'Media Check' && tab !== 'Passport Check') {
       const bucket = searchParams.get('bucket');
       if (bucket) params.bucket = bucket;
     }
     setSearchParams(params, { replace: true });
   };
+
+  // Legacy: support ?check= param
+  const legacyCheck = searchParams.get('check');
+  const effectiveTab = legacyCheck && !searchParams.has('tab') ? legacyCheck as CheckType : activeTab;
 
   // Workflow dialogs
   const [editDialog, setEditDialog] = useState(false);
@@ -73,41 +204,16 @@ export default function CaseDetailPage() {
   const [rescreenDialog, setRescreenDialog] = useState(false);
   const [archiveDialog, setArchiveDialog] = useState(false);
   const [deleteDialog, setDeleteDialog] = useState(false);
-
-  // Comment state for action dialogs
   const [actionComment, setActionComment] = useState('');
-
-  // Notes
-  const [newNote, setNewNote] = useState('');
   const [localAuditEvents, setLocalAuditEvents] = useState<CaseAuditEvent[]>([]);
-  const [screeningDataOpen, setScreeningDataOpen] = useState(true);
-  const [auditFilter, setAuditFilter] = useState<'all' | AuditEventType>('all');
-
-  const allAuditEvents = useMemo(() => {
-    const base = caseData?.auditTrail || [];
-    return [...base, ...localAuditEvents].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-  }, [caseData?.auditTrail, localAuditEvents]);
-
-  const filteredAudit = useMemo(() => {
-    if (auditFilter === 'all') return allAuditEvents;
-    return allAuditEvents.filter(e => e.type === auditFilter);
-  }, [allAuditEvents, auditFilter]);
 
   const addAuditEvent = (type: AuditEventType, text: string, comment?: string) => {
     setLocalAuditEvents(prev => [...prev, {
       id: `audit-${Date.now()}`,
-      type,
-      author: 'Current User',
-      text,
+      type, author: 'Current User', text,
       comment: comment || undefined,
       createdAt: new Date().toISOString().split('T')[0],
     }]);
-  };
-
-  const addNote = () => {
-    if (!newNote.trim() || !caseData) return;
-    addAuditEvent('note', 'Added note', newNote.trim());
-    setNewNote('');
   };
 
   const handleActionWithComment = (type: AuditEventType, text: string, closeDialog: () => void) => {
@@ -144,10 +250,9 @@ export default function CaseDetailPage() {
 
   const group = getGroupById(caseData.groupId);
   const sd = caseData.screeningData;
-
-  // Summary counts for quick decision context
   const wcMatches = matches.length;
   const highRiskMatches = matches.filter(m => m.riskLevel === 'High').length;
+  const allTabs: CaseTab[] = ['summary', ...caseData.checkTypes];
 
   return (
     <div className="min-w-0">
@@ -155,7 +260,7 @@ export default function CaseDetailPage() {
         <ArrowLeft className="h-3.5 w-3.5" /> Back to Cases
       </Link>
 
-      {/* Case Header — responsive */}
+      {/* ── Case Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -180,117 +285,115 @@ export default function CaseDetailPage() {
             <span>Assigned: <span className="text-foreground font-medium">{caseData.assignee}</span></span>
             <span className="hidden sm:inline">•</span>
             <span>OGS: <span className={caseData.ogsEnabled ? 'text-foreground font-medium' : ''}>{caseData.ogsEnabled ? 'Active' : 'Off'}</span></span>
-            <span className="hidden sm:inline">•</span>
-            <span>Last screened: {caseData.lastScreenedAt}</span>
           </div>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1 shrink-0">
-              Actions <ChevronDown className="h-3 w-3" />
-            </Button>
+            <Button variant="outline" size="sm" className="gap-1 shrink-0">Actions <ChevronDown className="h-3 w-3" /></Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => { setActionComment(''); setEditDialog(true); }}>
-              <Edit className="h-3.5 w-3.5 mr-2" /> Edit Case
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => { setActionComment(''); setAssignDialog(true); }}>
-              <UserPlus className="h-3.5 w-3.5 mr-2" /> Reassign
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => { setActionComment(''); setMoveDialog(true); }}>
-              <ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> Move Group
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setActionComment(''); setEditDialog(true); }}><Edit className="h-3.5 w-3.5 mr-2" /> Edit Case</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setActionComment(''); setAssignDialog(true); }}><UserPlus className="h-3.5 w-3.5 mr-2" /> Reassign</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setActionComment(''); setMoveDialog(true); }}><ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> Move Group</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => { setActionComment(''); setRescreenDialog(true); }}>
-              <RefreshCw className="h-3.5 w-3.5 mr-2" /> Rescreen
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => addAuditEvent('ogs_toggle', `OGS ${caseData.ogsEnabled ? 'disabled' : 'enabled'}`)}>
-              <ToggleRight className="h-3.5 w-3.5 mr-2" /> {caseData.ogsEnabled ? 'Disable' : 'Enable'} OGS
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setActionComment(''); setRescreenDialog(true); }}><RefreshCw className="h-3.5 w-3.5 mr-2" /> Rescreen</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => addAuditEvent('ogs_toggle', `OGS ${caseData.ogsEnabled ? 'disabled' : 'enabled'}`)}><ToggleRight className="h-3.5 w-3.5 mr-2" /> {caseData.ogsEnabled ? 'Disable' : 'Enable'} OGS</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => { setActionComment(''); setArchiveDialog(true); }}>
-              <Archive className="h-3.5 w-3.5 mr-2" /> Archive
-            </DropdownMenuItem>
-            <DropdownMenuItem className="text-destructive" onClick={() => { setActionComment(''); setDeleteDialog(true); }}>
-              <Trash2 className="h-3.5 w-3.5 mr-2" /> Delete
-            </DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setActionComment(''); setArchiveDialog(true); }}><Archive className="h-3.5 w-3.5 mr-2" /> Archive</DropdownMenuItem>
+            <DropdownMenuItem className="text-destructive" onClick={() => { setActionComment(''); setDeleteDialog(true); }}><Trash2 className="h-3.5 w-3.5 mr-2" /> Delete</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
 
-      {/* Quick decision context bar */}
-      <div className="flex flex-wrap gap-3 mb-4 text-xs">
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted">
-          <Shield className="h-3 w-3 text-muted-foreground" />
-          <span className="text-muted-foreground">WC Matches:</span>
-          <span className="font-semibold">{wcMatches}</span>
-        </div>
-        {highRiskMatches > 0 && (
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-destructive/10">
-            <AlertTriangle className="h-3 w-3 text-destructive" />
-            <span className="text-destructive font-semibold">{highRiskMatches} High Risk</span>
-          </div>
-        )}
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted">
-          <span className="text-muted-foreground">Unresolved:</span>
-          <span className="font-semibold">{caseData.unresolvedCount}</span>
-        </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted">
-          <span className="text-muted-foreground">Positive:</span>
-          <span className="font-semibold status-positive">{caseData.positiveCount}</span>
-        </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted">
-          <span className="text-muted-foreground">Possible:</span>
-          <span className="font-semibold status-possible">{caseData.possibleCount}</span>
-        </div>
-        <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md bg-muted">
-          <span className="text-muted-foreground">False:</span>
-          <span className="font-semibold">{caseData.falseCount}</span>
-        </div>
+      {/* ── Tabs: Summary + Check Types ── */}
+      <div className="flex gap-1 mb-4 p-1 bg-muted rounded-lg overflow-x-auto">
+        {allTabs.map(tab => {
+          const isActive = effectiveTab === tab;
+          const icon = tab === 'summary'
+            ? <LayoutDashboard className="h-3.5 w-3.5" />
+            : checkTypeIcons[tab as CheckType];
+          const label = tab === 'summary' ? 'Summary' : tab;
+          const shortLabel = tab === 'summary' ? 'Summary'
+            : tab === 'World-Check' ? 'WC'
+            : tab === 'Media Check' ? 'MC' : 'PC';
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex items-center gap-1.5 flex-1 min-w-0 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                isActive
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+              }`}
+            >
+              {icon}
+              <span className="hidden sm:inline">{label}</span>
+              <span className="sm:hidden">{shortLabel}</span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* Screening Data — collapsible for space */}
-      <Collapsible open={screeningDataOpen} onOpenChange={setScreeningDataOpen}>
-        <Card className="mb-4">
-          <CollapsibleTrigger asChild>
-            <button className="flex items-center justify-between w-full p-3 sm:p-4 text-left">
-              <h3 className="text-sm font-semibold flex items-center gap-1.5">
+      {/* ── SUMMARY TAB ── */}
+      {effectiveTab === 'summary' && (
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
+          <div className="space-y-4">
+            {/* Risk overview cards */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Card className="p-3">
+                <span className="text-[11px] text-muted-foreground">Risk Rating</span>
+                <div className={`text-lg font-bold mt-0.5 ${
+                  caseData.rating === 'High' ? 'text-destructive'
+                  : caseData.rating === 'Medium' ? 'text-amber-600'
+                  : 'text-foreground'
+                }`}>{caseData.rating}</div>
+              </Card>
+              <Card className="p-3">
+                <span className="text-[11px] text-muted-foreground">WC Matches</span>
+                <div className="text-lg font-bold mt-0.5">{wcMatches}</div>
+                {highRiskMatches > 0 && <span className="text-[10px] text-destructive">{highRiskMatches} high risk</span>}
+              </Card>
+              <Card className="p-3">
+                <span className="text-[11px] text-muted-foreground">Unresolved</span>
+                <div className="text-lg font-bold mt-0.5 status-unresolved">{caseData.unresolvedCount}</div>
+              </Card>
+              <Card className="p-3">
+                <span className="text-[11px] text-muted-foreground">Last Screened</span>
+                <div className="text-sm font-semibold mt-1">{caseData.lastScreenedAt}</div>
+              </Card>
+            </div>
+
+            {/* Resolution buckets */}
+            <Card className="p-4">
+              <h3 className="text-sm font-semibold mb-3">Resolution Status</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 text-xs">
+                {([
+                  { label: 'Unresolved', count: caseData.unresolvedCount, cls: 'status-unresolved' },
+                  { label: 'Positive', count: caseData.positiveCount, cls: 'status-positive' },
+                  { label: 'Possible', count: caseData.possibleCount, cls: 'status-possible' },
+                  { label: 'False', count: caseData.falseCount, cls: 'status-false' },
+                  { label: 'Unknown', count: caseData.unknownCount, cls: 'status-unknown' },
+                ] as const).map(b => (
+                  <div key={b.label} className="text-center p-2 rounded-md bg-muted/50">
+                    <div className={`text-xl font-bold ${b.cls}`}>{b.count}</div>
+                    <span className="text-muted-foreground">{b.label}</span>
+                  </div>
+                ))}
+              </div>
+            </Card>
+
+            {/* Screening Data */}
+            <Card className="p-4">
+              <h3 className="text-sm font-semibold mb-3 flex items-center gap-1.5">
                 <FileText className="h-3.5 w-3.5" /> Screening Data & Identifiers
               </h3>
-              {screeningDataOpen ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
-            </button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <div className="px-3 sm:px-4 pb-3 sm:pb-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-2.5 text-xs">
-                {sd.dob && (
-                  <div>
-                    <span className="text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> Date of Birth</span>
-                    <span className="font-medium block mt-0.5">{sd.dob}</span>
-                  </div>
-                )}
-                {sd.gender && (
-                  <div>
-                    <span className="text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Gender</span>
-                    <span className="font-medium block mt-0.5">{sd.gender}</span>
-                  </div>
-                )}
-                {sd.nationality && (
-                  <div>
-                    <span className="text-muted-foreground">Nationality</span>
-                    <span className="font-medium block mt-0.5">{sd.nationality}</span>
-                  </div>
-                )}
-                {sd.country && (
-                  <div>
-                    <span className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Country</span>
-                    <span className="font-medium block mt-0.5">{sd.country}</span>
-                  </div>
-                )}
+                {sd.dob && <div><span className="text-muted-foreground flex items-center gap-1"><Calendar className="h-3 w-3" /> Date of Birth</span><span className="font-medium block mt-0.5">{sd.dob}</span></div>}
+                {sd.gender && <div><span className="text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" /> Gender</span><span className="font-medium block mt-0.5">{sd.gender}</span></div>}
+                {sd.nationality && <div><span className="text-muted-foreground">Nationality</span><span className="font-medium block mt-0.5">{sd.nationality}</span></div>}
+                {sd.country && <div><span className="text-muted-foreground flex items-center gap-1"><MapPin className="h-3 w-3" /> Country</span><span className="font-medium block mt-0.5">{sd.country}</span></div>}
               </div>
-
-              {/* IDs section */}
               {(sd.idType || sd.secondaryIdType) && (
                 <div className="mt-3 pt-3 border-t">
                   <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Identification</span>
@@ -298,331 +401,173 @@ export default function CaseDetailPage() {
                     {sd.idType && (
                       <div className="flex items-start gap-2 p-2 rounded-md bg-muted/50">
                         <Hash className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                        <div>
-                          <span className="text-muted-foreground text-[11px]">Primary — {sd.idType}</span>
-                          <span className="font-medium font-mono block">{sd.idNumber || '—'}</span>
-                        </div>
+                        <div><span className="text-muted-foreground text-[11px]">Primary — {sd.idType}</span><span className="font-medium font-mono block">{sd.idNumber || '—'}</span></div>
                       </div>
                     )}
                     {sd.secondaryIdType && (
                       <div className="flex items-start gap-2 p-2 rounded-md bg-muted/50">
                         <Hash className="h-3.5 w-3.5 text-muted-foreground mt-0.5 shrink-0" />
-                        <div>
-                          <span className="text-muted-foreground text-[11px]">Secondary — {sd.secondaryIdType}</span>
-                          <span className="font-medium font-mono block">{sd.secondaryIdNumber || '—'}</span>
-                        </div>
+                        <div><span className="text-muted-foreground text-[11px]">Secondary — {sd.secondaryIdType}</span><span className="font-medium font-mono block">{sd.secondaryIdNumber || '—'}</span></div>
                       </div>
                     )}
                   </div>
                 </div>
               )}
-
-              {/* Custom fields */}
               {sd.customFields && Object.keys(sd.customFields).length > 0 && (
                 <div className="mt-3 pt-3 border-t">
                   <span className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Custom Fields</span>
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-2 mt-2 text-xs">
                     {Object.entries(sd.customFields).map(([key, val]) => (
-                      <div key={key}>
-                        <span className="text-muted-foreground">{key}</span>
-                        <span className="font-medium block mt-0.5">{val}</span>
-                      </div>
+                      <div key={key}><span className="text-muted-foreground">{key}</span><span className="font-medium block mt-0.5">{val}</span></div>
                     ))}
                   </div>
                 </div>
               )}
-
-              {/* Meta */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-3 pt-3 border-t text-[11px] text-muted-foreground">
                 <span>Created: {caseData.createdAt}</span>
-                <span>Last Screened: {caseData.lastScreenedAt}</span>
                 <span>Mode: {caseData.mode}</span>
                 <span>OGS Freq: {group?.ongoingFrequency || '—'}</span>
               </div>
-            </div>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
+            </Card>
 
-      {/* Check type tabs */}
-      {caseData.checkTypes.length > 1 && (
-        <div className="flex gap-1 mb-4 p-1 bg-muted rounded-lg overflow-x-auto">
-          {caseData.checkTypes.map(ct => (
-            <button
-              key={ct}
-              onClick={() => setActiveCheckType(ct)}
-              className={`flex items-center gap-1.5 flex-1 min-w-0 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-                activeCheckType === ct
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-              }`}
-            >
-              {checkTypeIcons[ct]}
-              <span className="hidden sm:inline">{ct}</span>
-              <span className="sm:hidden">{ct === 'World-Check' ? 'WC' : ct === 'Media Check' ? 'MC' : 'PC'}</span>
-            </button>
-          ))}
+            {/* Check type summary cards */}
+            <Card className="p-4">
+              <h3 className="text-sm font-semibold mb-3">Active Checks</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                {caseData.checkTypes.map(ct => (
+                  <button
+                    key={ct}
+                    onClick={() => setActiveTab(ct)}
+                    className="flex items-center justify-between p-3 rounded-md border bg-background hover:bg-muted/50 transition-colors text-left"
+                  >
+                    <div className="flex items-center gap-2">
+                      {checkTypeIcons[ct]}
+                      <div>
+                        <span className="text-sm font-medium">{ct}</span>
+                        {ct === 'World-Check' && <span className="text-[11px] text-muted-foreground block">{wcMatches} matches</span>}
+                        {ct === 'Media Check' && mediaResult && <span className="text-[11px] text-muted-foreground block">{mediaResult.totalArticles} articles</span>}
+                        {ct === 'Passport Check' && passportResult && (
+                          <span className={`text-[11px] block ${passportResult.verificationStatus === 'verified' ? 'status-positive' : 'status-unresolved'}`}>
+                            {passportResult.verificationStatus === 'verified' ? 'Verified' : 'Pending'}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            </Card>
+
+            {/* Case metadata */}
+            <Card className="p-4">
+              <h3 className="text-sm font-semibold mb-3">Case Details</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-2 gap-x-8 text-xs">
+                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Case ID</span><span className="font-mono font-medium">{caseData.id}</span></div>
+                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Group</span><span className="font-medium">{group?.name || '—'}</span></div>
+                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Assignee</span><span className="font-medium">{caseData.assignee}</span></div>
+                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Entity Type</span><span className="font-medium">{caseData.entityType}</span></div>
+                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">OGS</span><span className="font-medium">{caseData.ogsEnabled ? `Active (${group?.ongoingFrequency})` : 'Disabled'}</span></div>
+                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Created</span><span className="font-medium">{caseData.createdAt}</span></div>
+                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Last Screened</span><span className="font-medium">{caseData.lastScreenedAt}</span></div>
+                <div className="flex justify-between py-1 border-b border-dashed"><span className="text-muted-foreground">Status</span><span className="font-medium">{caseData.status}</span></div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Audit panel */}
+          <AuditTrailPanel
+            allEvents={caseData.auditTrail}
+            localEvents={localAuditEvents}
+            onAddNote={(text) => addAuditEvent('note', 'Added note', text)}
+          />
         </div>
       )}
 
-      {/* Results + Audit Trail side-by-side on large screens */}
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
-        {/* Main results area */}
-        <div className="min-w-0">
-          {activeCheckType === 'World-Check' && (
-            <ResultsView matches={matches} caseName={caseData.name} caseId={caseData.id} checkTypes={['World-Check']} />
-          )}
-          {activeCheckType === 'Media Check' && mediaResult && (
-            <MediaCheckResultsView result={mediaResult} caseName={caseData.name} caseId={caseData.id} />
-          )}
-          {activeCheckType === 'Passport Check' && passportResult && (
-            <PassportCheckResultsView result={passportResult} caseName={caseData.name} caseId={caseData.id} />
-          )}
+      {/* ── CHECK TYPE TABS ── */}
+      {effectiveTab !== 'summary' && (
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
+          <div className="min-w-0">
+            {effectiveTab === 'World-Check' && (
+              <ResultsView matches={matches} caseName={caseData.name} caseId={caseData.id} checkTypes={['World-Check']} />
+            )}
+            {effectiveTab === 'Media Check' && mediaResult && (
+              <MediaCheckResultsView result={mediaResult} caseName={caseData.name} caseId={caseData.id} />
+            )}
+            {effectiveTab === 'Passport Check' && passportResult && (
+              <PassportCheckResultsView result={passportResult} caseName={caseData.name} caseId={caseData.id} />
+            )}
+          </div>
+          <AuditTrailPanel
+            allEvents={caseData.auditTrail}
+            localEvents={localAuditEvents}
+            onAddNote={(text) => addAuditEvent('note', 'Added note', text)}
+          />
         </div>
+      )}
 
-        {/* Audit Trail / Activity Panel */}
-        <Card className="p-3 sm:p-4 h-fit xl:sticky xl:top-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-sm font-semibold flex items-center gap-1.5">
-              <Activity className="h-3.5 w-3.5" /> Audit Trail
-            </h3>
-            <Badge variant="secondary" className="text-[10px]">{allAuditEvents.length} events</Badge>
-          </div>
-
-          {/* Filter chips */}
-          <div className="flex flex-wrap gap-1 mb-3">
-            {(['all', 'note', 'assign', 'edit', 'rescreen', 'status_change', 'move'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => setAuditFilter(f)}
-                className={`px-2 py-0.5 rounded-full text-[10px] font-medium transition-colors ${
-                  auditFilter === f
-                    ? 'bg-primary text-primary-foreground'
-                    : 'bg-muted text-muted-foreground hover:text-foreground'
-                }`}
-              >
-                {f === 'all' ? 'All' : auditTypeLabel[f]}
-              </button>
-            ))}
-          </div>
-
-          {/* Timeline */}
-          <ScrollArea className="h-[400px] xl:h-[500px]">
-            <div className="space-y-0">
-              {filteredAudit.length === 0 && (
-                <p className="text-xs text-muted-foreground py-4 text-center">No matching events.</p>
-              )}
-              {filteredAudit.map((event, idx) => (
-                <div key={event.id} className="relative pl-6 pb-4">
-                  {/* Timeline line */}
-                  {idx < filteredAudit.length - 1 && (
-                    <div className="absolute left-[9px] top-5 bottom-0 w-px bg-border" />
-                  )}
-                  {/* Timeline dot */}
-                  <div className={`absolute left-0 top-0.5 w-[18px] h-[18px] rounded-full flex items-center justify-center ${
-                    event.type === 'created' ? 'bg-primary text-primary-foreground'
-                    : event.type === 'status_change' ? 'bg-status-positive/20 text-foreground'
-                    : 'bg-muted text-muted-foreground'
-                  }`}>
-                    {auditTypeIcon[event.type]}
-                  </div>
-                  <div className="text-xs">
-                    <div className="flex items-center gap-1.5 text-muted-foreground">
-                      <span className="font-medium text-foreground">{event.author}</span>
-                      <span className="flex items-center gap-0.5"><Clock className="h-2.5 w-2.5" />{event.createdAt}</span>
-                    </div>
-                    <p className="mt-0.5">{event.text}</p>
-                    {event.comment && (
-                      <div className="mt-1 p-1.5 rounded bg-muted/50 text-muted-foreground italic">
-                        "{event.comment}"
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-
-          {/* Add note */}
-          <div className="border-t pt-3 mt-2">
-            <Textarea
-              value={newNote}
-              onChange={e => setNewNote(e.target.value)}
-              placeholder="Add a note or comment..."
-              className="min-h-[60px] text-xs mb-2 resize-none"
-              rows={2}
-            />
-            <Button size="sm" className="w-full h-7 text-xs gap-1" onClick={addNote} disabled={!newNote.trim()}>
-              <Send className="h-3 w-3" /> Add Note
-            </Button>
-          </div>
-        </Card>
-      </div>
-
-      {/* === Action Dialogs with Comment Fields === */}
-
-      {/* Assign Dialog */}
+      {/* ── ACTION DIALOGS ── */}
       <Dialog open={assignDialog} onOpenChange={setAssignDialog}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Reassign Case</DialogTitle>
-            <DialogDescription>Select a new analyst for {caseData.name}</DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Reassign Case</DialogTitle><DialogDescription>Select a new analyst for {caseData.name}</DialogDescription></DialogHeader>
           <div className="space-y-3">
-            <Select defaultValue={caseData.assignee}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{analysts.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent>
-            </Select>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label>
-              <Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for reassignment..." className="min-h-[60px] text-xs resize-none" />
-            </div>
+            <Select defaultValue={caseData.assignee}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{analysts.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent></Select>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for reassignment..." className="min-h-[60px] text-xs resize-none" /></div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setAssignDialog(false)}>Cancel</Button>
-            <Button size="sm" onClick={() => handleActionWithComment('assign', 'Case reassigned', () => setAssignDialog(false))}>Assign</Button>
-          </DialogFooter>
+          <DialogFooter><Button variant="outline" size="sm" onClick={() => setAssignDialog(false)}>Cancel</Button><Button size="sm" onClick={() => handleActionWithComment('assign', 'Case reassigned', () => setAssignDialog(false))}>Assign</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Move Group Dialog */}
       <Dialog open={moveDialog} onOpenChange={setMoveDialog}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Move to Group</DialogTitle>
-            <DialogDescription>Move {caseData.name} to a different screening group</DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Move to Group</DialogTitle><DialogDescription>Move {caseData.name} to a different screening group</DialogDescription></DialogHeader>
           <div className="space-y-3">
-            <Select defaultValue={caseData.groupId}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>{groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent>
-            </Select>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label>
-              <Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for moving..." className="min-h-[60px] text-xs resize-none" />
-            </div>
+            <Select defaultValue={caseData.groupId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent></Select>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for moving..." className="min-h-[60px] text-xs resize-none" /></div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setMoveDialog(false)}>Cancel</Button>
-            <Button size="sm" onClick={() => handleActionWithComment('move', 'Case moved to new group', () => setMoveDialog(false))}>Move</Button>
-          </DialogFooter>
+          <DialogFooter><Button variant="outline" size="sm" onClick={() => setMoveDialog(false)}>Cancel</Button><Button size="sm" onClick={() => handleActionWithComment('move', 'Case moved to new group', () => setMoveDialog(false))}>Move</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Rescreen Dialog */}
       <Dialog open={rescreenDialog} onOpenChange={setRescreenDialog}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Rescreen Case</DialogTitle>
-            <DialogDescription>Initiate a manual rescreen for {caseData.name}</DialogDescription>
-          </DialogHeader>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label>
-            <Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for rescreening..." className="min-h-[60px] text-xs resize-none" />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setRescreenDialog(false)}>Cancel</Button>
-            <Button size="sm" onClick={() => handleActionWithComment('rescreen', 'Manual rescreen initiated', () => setRescreenDialog(false))}>Rescreen</Button>
-          </DialogFooter>
+          <DialogHeader><DialogTitle>Rescreen Case</DialogTitle><DialogDescription>Initiate a manual rescreen for {caseData.name}</DialogDescription></DialogHeader>
+          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for rescreening..." className="min-h-[60px] text-xs resize-none" /></div>
+          <DialogFooter><Button variant="outline" size="sm" onClick={() => setRescreenDialog(false)}>Cancel</Button><Button size="sm" onClick={() => handleActionWithComment('rescreen', 'Manual rescreen initiated', () => setRescreenDialog(false))}>Rescreen</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Archive Dialog */}
       <Dialog open={archiveDialog} onOpenChange={setArchiveDialog}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Archive Case</DialogTitle>
-            <DialogDescription>This will remove the case from active screening</DialogDescription>
-          </DialogHeader>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label>
-            <Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for archiving..." className="min-h-[60px] text-xs resize-none" />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setArchiveDialog(false)}>Cancel</Button>
-            <Button size="sm" onClick={() => handleActionWithComment('archive', 'Case archived', () => setArchiveDialog(false))}>Archive</Button>
-          </DialogFooter>
+          <DialogHeader><DialogTitle>Archive Case</DialogTitle><DialogDescription>This will remove the case from active screening</DialogDescription></DialogHeader>
+          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for archiving..." className="min-h-[60px] text-xs resize-none" /></div>
+          <DialogFooter><Button variant="outline" size="sm" onClick={() => setArchiveDialog(false)}>Cancel</Button><Button size="sm" onClick={() => handleActionWithComment('archive', 'Case archived', () => setArchiveDialog(false))}>Archive</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Delete Dialog */}
       <Dialog open={deleteDialog} onOpenChange={setDeleteDialog}>
         <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Delete Case</DialogTitle>
-            <DialogDescription>This action cannot be undone</DialogDescription>
-          </DialogHeader>
-          <div>
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (required)</label>
-            <Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for deletion..." className="min-h-[60px] text-xs resize-none" />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setDeleteDialog(false)}>Cancel</Button>
-            <Button variant="destructive" size="sm" disabled={!actionComment.trim()} onClick={() => handleActionWithComment('archive', 'Case deleted', () => setDeleteDialog(false))}>Delete</Button>
-          </DialogFooter>
+          <DialogHeader><DialogTitle>Delete Case</DialogTitle><DialogDescription>This action cannot be undone</DialogDescription></DialogHeader>
+          <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (required)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for deletion..." className="min-h-[60px] text-xs resize-none" /></div>
+          <DialogFooter><Button variant="outline" size="sm" onClick={() => setDeleteDialog(false)}>Cancel</Button><Button variant="destructive" size="sm" disabled={!actionComment.trim()} onClick={() => handleActionWithComment('archive', 'Case deleted', () => setDeleteDialog(false))}>Delete</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Edit Case Dialog */}
       <Dialog open={editDialog} onOpenChange={setEditDialog}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>Edit Case</DialogTitle>
-            <DialogDescription>Update case screening data and identifiers</DialogDescription>
-          </DialogHeader>
+          <DialogHeader><DialogTitle>Edit Case</DialogTitle><DialogDescription>Update case screening data and identifiers</DialogDescription></DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Case Name</label>
-              <Input defaultValue={caseData.name} className="h-8 text-sm" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Entity Type</label>
-              <Select defaultValue={caseData.entityType}>
-                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  {(['Individual', 'Organisation', 'Vessel', 'Unspecified'] as const).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">DOB</label>
-              <Input defaultValue={sd.dob || ''} className="h-8 text-sm" type="date" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Gender</label>
-              <Select defaultValue={sd.gender || ''}>
-                <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Male">Male</SelectItem>
-                  <SelectItem value="Female">Female</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Nationality</label>
-              <Input defaultValue={sd.nationality || ''} className="h-8 text-sm" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Country</label>
-              <Input defaultValue={sd.country || ''} className="h-8 text-sm" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Primary ID Type</label>
-              <Input defaultValue={sd.idType || ''} className="h-8 text-sm" />
-            </div>
-            <div>
-              <label className="text-xs font-medium text-muted-foreground mb-1 block">Primary ID Number</label>
-              <Input defaultValue={sd.idNumber || ''} className="h-8 text-sm" />
-            </div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Case Name</label><Input defaultValue={caseData.name} className="h-8 text-sm" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Entity Type</label><Select defaultValue={caseData.entityType}><SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger><SelectContent>{(['Individual', 'Organisation', 'Vessel', 'Unspecified'] as const).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">DOB</label><Input defaultValue={sd.dob || ''} className="h-8 text-sm" type="date" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Gender</label><Select defaultValue={sd.gender || ''}><SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Male">Male</SelectItem><SelectItem value="Female">Female</SelectItem></SelectContent></Select></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Nationality</label><Input defaultValue={sd.nationality || ''} className="h-8 text-sm" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Country</label><Input defaultValue={sd.country || ''} className="h-8 text-sm" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Primary ID Type</label><Input defaultValue={sd.idType || ''} className="h-8 text-sm" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Primary ID Number</label><Input defaultValue={sd.idNumber || ''} className="h-8 text-sm" /></div>
           </div>
-          <div className="mt-2">
-            <label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label>
-            <Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Describe what was changed..." className="min-h-[60px] text-xs resize-none" />
-          </div>
-          <DialogFooter>
-            <Button variant="outline" size="sm" onClick={() => setEditDialog(false)}>Cancel</Button>
-            <Button size="sm" onClick={() => handleActionWithComment('edit', 'Case details updated', () => setEditDialog(false))}>Save Changes</Button>
-          </DialogFooter>
+          <div className="mt-2"><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Describe what was changed..." className="min-h-[60px] text-xs resize-none" /></div>
+          <DialogFooter><Button variant="outline" size="sm" onClick={() => setEditDialog(false)}>Cancel</Button><Button size="sm" onClick={() => handleActionWithComment('edit', 'Case details updated', () => setEditDialog(false))}>Save Changes</Button></DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
