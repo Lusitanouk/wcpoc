@@ -446,7 +446,7 @@ export default function CaseDetailPage() {
       </div>
 
       {/* ── Tabs: Summary + Check Types ── */}
-      <div className="flex gap-1 mb-4 p-1 bg-muted rounded-lg overflow-x-auto">
+      <div className="inline-flex gap-1 mb-4 p-1 bg-muted rounded-lg overflow-x-auto">
         {allTabs.map(tab => {
           const isActive = effectiveTab === tab;
           const icon = tab === 'summary'
@@ -468,7 +468,7 @@ export default function CaseDetailPage() {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-1.5 flex-1 min-w-0 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+              className={`flex items-center gap-1.5 min-w-0 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
                 isActive
                   ? 'bg-background text-foreground shadow-sm'
                   : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
