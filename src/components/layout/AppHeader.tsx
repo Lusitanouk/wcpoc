@@ -1,23 +1,17 @@
-import { Search, Shield, Sun, Moon, User, ChevronDown } from 'lucide-react';
+import { Search, Shield, Sun, Moon } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAppContext } from '@/context/AppContext';
+import { useAppContext } from '@/context/AppContext'; // isDark, toggleTheme still used
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { getCaseById } from '@/data/mock-data';
 
 export function AppHeader() {
   const { t } = useTranslation();
-  const { role, setRole, isDark, toggleTheme } = useAppContext();
+  const { isDark, toggleTheme } = useAppContext();
   const location = useLocation();
   const [search, setSearch] = useState('');
 
@@ -72,20 +66,6 @@ export function AppHeader() {
           />
         </div>
 
-        {/* Role Switch */}
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 gap-1.5 text-xs">
-              <User className="h-3.5 w-3.5" />
-              {role}
-              <ChevronDown className="h-3 w-3" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setRole('Analyst')}>Analyst</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => setRole('Supervisor')}>Supervisor</DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
 
         {/* Settings */}
         <SettingsDialog />
