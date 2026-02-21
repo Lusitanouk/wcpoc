@@ -494,31 +494,44 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
             {match.status === 'Unresolved' ? t('match.resolution') : t('match.updateResolution')}
           </h4>
 
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
+          <div className="space-y-3">
+            <div className="space-y-1.5">
               <Label className="text-xs">{t('match.status')}</Label>
-              <Select value={status} onValueChange={v => setStatus(v as MatchStatus)}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Positive">{t('match.positive')}</SelectItem>
-                  <SelectItem value="Possible">{t('match.possible')}</SelectItem>
-                  <SelectItem value="False">{t('match.false')}</SelectItem>
-                  <SelectItem value="Unknown">{t('match.unknown')}</SelectItem>
-                  <SelectItem value="Unresolved">{t('match.unresolved')}</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap gap-1">
+                {(['Positive', 'Possible', 'False', 'Unknown', 'Unresolved'] as MatchStatus[]).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => setStatus(s)}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border ${
+                      status === s
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    {t(`match.${s.toLowerCase()}`)}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-1.5">
               <Label className="text-xs">{t('match.riskLevel')}</Label>
-              <Select value={risk} onValueChange={v => setRisk(v as RiskLevel)}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="High">{t('match.high')}</SelectItem>
-                  <SelectItem value="Medium">{t('match.medium')}</SelectItem>
-                  <SelectItem value="Low">{t('match.low')}</SelectItem>
-                  <SelectItem value="None">{t('match.none')}</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex flex-wrap gap-1">
+                {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
+                  <button
+                    key={r}
+                    onClick={() => setRisk(r)}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border ${
+                      risk === r
+                        ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
+                          : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
+                          : 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    {t(`match.${r.toLowerCase()}`)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 
