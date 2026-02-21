@@ -329,6 +329,15 @@ export default function CaseDetailPage() {
     });
   }, [caseData?.id]);
 
+  const actionCheckTypes = useMemo(() => {
+    if (!caseData) return [];
+    const types: string[] = [];
+    if (matches.some(m => m.reviewRequired || m.status === 'Unresolved')) types.push('WC');
+    if (caseData.checkTypes.includes('Media Check')) types.push('MC');
+    if (caseData.checkTypes.includes('Passport Check')) types.push('PC');
+    return types;
+  }, [matches, caseData]);
+
   if (!caseData) {
     return (
       <div className="flex flex-col items-center justify-center py-20 gap-4">
@@ -383,7 +392,7 @@ export default function CaseDetailPage() {
             <Badge variant="secondary" className="text-[10px] shrink-0">{caseData.entityType}</Badge>
             {caseData.mandatoryAction && (
               <Badge variant="destructive" className="text-[10px] shrink-0 gap-0.5">
-                <AlertTriangle className="h-2.5 w-2.5" /> Action Required
+                <AlertTriangle className="h-2.5 w-2.5" /> Action Required {actionCheckTypes.length > 0 && `(${actionCheckTypes.join(', ')})`}
               </Badge>
             )}
           </div>
