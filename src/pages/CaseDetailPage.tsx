@@ -25,7 +25,7 @@ import { MediaCheckResultsView } from '@/components/screening/MediaCheckResultsV
 import { PassportCheckResultsView } from '@/components/screening/PassportCheckResultsView';
 import type { CheckType, MediaCheckResult, PassportCheckResult, CaseAuditEvent, AuditEventType, AuditEventDetails, RiskLevel } from '@/types';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
-import { exportCasePdf } from '@/lib/export';
+import { exportCasePdf, exportMatchesToCsv } from '@/lib/export';
 
 // ─── Constants ───────────────────────────────────────────────
 const checkTypeIcons: Record<CheckType, React.ReactNode> = {
@@ -430,9 +430,26 @@ export default function CaseDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
-        <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => exportCasePdf(caseData, matches)}>
-          <Download className="h-3.5 w-3.5" /> Export
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1 shrink-0">
+              <Download className="h-3.5 w-3.5" /> Export <ChevronDown className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuItem onClick={() => exportCasePdf(caseData, matches)}>
+              <FileText className="h-3.5 w-3.5 mr-2" /> Case Report (PDF)
+            </DropdownMenuItem>
+            {matches.length > 0 && (
+              <>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => exportMatchesToCsv(matches, caseData.name)}>
+                  <FileText className="h-3.5 w-3.5 mr-2" /> All Matches CSV ({matches.length})
+                </DropdownMenuItem>
+              </>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => setAuditDrawerOpen(true)}>
           <Activity className="h-3.5 w-3.5" /> Audit / Notes
         </Button>
