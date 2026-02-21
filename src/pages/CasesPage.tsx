@@ -10,6 +10,14 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { cases, groups, getGroupById } from '@/data/mock-data';
 import { useAppContext } from '@/context/AppContext';
 
+const bucketLabels: { key: 'unresolvedCount' | 'positiveCount' | 'possibleCount' | 'falseCount' | 'unknownCount'; label: string; color: string }[] = [
+  { key: 'unresolvedCount', label: 'U', color: 'bg-status-unresolved' },
+  { key: 'positiveCount', label: 'P', color: 'bg-status-positive' },
+  { key: 'possibleCount', label: 'Po', color: 'bg-status-possible' },
+  { key: 'falseCount', label: 'F', color: 'bg-status-false' },
+  { key: 'unknownCount', label: 'Unk', color: 'bg-status-unknown' },
+];
+
 export default function CasesPage() {
   const navigate = useNavigate();
   const { role } = useAppContext();
@@ -101,9 +109,7 @@ export default function CasesPage() {
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Case Name</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">ID</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Group</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Check Types</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Unresolved</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Review Req.</th>
+                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Buckets</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">Last Screened</th>
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground">OGS</th>
               </tr>
@@ -111,7 +117,7 @@ export default function CasesPage() {
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
                     No cases found. Try adjusting your search or filters.
                   </td>
                 </tr>
@@ -142,25 +148,24 @@ export default function CasesPage() {
                     <td className="px-4 py-3 font-mono text-xs">{c.id}</td>
                     <td className="px-4 py-3 text-xs">{getGroupById(c.groupId)?.name || '—'}</td>
                     <td className="px-4 py-3">
-                      <div className="flex gap-1">
-                        {c.checkTypes.map(ct => (
-                          <Badge key={ct} variant="secondary" className="text-[10px]">{ct}</Badge>
-                        ))}
+                      <div className="flex items-center gap-1">
+                        {bucketLabels.map(bl => {
+                          const count = c[bl.key];
+                          if (count === 0) return null;
+                          return (
+                            <span
+                              key={bl.key}
+                              className={`inline-flex items-center justify-center h-5 min-w-[24px] px-1 rounded text-[10px] font-medium text-primary-foreground ${bl.color}`}
+                              title={`${bl.label}: ${count}`}
+                            >
+                              {bl.label}{count}
+                            </span>
+                          );
+                        })}
+                        {bucketLabels.every(bl => c[bl.key] === 0) && (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
                       </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      {c.unresolvedCount > 0 ? (
-                        <Badge variant="outline" className="text-[10px] border-status-unresolved text-status-unresolved">{c.unresolvedCount}</Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">0</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      {c.reviewRequiredCount > 0 ? (
-                        <Badge variant="outline" className="text-[10px] border-status-possible text-status-possible">{c.reviewRequiredCount}</Badge>
-                      ) : (
-                        <span className="text-xs text-muted-foreground">0</span>
-                      )}
                     </td>
                     <td className="px-4 py-3 text-xs">{c.lastScreenedAt}</td>
                     <td className="px-4 py-3">

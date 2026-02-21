@@ -5,11 +5,20 @@ export type RiskLevel = 'High' | 'Medium' | 'Low' | 'None';
 export type Dataset = 'Sanctions' | 'PEP' | 'Law Enforcement' | 'Other';
 export type UserRole = 'Analyst' | 'Supervisor';
 export type ScreeningMode = 'Single' | 'Batch';
+export type PriorityLevel = 'High' | 'Medium' | 'Low';
+export type MatchFieldResult = 'match' | 'partial' | 'mismatch' | 'missing';
 
 export interface Group {
   id: string;
   name: string;
   ongoingFrequency: string;
+}
+
+export interface ChangeLogEntry {
+  field: string;
+  from: string;
+  to: string;
+  changedAt: string;
 }
 
 export interface Case {
@@ -26,6 +35,11 @@ export interface Case {
   mandatoryAction: boolean;
   unresolvedCount: number;
   reviewRequiredCount: number;
+  // Bucket counts
+  positiveCount: number;
+  possibleCount: number;
+  falseCount: number;
+  unknownCount: number;
 }
 
 export interface MatchIdentifiers {
@@ -47,6 +61,12 @@ export interface MatchRecord {
   sources: { name: string; url: string }[];
 }
 
+export interface WhyMatchedField {
+  field: string;
+  result: MatchFieldResult;
+  detail: string;
+}
+
 export interface Match {
   id: string;
   caseId: string;
@@ -60,7 +80,14 @@ export interface Match {
   reason: string;
   updated: boolean;
   reviewRequired: boolean;
+  reviewRequiredAt?: string;
   reviewRequiredReasons: string[];
+  changeLog: ChangeLogEntry[];
+  alertDate: string;
+  priorityScore: number;
+  priorityLevel: PriorityLevel;
+  whyMatched: WhyMatchedField[];
+  matchStrengthExplanation: string;
   identifiers: MatchIdentifiers;
   recordData: MatchRecord;
 }
