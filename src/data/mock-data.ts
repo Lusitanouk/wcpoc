@@ -1,4 +1,4 @@
-import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult, CaseNote } from '@/types';
+import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult, CaseNote, CaseAuditEvent, AuditEventType } from '@/types';
 import { computePriorityScore, priorityLevel } from '@/lib/priority';
 
 export const groups: Group[] = [
@@ -50,6 +50,41 @@ function generateNotes(caseId: string): CaseNote[] {
     text: rand(noteTexts),
     createdAt: randDate('2024-06-01', '2025-02-15'),
   }));
+}
+
+const auditEventTemplates: { type: AuditEventType; text: string }[] = [
+  { type: 'created', text: 'Case created' },
+  { type: 'assign', text: 'Assigned to {analyst}' },
+  { type: 'move', text: 'Moved from Default Screening Group to Enhanced Due Diligence' },
+  { type: 'rescreen', text: 'Manual rescreen initiated' },
+  { type: 'ogs_toggle', text: 'OGS enabled' },
+  { type: 'edit', text: 'Nationality updated from US to UK' },
+  { type: 'status_change', text: 'Match WC-M3 resolved as False' },
+  { type: 'note', text: 'Added note' },
+  { type: 'rescreen', text: 'OGS scheduled rescreen completed' },
+  { type: 'assign', text: 'Reassigned from {analyst} to {analyst2}' },
+];
+
+function generateAuditTrail(caseId: string, createdAt: string): CaseAuditEvent[] {
+  const events: CaseAuditEvent[] = [
+    { id: `${caseId}-audit-0`, type: 'created', author: 'System', text: 'Case created and initial screening completed', createdAt },
+  ];
+  const count = randInt(3, 8);
+  for (let i = 1; i <= count; i++) {
+    const tmpl = rand(auditEventTemplates.filter(t => t.type !== 'created'));
+    const author = tmpl.type === 'rescreen' ? 'System' : rand(analysts.filter(a => a !== 'Unassigned'));
+    let text = tmpl.text.replace('{analyst}', rand(analysts.filter(a => a !== 'Unassigned'))).replace('{analyst2}', rand(analysts.filter(a => a !== 'Unassigned')));
+    const hasComment = Math.random() > 0.6;
+    events.push({
+      id: `${caseId}-audit-${i}`,
+      type: tmpl.type,
+      author,
+      text,
+      comment: hasComment ? rand(noteTexts) : undefined,
+      createdAt: randDate(createdAt, '2025-02-20'),
+    });
+  }
+  return events.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
 function rand<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
@@ -221,6 +256,7 @@ export const cases: Case[] = Array.from({ length: 30 }, (_, i) => {
       customFields: Math.random() > 0.5 ? { 'Internal Ref': `REF-${randInt(1000, 9999)}`, 'Source System': rand(['CRM', 'Onboarding', 'KYC Portal']) } : undefined,
     },
     notes: generateNotes(caseId),
+    auditTrail: generateAuditTrail(caseId, randDate('2024-01-01', '2024-06-01')),
   };
 });
 
