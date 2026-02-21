@@ -16,6 +16,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
 import { getCaseById, getMatchesForCase, getGroupById, groups, cases } from '@/data/mock-data';
 import { generateMediaCheckResult } from '@/data/media-mock-data';
 import { generatePassportCheckResult } from '@/data/passport-mock-data';
@@ -140,7 +141,7 @@ function AuditTrailPanel({
   };
 
   return (
-    <Card className="p-3 sm:p-4 h-fit xl:sticky xl:top-4">
+    <div className="p-3 sm:p-4 h-full flex flex-col">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold flex items-center gap-1.5">
           <Activity className="h-3.5 w-3.5" /> Audit Trail
@@ -241,7 +242,7 @@ function AuditTrailPanel({
           <Send className="h-3 w-3" /> Add Note
         </Button>
       </div>
-    </Card>
+    </div>
   );
 }
 
@@ -304,6 +305,7 @@ export default function CaseDetailPage() {
   const [ogsMcLocal, setOgsMcLocal] = useState(caseData?.ogsMediaCheck ?? false);
   const [actionComment, setActionComment] = useState('');
   const [localAuditEvents, setLocalAuditEvents] = useState<CaseAuditEvent[]>([]);
+  const [auditDrawerOpen, setAuditDrawerOpen] = useState(false);
 
   const addAuditEvent = (type: AuditEventType, text: string, comment?: string) => {
     setLocalAuditEvents(prev => [...prev, {
@@ -426,6 +428,7 @@ export default function CaseDetailPage() {
           </div>
         </div>
 
+        <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="gap-1 shrink-0">Actions <ChevronDown className="h-3 w-3" /></Button>
@@ -443,6 +446,10 @@ export default function CaseDetailPage() {
             <DropdownMenuItem className="text-destructive" onClick={() => { setActionComment(''); setDeleteDialog(true); }}><Trash2 className="h-3.5 w-3.5 mr-2" /> Delete</DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
+        <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => setAuditDrawerOpen(true)}>
+          <Activity className="h-3.5 w-3.5" /> Audit
+        </Button>
+        </div>
       </div>
 
       {/* ── Tabs: Summary + Check Types ── */}
@@ -489,8 +496,8 @@ export default function CaseDetailPage() {
 
       {/* ── SUMMARY TAB ── */}
       {effectiveTab === 'summary' && (
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
-          <div className="space-y-4">
+        <div className="space-y-4">
+            {/* Combined risk & resolution strip */}
             {/* Combined risk & resolution strip */}
             <div className="grid grid-cols-3 sm:grid-cols-7 gap-2">
               {/* Rating card with edit action */}
@@ -604,39 +611,40 @@ export default function CaseDetailPage() {
                   <ChevronRight className="h-4 w-4 text-muted-foreground" />
                 </button>
               ))}
-            </div>
           </div>
-
-          {/* Audit panel */}
-          <AuditTrailPanel
-            allEvents={caseData.auditTrail}
-            localEvents={localAuditEvents}
-            onAddNote={(text) => addAuditEvent('note', 'Added note', text)}
-          />
         </div>
       )}
 
       {/* ── CHECK TYPE TABS ── */}
       {effectiveTab !== 'summary' && (
-        <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-4">
-          <div className="min-w-0">
-            {effectiveTab === 'World-Check' && (
-              <ResultsView matches={matches} caseName={caseData.name} caseId={caseData.id} checkTypes={['World-Check']} screeningData={caseData.screeningData} />
-            )}
-            {effectiveTab === 'Media Check' && mediaResult && (
-              <MediaCheckResultsView result={mediaResult} caseName={caseData.name} caseId={caseData.id} />
-            )}
-            {effectiveTab === 'Passport Check' && passportResult && (
-              <PassportCheckResultsView result={passportResult} caseName={caseData.name} caseId={caseData.id} />
-            )}
-          </div>
-          <AuditTrailPanel
-            allEvents={caseData.auditTrail}
-            localEvents={localAuditEvents}
-            onAddNote={(text) => addAuditEvent('note', 'Added note', text)}
-          />
+        <div className="min-w-0">
+          {effectiveTab === 'World-Check' && (
+            <ResultsView matches={matches} caseName={caseData.name} caseId={caseData.id} checkTypes={['World-Check']} screeningData={caseData.screeningData} />
+          )}
+          {effectiveTab === 'Media Check' && mediaResult && (
+            <MediaCheckResultsView result={mediaResult} caseName={caseData.name} caseId={caseData.id} />
+          )}
+          {effectiveTab === 'Passport Check' && passportResult && (
+            <PassportCheckResultsView result={passportResult} caseName={caseData.name} caseId={caseData.id} />
+          )}
         </div>
       )}
+
+      {/* ── Audit Trail Drawer ── */}
+      <Sheet open={auditDrawerOpen} onOpenChange={setAuditDrawerOpen}>
+        <SheetContent className="w-[380px] sm:w-[420px] p-0">
+          <SheetHeader className="px-4 py-3 border-b">
+            <SheetTitle className="text-sm">Audit Trail</SheetTitle>
+          </SheetHeader>
+          <div className="p-0">
+            <AuditTrailPanel
+              allEvents={caseData.auditTrail}
+              localEvents={localAuditEvents}
+              onAddNote={(text) => addAuditEvent('note', 'Added note', text)}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
 
       {/* ── ACTION DIALOGS ── */}
       <Dialog open={assignDialog} onOpenChange={setAssignDialog}>
