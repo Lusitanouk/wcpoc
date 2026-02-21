@@ -24,7 +24,8 @@ const defaultConfig: ScreeningConfig = {
   mode: 'Single',
   entityType: 'Individual',
   checkTypes: ['World-Check'],
-  ogsEnabled: false,
+  ogsWorldCheck: false,
+  ogsMediaCheck: false,
 };
 
 const defaultData: ScreeningData = {
@@ -222,14 +223,21 @@ export default function ScreenPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between p-4 rounded-lg bg-muted">
+            <div className="p-4 rounded-lg bg-muted space-y-3">
               <div>
                 <Label className="text-sm font-medium">Ongoing Screening (OGS)</Label>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Frequency: {selectedGroup?.ongoingFrequency || 'N/A'} (configured at group level)
                 </p>
               </div>
-              <Switch checked={config.ogsEnabled} onCheckedChange={v => setConfig(c => ({ ...c, ogsEnabled: v }))} />
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">World-Check OGS</Label>
+                <Switch checked={config.ogsWorldCheck} onCheckedChange={v => setConfig(c => ({ ...c, ogsWorldCheck: v }))} />
+              </div>
+              <div className="flex items-center justify-between">
+                <Label className="text-xs">Media Check OGS</Label>
+                <Switch checked={config.ogsMediaCheck} onCheckedChange={v => setConfig(c => ({ ...c, ogsMediaCheck: v }))} />
+              </div>
             </div>
 
             <div className="flex justify-end">

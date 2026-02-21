@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SettingsDialog } from '@/components/SettingsDialog';
+import { getCaseById } from '@/data/mock-data';
 
 export function AppHeader() {
   const { t } = useTranslation();
@@ -29,22 +30,32 @@ export function AppHeader() {
   };
 
   const pathSegments = location.pathname.split('/').filter(Boolean);
-  const breadcrumbs = pathSegments.map((_, i) => {
+  const breadcrumbs = pathSegments.map((seg, i) => {
     const path = '/' + pathSegments.slice(0, i + 1).join('/');
-    return { label: breadcrumbMap[path] || pathSegments[i], path };
+    // Resolve case ID to case name for /cases/:id
+    let label = breadcrumbMap[path];
+    if (!label) {
+      if (pathSegments[0] === 'cases' && i === 1) {
+        const caseData = getCaseById(seg);
+        label = caseData?.name || seg;
+      } else {
+        label = seg;
+      }
+    }
+    return { label, path };
   });
 
   return (
-    <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-3 shrink-0">
+    <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-3 shrink-0 sticky top-0 z-30">
       <SidebarTrigger className="mr-1" />
 
       {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1.5 text-sm">
+      <nav className="flex items-center gap-1.5 text-sm min-w-0">
         <span className="text-muted-foreground">{t('nav.home')}</span>
         {breadcrumbs.map((b) => (
-          <span key={b.path} className="flex items-center gap-1.5">
+          <span key={b.path} className="flex items-center gap-1.5 min-w-0">
             <span className="text-muted-foreground">/</span>
-            <span className="font-medium text-foreground">{b.label}</span>
+            <span className="font-medium text-foreground truncate max-w-[200px]">{b.label}</span>
           </span>
         ))}
       </nav>

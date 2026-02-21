@@ -80,7 +80,8 @@ export interface Case {
   groupId: string;
   mode: ScreeningMode;
   checkTypes: CheckType[];
-  ogsEnabled: boolean;
+  ogsWorldCheck: boolean;
+  ogsMediaCheck: boolean;
   createdAt: string;
   lastScreenedAt: string;
   rating: RiskLevel;
@@ -164,7 +165,8 @@ export interface ScreeningConfig {
   mode: ScreeningMode;
   entityType: EntityType;
   checkTypes: CheckType[];
-  ogsEnabled: boolean;
+  ogsWorldCheck: boolean;
+  ogsMediaCheck: boolean;
 }
 
 export interface ScreeningData {
