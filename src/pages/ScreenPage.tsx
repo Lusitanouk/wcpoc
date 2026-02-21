@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Check, ChevronRight, Search } from 'lucide-react';
+import { useState, useMemo, useCallback } from 'react';
+import { Check, ChevronRight, Search, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -18,6 +18,7 @@ import { PassportCheckResultsView } from '@/components/screening/PassportCheckRe
 import { PassportCheckForm } from '@/components/screening/PassportCheckForm';
 import type { ScreeningConfig, ScreeningData, CheckType, EntityType, Match, PassportData, MediaCheckResult, PassportCheckResult, IdentificationDocument } from '@/types';
 import { CountryMultiSelect, COUNTRIES } from '@/components/screening/CountryMultiSelect';
+import { BatchUpload, type BatchRecord } from '@/components/screening/BatchUpload';
 
 const steps = ['Configure & Enter Data', 'Results'];
 
@@ -63,6 +64,7 @@ export default function ScreenPage() {
   const [data, setData] = useState<ScreeningData>(defaultData);
   const [passportData, setPassportData] = useState<PassportData>(defaultPassportData);
   const [showCustomFields, setShowCustomFields] = useState(false);
+  const [batchRecords, setBatchRecords] = useState<BatchRecord[]>([]);
 
   const selectedGroup = groups.find(g => g.id === config.groupId);
 
@@ -105,10 +107,14 @@ export default function ScreenPage() {
     return generatePassportCheckResult(cid, passportData);
   }, [step]);
 
+  const isBatch = config.mode === 'Batch';
+
   const canScreen = config.groupId && config.checkTypes.length > 0 && (
-    passportOnly
-      ? passportData.givenName.trim().length > 0 && passportData.lastName.trim().length > 0 && passportData.identificationNumber.trim().length > 0
-      : data.name.trim().length > 0
+    isBatch
+      ? batchRecords.length > 0
+      : passportOnly
+        ? passportData.givenName.trim().length > 0 && passportData.lastName.trim().length > 0 && passportData.identificationNumber.trim().length > 0
+        : data.name.trim().length > 0
   );
 
   // Determine which results tabs to show
@@ -284,8 +290,17 @@ export default function ScreenPage() {
                 </div>
               </div>
 
-              {/* Standard screening fields (World-Check / Media Check) */}
-              {(hasWorldCheck || hasMediaCheck) && (
+              {/* Batch mode: file upload */}
+              {isBatch && (
+                <BatchUpload
+                  records={batchRecords}
+                  onRecordsLoaded={setBatchRecords}
+                  onClear={() => setBatchRecords([])}
+                />
+              )}
+
+              {/* Single mode: Standard screening fields */}
+              {!isBatch && (hasWorldCheck || hasMediaCheck) && (
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
@@ -479,7 +494,7 @@ export default function ScreenPage() {
               )}
 
               {/* Passport Check Form */}
-              {hasPassportCheck && (
+              {!isBatch && hasPassportCheck && (
                 <div className={`${hasWorldCheck || hasMediaCheck ? 'pt-4 border-t' : ''}`}>
                   <PassportCheckForm data={passportData} onChange={setPassportData} />
                 </div>
@@ -498,7 +513,7 @@ export default function ScreenPage() {
 
               <div className="flex justify-end">
                 <Button onClick={() => { setStep(1); setActiveResultTab(''); }} disabled={!canScreen} size="lg">
-                  <Search className="h-4 w-4 mr-2" /> Screen Now
+                  <Search className="h-4 w-4 mr-2" /> {isBatch ? `Screen ${batchRecords.length} Records` : 'Screen Now'}
                 </Button>
               </div>
             </CardContent>
