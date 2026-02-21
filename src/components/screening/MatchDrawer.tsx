@@ -4,6 +4,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sh
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -24,6 +25,37 @@ const fieldResultIcon = (result: string) => {
     default: return <CircleOff className="h-3 w-3 text-muted-foreground" />;
   }
 };
+
+// ─── Source Citation Bubble (ChatGPT-style) ──────────────────
+function SourceCitation({ sources, indices }: { sources: { name: string; url: string }[]; indices: number[] }) {
+  const cited = indices.filter(i => i < sources.length).map(i => sources[i]);
+  if (cited.length === 0) return null;
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <button className="inline-flex items-center justify-center h-[18px] min-w-[18px] px-1 rounded-full bg-primary/10 text-primary text-[10px] font-semibold hover:bg-primary/20 transition-colors ml-1.5 align-middle cursor-pointer border border-primary/20">
+          {indices.map(i => i + 1).join(',')}
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-72 p-3 z-50 bg-popover border shadow-lg" side="top" align="start">
+        <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-2">Sources</p>
+        <ul className="space-y-1.5">
+          {cited.map((s, j) => (
+            <li key={j} className="flex items-start gap-2 text-xs">
+              <span className="inline-flex items-center justify-center h-[16px] min-w-[16px] rounded-full bg-primary text-primary-foreground text-[9px] font-bold shrink-0 mt-0.5">
+                {indices[j] + 1}
+              </span>
+              <div className="min-w-0">
+                <a href={s.url} target="_blank" rel="noopener noreferrer" className="font-medium text-primary hover:underline truncate block">{s.name}</a>
+                <span className="text-[10px] text-muted-foreground truncate block">{s.url === '#' ? 'Official watchlist database' : s.url}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 interface MatchDrawerProps {
   match: Match | null;
@@ -375,35 +407,46 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
               </TabsList>
 
               <TabsContent value="key-data" className="space-y-2">
-                {Object.entries(rd.keyData).map(([k, v]) => (
-                  <div key={k} className="flex justify-between text-sm py-1 border-b border-dashed">
+                {Object.entries(rd.keyData).map(([k, v], idx) => (
+                  <div key={k} className="flex items-center justify-between text-sm py-1 border-b border-dashed">
                     <span className="text-muted-foreground">{k}</span>
-                    <span className="font-medium">{v}</span>
+                    <span className="font-medium flex items-center">
+                      {v}
+                      <SourceCitation sources={rd.sources} indices={[idx % rd.sources.length]} />
+                    </span>
                   </div>
                 ))}
               </TabsContent>
 
               <TabsContent value="further">
                 <div className={`text-sm leading-relaxed ${isFullscreen ? '' : 'max-h-64 overflow-y-auto'}`}>
-                  <p>{rd.furtherInfo}</p>
+                  <p>
+                    {rd.furtherInfo}
+                    <SourceCitation sources={rd.sources} indices={rd.sources.map((_, i) => i)} />
+                  </p>
                 </div>
               </TabsContent>
 
               <TabsContent value="aliases">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
                   {rd.aliases.map((a, i) => <Badge key={i} variant="secondary" className="text-xs">{a}</Badge>)}
+                  <SourceCitation sources={rd.sources} indices={[0]} />
                 </div>
               </TabsContent>
 
               <TabsContent value="keywords">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-2 items-center">
                   {rd.keywords.map((k, i) => <Badge key={i} variant="outline" className="text-xs">{k}</Badge>)}
+                  <SourceCitation sources={rd.sources} indices={[0, Math.min(1, rd.sources.length - 1)]} />
                 </div>
               </TabsContent>
 
               {rd.pepRoleDetails && (
                 <TabsContent value="pep">
-                  <p className="text-sm">{rd.pepRoleDetails}</p>
+                  <p className="text-sm">
+                    {rd.pepRoleDetails}
+                    <SourceCitation sources={rd.sources} indices={[0]} />
+                  </p>
                 </TabsContent>
               )}
 
@@ -415,6 +458,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
                     {rd.connections.map((c, i) => (
                       <li key={i} className="text-sm flex items-center gap-1">
                         <ChevronRight className="h-3 w-3 text-muted-foreground" /> {c}
+                        <SourceCitation sources={rd.sources} indices={[i % rd.sources.length]} />
                       </li>
                     ))}
                   </ul>
