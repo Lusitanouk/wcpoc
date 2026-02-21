@@ -163,21 +163,14 @@ export default function ScreenPage() {
                 {/* Group */}
                 <div className="space-y-1.5">
                   <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Group</Label>
-                  <div className="flex flex-col gap-1">
-                    {groups.map(g => (
-                      <button
-                        key={g.id}
-                        onClick={() => setConfig(c => ({ ...c, groupId: g.id }))}
-                        className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors border text-left ${
-                          config.groupId === g.id
-                            ? 'bg-primary text-primary-foreground border-primary'
-                            : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
-                        }`}
-                      >
-                        {g.name}
-                      </button>
-                    ))}
-                  </div>
+                  <Select value={config.groupId} onValueChange={v => setConfig(c => ({ ...c, groupId: v }))}>
+                    <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      {groups.map(g => (
+                        <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <Separator />
