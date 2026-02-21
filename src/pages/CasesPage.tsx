@@ -1,22 +1,75 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, Archive, Users, ArrowRightLeft, Download, ToggleRight, AlertTriangle, Filter } from 'lucide-react';
+import { Search, Archive, Users, ArrowRightLeft, Download, ToggleRight, AlertTriangle, Filter, Settings2, Shield, Newspaper, CreditCard, Save, Trash2, Plus } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cases, groups, getGroupById } from '@/data/mock-data';
 import { useAppContext } from '@/context/AppContext';
+import type { CheckType } from '@/types';
 
-const bucketLabels: { key: 'unresolvedCount' | 'positiveCount' | 'possibleCount' | 'falseCount' | 'unknownCount'; label: string; color: string }[] = [
-  { key: 'unresolvedCount', label: 'U', color: 'bg-status-unresolved' },
-  { key: 'positiveCount', label: 'P', color: 'bg-status-positive' },
-  { key: 'possibleCount', label: 'Po', color: 'bg-status-possible' },
-  { key: 'falseCount', label: 'F', color: 'bg-status-false' },
-  { key: 'unknownCount', label: 'Unk', color: 'bg-status-unknown' },
+const checkTypeIcon: Record<CheckType, React.ReactNode> = {
+  'World-Check': <Shield className="h-3 w-3" />,
+  'Media Check': <Newspaper className="h-3 w-3" />,
+  'Passport Check': <CreditCard className="h-3 w-3" />,
+};
+
+const checkTypeAbbr: Record<CheckType, string> = {
+  'World-Check': 'WC',
+  'Media Check': 'MC',
+  'Passport Check': 'PC',
+};
+
+interface ColumnDef {
+  key: string;
+  label: string;
+  defaultVisible: boolean;
+}
+
+const ALL_COLUMNS: ColumnDef[] = [
+  { key: 'name', label: 'Case Name', defaultVisible: true },
+  { key: 'id', label: 'ID', defaultVisible: true },
+  { key: 'group', label: 'Group', defaultVisible: true },
+  { key: 'checkTypes', label: 'Check Types', defaultVisible: true },
+  { key: 'entityType', label: 'Entity Type', defaultVisible: false },
+  { key: 'rating', label: 'Risk Rating', defaultVisible: false },
+  { key: 'lastScreened', label: 'Last Screened', defaultVisible: true },
+  { key: 'ogs', label: 'OGS', defaultVisible: true },
+  { key: 'createdAt', label: 'Created', defaultVisible: false },
 ];
+
+interface ColumnSet {
+  name: string;
+  columns: string[];
+}
+
+const DEFAULT_COLUMNS = ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key);
+
+function loadColumnSets(): ColumnSet[] {
+  try {
+    const raw = localStorage.getItem('wc1-column-sets');
+    return raw ? JSON.parse(raw) : [];
+  } catch { return []; }
+}
+
+function saveColumnSets(sets: ColumnSet[]) {
+  localStorage.setItem('wc1-column-sets', JSON.stringify(sets));
+}
+
+function loadActiveColumns(): string[] {
+  try {
+    const raw = localStorage.getItem('wc1-active-columns');
+    return raw ? JSON.parse(raw) : DEFAULT_COLUMNS;
+  } catch { return DEFAULT_COLUMNS; }
+}
+
+function persistActiveColumns(cols: string[]) {
+  localStorage.setItem('wc1-active-columns', JSON.stringify(cols));
+}
 
 export default function CasesPage() {
   const navigate = useNavigate();
@@ -24,6 +77,9 @@ export default function CasesPage() {
   const [search, setSearch] = useState('');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [groupFilter, setGroupFilter] = useState<string>('all');
+  const [visibleColumns, setVisibleColumns] = useState<string[]>(loadActiveColumns);
+  const [columnSets, setColumnSets] = useState<ColumnSet[]>(loadColumnSets);
+  const [newSetName, setNewSetName] = useState('');
 
   const filtered = useMemo(() => {
     return cases.filter(c => {
@@ -48,6 +104,37 @@ export default function CasesPage() {
       setSelectedIds(new Set(filtered.map(c => c.id)));
     }
   };
+
+  const toggleColumn = useCallback((key: string) => {
+    setVisibleColumns(prev => {
+      const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key];
+      persistActiveColumns(next);
+      return next;
+    });
+  }, []);
+
+  const applyColumnSet = (set: ColumnSet) => {
+    setVisibleColumns(set.columns);
+    persistActiveColumns(set.columns);
+  };
+
+  const saveCurrentAsSet = () => {
+    if (!newSetName.trim()) return;
+    const updated = [...columnSets.filter(s => s.name !== newSetName.trim()), { name: newSetName.trim(), columns: visibleColumns }];
+    setColumnSets(updated);
+    saveColumnSets(updated);
+    setNewSetName('');
+  };
+
+  const deleteColumnSet = (name: string) => {
+    const updated = columnSets.filter(s => s.name !== name);
+    setColumnSets(updated);
+    saveColumnSets(updated);
+  };
+
+  const isCol = (key: string) => visibleColumns.includes(key);
+
+  const visibleColCount = visibleColumns.length + 1; // +1 for checkbox
 
   return (
     <div>
@@ -82,6 +169,76 @@ export default function CasesPage() {
           </SelectContent>
         </Select>
 
+        {/* Column Customisation */}
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+              <Settings2 className="h-3.5 w-3.5" />
+              Columns
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="end" className="w-64 p-3">
+            <p className="text-xs font-semibold mb-2">Show / Hide Columns</p>
+            <div className="space-y-1.5 mb-3">
+              {ALL_COLUMNS.map(col => (
+                <label key={col.key} className="flex items-center gap-2 text-xs cursor-pointer">
+                  <Checkbox
+                    checked={visibleColumns.includes(col.key)}
+                    onCheckedChange={() => toggleColumn(col.key)}
+                  />
+                  {col.label}
+                </label>
+              ))}
+            </div>
+
+            <div className="border-t pt-2">
+              <p className="text-xs font-semibold mb-1.5">Column Sets</p>
+              {columnSets.length > 0 && (
+                <div className="space-y-1 mb-2">
+                  {columnSets.map(set => (
+                    <div key={set.name} className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 text-[11px] flex-1 justify-start px-2"
+                        onClick={() => applyColumnSet(set)}
+                      >
+                        {set.name}
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => deleteColumnSet(set.name)}>
+                        <Trash2 className="h-3 w-3 text-muted-foreground" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="flex gap-1">
+                <Input
+                  value={newSetName}
+                  onChange={e => setNewSetName(e.target.value)}
+                  placeholder="Set name..."
+                  className="h-7 text-xs flex-1"
+                  onKeyDown={e => e.key === 'Enter' && saveCurrentAsSet()}
+                />
+                <Button variant="outline" size="sm" className="h-7 px-2" onClick={saveCurrentAsSet} disabled={!newSetName.trim()}>
+                  <Save className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="border-t pt-2 mt-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-6 text-[11px] w-full"
+                onClick={() => { setVisibleColumns(DEFAULT_COLUMNS); persistActiveColumns(DEFAULT_COLUMNS); }}
+              >
+                Reset to defaults
+              </Button>
+            </div>
+          </PopoverContent>
+        </Popover>
+
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-2 ml-auto">
             <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
@@ -106,18 +263,21 @@ export default function CasesPage() {
                     onCheckedChange={toggleAll}
                   />
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Case Name</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">ID</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Group</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Buckets</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Last Screened</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">OGS</th>
+                {isCol('name') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Case Name</th>}
+                {isCol('id') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">ID</th>}
+                {isCol('group') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Group</th>}
+                {isCol('checkTypes') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Check Types</th>}
+                {isCol('entityType') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Entity Type</th>}
+                {isCol('rating') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Risk Rating</th>}
+                {isCol('lastScreened') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Last Screened</th>}
+                {isCol('ogs') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">OGS</th>}
+                {isCol('createdAt') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Created</th>}
               </tr>
             </thead>
             <tbody>
               {filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={visibleColCount} className="px-4 py-12 text-center text-muted-foreground">
                     No cases found. Try adjusting your search or filters.
                   </td>
                 </tr>
@@ -138,41 +298,56 @@ export default function CasesPage() {
                         onCheckedChange={() => toggleSelect(c.id)}
                       />
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{c.name}</span>
-                        {c.mandatoryAction && <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />}
-                      </div>
-                      <span className="text-xs text-muted-foreground">{c.entityType}</span>
-                    </td>
-                    <td className="px-4 py-3 font-mono text-xs">{c.id}</td>
-                    <td className="px-4 py-3 text-xs">{getGroupById(c.groupId)?.name || '—'}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1">
-                        {bucketLabels.map(bl => {
-                          const count = c[bl.key];
-                          if (count === 0) return null;
-                          return (
+                    {isCol('name') && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{c.name}</span>
+                          {c.mandatoryAction && <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />}
+                        </div>
+                      </td>
+                    )}
+                    {isCol('id') && <td className="px-4 py-3 font-mono text-xs">{c.id}</td>}
+                    {isCol('group') && <td className="px-4 py-3 text-xs">{getGroupById(c.groupId)?.name || '—'}</td>}
+                    {isCol('checkTypes') && (
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1">
+                          {c.checkTypes.map(ct => (
                             <span
-                              key={bl.key}
-                              className={`inline-flex items-center justify-center h-5 min-w-[24px] px-1 rounded text-[10px] font-medium text-primary-foreground ${bl.color}`}
-                              title={`${bl.label}: ${count}`}
+                              key={ct}
+                              className="inline-flex items-center gap-0.5 h-5 px-1.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground"
+                              title={ct}
                             >
-                              {bl.label}{count}
+                              {checkTypeIcon[ct]}
+                              {checkTypeAbbr[ct]}
                             </span>
-                          );
-                        })}
-                        {bucketLabels.every(bl => c[bl.key] === 0) && (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs">{c.lastScreenedAt}</td>
-                    <td className="px-4 py-3">
-                      <Badge variant={c.ogsEnabled ? 'default' : 'secondary'} className="text-[10px]">
-                        {c.ogsEnabled ? 'Active' : 'Off'}
-                      </Badge>
-                    </td>
+                          ))}
+                        </div>
+                      </td>
+                    )}
+                    {isCol('entityType') && <td className="px-4 py-3 text-xs">{c.entityType}</td>}
+                    {isCol('rating') && (
+                      <td className="px-4 py-3">
+                        <Badge
+                          variant="outline"
+                          className={`text-[10px] ${
+                            c.rating === 'High' ? 'border-status-unresolved text-status-unresolved'
+                            : c.rating === 'Medium' ? 'border-status-possible text-status-possible'
+                            : 'border-muted-foreground text-muted-foreground'
+                          }`}
+                        >
+                          {c.rating}
+                        </Badge>
+                      </td>
+                    )}
+                    {isCol('lastScreened') && <td className="px-4 py-3 text-xs">{c.lastScreenedAt}</td>}
+                    {isCol('ogs') && (
+                      <td className="px-4 py-3">
+                        <Badge variant={c.ogsEnabled ? 'default' : 'secondary'} className="text-[10px]">
+                          {c.ogsEnabled ? 'Active' : 'Off'}
+                        </Badge>
+                      </td>
+                    )}
+                    {isCol('createdAt') && <td className="px-4 py-3 text-xs">{c.createdAt}</td>}
                   </tr>
                 ))
               )}
