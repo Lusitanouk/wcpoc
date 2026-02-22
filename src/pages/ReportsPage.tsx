@@ -113,7 +113,7 @@ const categoryIcons: Record<string, React.ReactNode> = {
 export default function ReportsPage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('standard');
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   // Filters
   const [filterValues, setFilterValues] = useState<Record<string, string>>({
     category: 'all', format: 'all', scheduled: 'all'
