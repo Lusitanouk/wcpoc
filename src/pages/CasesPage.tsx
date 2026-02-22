@@ -102,7 +102,7 @@ export default function CasesPage() {
   const [bulkAssignee, setBulkAssignee] = useState('');
   const [bulkGroup, setBulkGroup] = useState('');
   const [bulkComment, setBulkComment] = useState('');
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
 
   const activeCases = useMemo(() => cases.filter(c => c.status === 'Active'), []);
   const uniqueAssignees = useMemo(() => [...new Set(activeCases.map(c => c.assignee))].sort(), [activeCases]);

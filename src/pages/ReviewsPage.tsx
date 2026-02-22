@@ -78,7 +78,7 @@ export default function AlertsPage() {
   const [tab, setTab] = useState('unresolved');
   const [filterValues, setFilterValues] = useState<Record<string, string>>({ priority: 'all', age: 'all', sort: 'priority' });
   const [groupByCase, setGroupByCase] = useState(false);
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
   const [visibleAlertCols, setVisibleAlertCols] = useState<AlertColumnKey[]>([...DEFAULT_ALERT_COLUMNS]);
   const alertDragItem = useRef<number | null>(null);
