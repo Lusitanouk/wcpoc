@@ -373,15 +373,23 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
                       <td className="px-3 py-2 font-medium">{wf.matchedValue || '—'}</td>
                     </tr>
                   ))}
+                  {match.aliases.length > 0 && (
+                    <tr className="border-b last:border-b-0 bg-muted/20">
+                      <td className="px-3 py-2"><User className="h-3 w-3 text-muted-foreground" /></td>
+                      <td className="px-3 py-2 font-medium align-top">Aliases ({match.aliases.length})</td>
+                      <td className="px-3 py-2 text-muted-foreground" colSpan={2}>
+                        <div className="flex flex-wrap gap-1">
+                          {match.aliases.map((alias, ai) => (
+                            <Badge key={ai} variant="secondary" className="text-[10px]">{alias}</Badge>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
             <p className="text-[10px] text-muted-foreground italic mt-2">{match.matchStrengthExplanation}</p>
-            <div className="flex flex-wrap gap-1 mt-2">
-              {match.whyMatched.map((wf, i) => (
-                <Badge key={i} variant="secondary" className="text-[10px]">{wf.field}</Badge>
-              ))}
-            </div>
           </div>
 
           {/* What changed */}
