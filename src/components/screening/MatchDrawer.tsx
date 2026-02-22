@@ -75,6 +75,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
   const [status, setStatus] = useState<MatchStatus>(match?.status || 'Unresolved');
   const [risk, setRisk] = useState<RiskLevel>(match?.riskLevel || 'None');
   const [reason, setReason] = useState(match?.reason || '');
+  const [matchOutcome, setMatchOutcome] = useState('');
   const [comment, setComment] = useState('');
   const [activeTab, setActiveTab] = useState('key-data');
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -553,6 +554,18 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
                 </div>
               </div>
               <div className="flex-1 min-w-0 space-y-1.5">
+                <Label className="text-xs">Match Outcome</Label>
+                <Select value={matchOutcome} onValueChange={setMatchOutcome}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select outcome..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    <SelectItem value="Full Match" className="text-xs">Full Match</SelectItem>
+                    <SelectItem value="Partial Match" className="text-xs">Partial Match</SelectItem>
+                    <SelectItem value="No Match" className="text-xs">No Match</SelectItem>
+                    <SelectItem value="Unknown" className="text-xs">Unknown</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Label className="text-xs">{t('match.reason')}</Label>
                 <Textarea
                   value={reason}
