@@ -295,12 +295,12 @@ export default function CasesPage() {
         )}
       </div>
 
-      <Card>
+      <Card className="overflow-visible">
         {/* Table */}
-        <div className="overflow-x-auto">
+        <div>
           <table className="w-full text-sm">
             <thead className="sticky top-0 z-10">
-              <tr className="border-b bg-muted/50">
+              <tr className="border-b bg-card">
                 <th className="px-4 py-3 w-10"><Checkbox checked={selectedIds.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} /></th>
                 {visibleColumns.map(key => {
                   const col = ALL_COLUMNS.find(c => c.key === key);
