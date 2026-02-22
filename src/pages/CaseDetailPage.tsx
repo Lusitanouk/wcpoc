@@ -4,7 +4,7 @@ import {
   ArrowLeft, Shield, Newspaper, CreditCard, User, MapPin, Calendar, Hash,
   Edit, UserPlus, ArrowRightLeft, Archive, Trash2, RefreshCw, ToggleRight,
   ChevronDown, MessageSquare, Send, Clock, FileText, Activity, AlertTriangle,
-  ChevronUp, LayoutDashboard, ChevronRight, ChevronLeft, Eye, Info, Download
+  ChevronUp, LayoutDashboard, ChevronRight, ChevronLeft, Eye, Info, Download, PanelRightOpen, PanelRightClose
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -463,8 +463,9 @@ export default function CaseDetailPage() {
         </DropdownMenu>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => setAuditDrawerOpen(true)}>
-              <Activity className="h-3.5 w-3.5" /> <span className="hidden md:inline">Audit / Notes</span>
+            <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => setAuditDrawerOpen(v => !v)}>
+              {auditDrawerOpen ? <PanelRightClose className="h-3.5 w-3.5" /> : <PanelRightOpen className="h-3.5 w-3.5" />}
+              <span className="hidden md:inline">Audit / Notes</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent side="bottom" className="md:hidden text-xs">Audit / Notes</TooltipContent>
