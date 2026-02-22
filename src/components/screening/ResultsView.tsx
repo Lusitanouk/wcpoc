@@ -571,17 +571,10 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                                   {m.aliases.length > 0 && (
                                     <span className="text-[10px] text-muted-foreground">+{m.aliases.length} aliases</span>
                                   )}
-                                  {m.updated && (
-                                    <Badge variant="secondary" className="text-[10px] bg-status-possible/15 text-status-possible border-0">
-                                      Updated
-                                    </Badge>
-                                  )}
-                                  {m.reviewRequired && (
-                                    <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />
-                                  )}
-                                  {m.resolutionHistory.length > 1 && (
-                                    <Badge variant="outline" className="text-[9px] px-1 py-0 text-muted-foreground">
-                                      {m.resolutionHistory.length} reviews
+                                  {(m.updated || m.reviewRequired) && (
+                                    <Badge variant="secondary" className="text-[10px] bg-status-possible/15 text-status-possible border-0 gap-1">
+                                      <AlertTriangle className="h-3 w-3" />
+                                      Review required{m.reviewRequiredReasons?.length > 0 ? ` (${m.reviewRequiredReasons.length})` : ''}
                                     </Badge>
                                   )}
                                 </div>
