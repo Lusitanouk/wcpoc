@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, SlidersHorizontal, Database, Flame, Settings2, GripVertical } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, Database, Flame, Settings2, GripVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';

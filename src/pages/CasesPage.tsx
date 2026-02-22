@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search, Archive, Users, ArrowRightLeft, Download, ToggleRight, AlertTriangle,
   Filter, Settings2, Shield, Newspaper, CreditCard, Save, Trash2, RefreshCw,
-  UserPlus, X, SlidersHorizontal, Briefcase, Layers, User, Globe, GripVertical
+  UserPlus, X, Briefcase, Layers, User, Globe, GripVertical
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -192,7 +192,7 @@ export default function CasesPage() {
             className={`h-8 text-xs gap-1 ${showFilters ? 'ring-1 ring-primary/30' : ''}`}
             onClick={() => setShowFilters(!showFilters)}
           >
-            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <Filter className="h-3.5 w-3.5" />
             Filters
             {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
           </Button>
