@@ -328,7 +328,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
     <div>
 
       {/* Disposition Summary & Bucket Tabs */}
-      <div className="mb-4 rounded-lg border bg-card">
+      <div className="mb-4 rounded-lg border bg-card w-fit">
         {/* Bucket tabs */}
         <div className="flex gap-1 p-1">
           {BUCKETS.map(bucket => (
@@ -336,7 +336,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
               <TooltipTrigger asChild>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleBucketChange(bucket); }}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all border-b-2 ${
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all border-b-2 ${
                     activeBucket === bucket
                       ? 'border-primary text-foreground'
                       : 'border-transparent text-muted-foreground hover:text-foreground'
