@@ -510,9 +510,9 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
 
         {/* Resolution & Review Controls — in fullscreen this is a right sidebar */}
         <div id="disposition-section" className={`p-6 space-y-6 ${isFullscreen ? 'overflow-y-auto' : ''}`}>
-          {/* ── Section 1: Resolve ── */}
+          {/* ── Section 1: Resolve Match ── */}
           <div className="space-y-3">
-            <h4 className="text-sm font-semibold">{t('match.resolution')}</h4>
+            <h4 className="text-sm font-semibold">Resolve Match</h4>
             <div className="flex gap-4 items-start">
               <div className="space-y-1.5 shrink-0">
                 <Label className="text-xs">{t('match.status')}</Label>
