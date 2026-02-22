@@ -262,7 +262,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
           {/* ── Screening Profile (for resolution context) ── */}
           {hasScreeningData && (
             <div className="p-6 border-b">
-              <Collapsible defaultOpen>
+              <Collapsible>
                 <CollapsibleTrigger asChild>
                   <button className="flex items-center gap-1.5 text-xs font-semibold w-full group">
                     <FileText className="h-3.5 w-3.5 text-primary" />
