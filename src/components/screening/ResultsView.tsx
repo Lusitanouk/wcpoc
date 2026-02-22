@@ -383,25 +383,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
       </div>
 
       <div className="flex items-center gap-2 mb-4 flex-wrap">
-        {selectedCount > 0 && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 animate-fade-in">
-            <CheckSquare className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">{selectedCount} selected</span>
-            <div className="flex gap-1.5 ml-2">
-              <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
-                <Check className="h-3 w-3" /> Bulk Resolve
-              </Button>
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
-                <Eye className="h-3 w-3" /> Mark Reviewed
-              </Button>
-              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
-                <X className="h-3 w-3" />
-              </Button>
-            </div>
-          </div>
-        )}
-
-        <div className="flex items-center gap-2 flex-1 min-w-0">
+       <div className="flex items-center gap-2 flex-1 min-w-0">
           <FilterBar
             filters={matchFilterDefs}
             values={matchFilterValues}
@@ -419,7 +401,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             </PopoverTrigger>
             <PopoverContent align="end" className="w-56 p-3">
               <p className="text-xs font-semibold mb-2">Show / Hide & Reorder</p>
-              {/* Visible columns - draggable */}
               <div className="space-y-0.5 mb-2">
                 {visibleColumns.map((key, index) => {
                   const col = MATCH_COLUMNS.find(c => c.key === key)!;
@@ -446,7 +427,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                   );
                 })}
               </div>
-              {/* Hidden columns */}
               {MATCH_COLUMNS.filter(c => !visibleColumns.includes(c.key)).length > 0 && (
                 <div className="border-t pt-2 space-y-0.5">
                   <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Hidden</p>
@@ -471,6 +451,24 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           </Popover>
         </div>
       </div>
+
+      {selectedCount > 0 && (
+        <div className="flex items-center gap-2 px-3 py-1.5 mb-4 rounded-md bg-primary/10 border border-primary/20 animate-fade-in">
+          <CheckSquare className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">{selectedCount} selected</span>
+          <div className="flex gap-1.5 ml-2">
+            <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
+              <Check className="h-3 w-3" /> Bulk Resolve
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
+              <Eye className="h-3 w-3" /> Mark Reviewed
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Card>
 
