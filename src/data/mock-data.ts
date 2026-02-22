@@ -127,30 +127,52 @@ function randDate(start: string, end: string) {
   return new Date(s + Math.random() * (e - s)).toISOString().split('T')[0];
 }
 
-function generateWhyMatched(strength: number, caseName?: string): { fields: WhyMatchedField[]; explanation: string } {
+function generateWhyMatched(strength: number, caseName?: string, entityType: EntityType = 'Individual'): { fields: WhyMatchedField[]; explanation: string } {
   const results: MatchFieldResult[] = ['match', 'partial', 'mismatch', 'missing'];
   const nameResult: MatchFieldResult = strength >= 80 ? 'match' : strength >= 60 ? 'partial' : 'mismatch';
+  const nameLabel = entityType === 'Organisation' ? 'Entity Name' : entityType === 'Vessel' ? 'Vessel Name' : 'Name';
   const nameDetail = nameResult === 'match' ? 'Exact name match' : nameResult === 'partial' ? 'Close name variant (alias)' : 'Weak name similarity';
-  const matchedNameVariant = nameResult === 'match' ? (caseName || 'Unknown') : nameResult === 'partial' ? (caseName ? caseName.split(' ').reverse().join(' ') : 'Unknown') : rand(names);
+  const namePool = entityType === 'Organisation' ? orgNames : entityType === 'Vessel' ? vesselNames : names;
+  const matchedNameVariant = nameResult === 'match' ? (caseName || 'Unknown') : nameResult === 'partial' ? (caseName ? caseName.split(' ').reverse().join(' ') : 'Unknown') : rand(namePool);
   
   const fields: WhyMatchedField[] = [
-    { field: 'Name', result: nameResult, detail: nameDetail, inputValue: caseName || 'Unknown', matchedValue: matchedNameVariant },
+    { field: nameLabel, result: nameResult, detail: nameDetail, inputValue: caseName || 'Unknown', matchedValue: matchedNameVariant },
   ];
 
-  const inputDobs = ['1975-06-15', '1982-03-22', '1990-11-08', '1968-09-30', '1985-01-14'];
-  const matchedDobs = ['1975-06-15', '1975-??-??', '1982-03-22', '1990-11-08', '1969-09-30'];
-  const dobResult = rand(results);
-  const inputDob = rand(inputDobs);
-  const matchedDob = dobResult === 'match' ? inputDob : dobResult === 'partial' ? inputDob.slice(0, 4) + '-??-??' : dobResult === 'mismatch' ? rand(matchedDobs) : undefined;
-  fields.push({ field: 'DOB', result: dobResult, detail: dobResult === 'match' ? 'Exact DOB match' : dobResult === 'partial' ? 'Year of birth matches' : dobResult === 'mismatch' ? 'DOB does not match' : 'DOB not available', inputValue: inputDob, matchedValue: matchedDob || '—' });
-  
-  const inputNats = ['US', 'UK', 'RU', 'CN', 'DE', 'FR'];
-  const matchedNats = ['US', 'UK', 'RU', 'CN', 'DE', 'IR', 'SY'];
-  const natResult = rand(results);
-  const inputNat = rand(inputNats);
-  const matchedNat = natResult === 'match' ? inputNat : natResult === 'partial' ? inputNat : natResult === 'mismatch' ? rand(matchedNats.filter(n => n !== inputNat)) : undefined;
-  fields.push({ field: 'Nationality', result: natResult, detail: natResult === 'match' ? 'Nationality matches' : natResult === 'partial' ? 'Region matches' : natResult === 'mismatch' ? 'Different nationality' : 'Nationality not provided', inputValue: inputNat, matchedValue: matchedNat || '—' });
-  
+  if (entityType === 'Individual') {
+    const inputDobs = ['1975-06-15', '1982-03-22', '1990-11-08', '1968-09-30', '1985-01-14'];
+    const matchedDobs = ['1975-06-15', '1975-??-??', '1982-03-22', '1990-11-08', '1969-09-30'];
+    const dobResult = rand(results);
+    const inputDob = rand(inputDobs);
+    const matchedDob = dobResult === 'match' ? inputDob : dobResult === 'partial' ? inputDob.slice(0, 4) + '-??-??' : dobResult === 'mismatch' ? rand(matchedDobs) : undefined;
+    fields.push({ field: 'DOB', result: dobResult, detail: dobResult === 'match' ? 'Exact DOB match' : dobResult === 'partial' ? 'Year of birth matches' : dobResult === 'mismatch' ? 'DOB does not match' : 'DOB not available', inputValue: inputDob, matchedValue: matchedDob || '—' });
+
+    const inputNats = ['US', 'UK', 'RU', 'CN', 'DE', 'FR'];
+    const matchedNats = ['US', 'UK', 'RU', 'CN', 'DE', 'IR', 'SY'];
+    const natResult = rand(results);
+    const inputNat = rand(inputNats);
+    const matchedNat = natResult === 'match' ? inputNat : natResult === 'partial' ? inputNat : natResult === 'mismatch' ? rand(matchedNats.filter(n => n !== inputNat)) : undefined;
+    fields.push({ field: 'Nationality', result: natResult, detail: natResult === 'match' ? 'Nationality matches' : natResult === 'partial' ? 'Region matches' : natResult === 'mismatch' ? 'Different nationality' : 'Nationality not provided', inputValue: inputNat, matchedValue: matchedNat || '—' });
+  }
+
+  if (entityType === 'Organisation') {
+    const regResult = rand(results);
+    fields.push({ field: 'Jurisdiction', result: regResult, detail: regResult === 'match' ? 'Jurisdiction matches' : regResult === 'partial' ? 'Region overlap' : regResult === 'mismatch' ? 'Different jurisdiction' : 'Jurisdiction not available', inputValue: rand(countries), matchedValue: regResult !== 'missing' ? rand(countries) : '—' });
+    if (Math.random() > 0.4) {
+      const regNoResult = rand(['match', 'missing'] as MatchFieldResult[]);
+      const regNo = `REG-${randInt(100000, 999999)}`;
+      fields.push({ field: 'Registration No.', result: regNoResult, detail: regNoResult === 'match' ? 'Registration number matches' : 'Registration number not available', inputValue: regNo, matchedValue: regNoResult === 'match' ? regNo : '—' });
+    }
+  }
+
+  if (entityType === 'Vessel') {
+    const imoResult = rand(results);
+    const imo = `IMO${randInt(1000000, 9999999)}`;
+    fields.push({ field: 'IMO Number', result: imoResult, detail: imoResult === 'match' ? 'IMO number matches' : imoResult === 'partial' ? 'Partial IMO match' : imoResult === 'mismatch' ? 'Different IMO number' : 'IMO not available', inputValue: imo, matchedValue: imoResult !== 'missing' ? (imoResult === 'match' ? imo : `IMO${randInt(1000000, 9999999)}`) : '—' });
+    const flagResult = rand(results);
+    fields.push({ field: 'Flag State', result: flagResult, detail: flagResult === 'match' ? 'Flag state matches' : flagResult === 'partial' ? 'Region overlap' : flagResult === 'mismatch' ? 'Different flag state' : 'Flag state not available', inputValue: rand(countries), matchedValue: flagResult !== 'missing' ? rand(countries) : '—' });
+  }
+
   const inputCountries = ['United States', 'United Kingdom', 'Russia', 'China', 'Germany'];
   const matchedCountries = ['United States', 'United Kingdom', 'Russia', 'Iran', 'Syria', 'China'];
   const countryResult = rand(results);
@@ -158,7 +180,7 @@ function generateWhyMatched(strength: number, caseName?: string): { fields: WhyM
   const matchedCountry = countryResult === 'match' ? inputCountry : countryResult === 'partial' ? inputCountry : countryResult === 'mismatch' ? rand(matchedCountries.filter(c => c !== inputCountry)) : undefined;
   fields.push({ field: 'Country', result: countryResult, detail: countryResult === 'match' ? 'Country/location matches' : countryResult === 'partial' ? 'Region overlap' : countryResult === 'mismatch' ? 'Different country' : 'Country not available', inputValue: inputCountry, matchedValue: matchedCountry || '—' });
 
-  if (Math.random() > 0.5) {
+  if (entityType === 'Individual' && Math.random() > 0.5) {
     const idResult = rand(['match', 'missing'] as MatchFieldResult[]);
     const inputId = `P${Math.floor(Math.random() * 900000000 + 100000000)}`;
     fields.push({ field: 'ID Number', result: idResult, detail: idResult === 'match' ? 'ID number matches' : 'ID not available for comparison', inputValue: inputId, matchedValue: idResult === 'match' ? inputId : '—' });
@@ -225,14 +247,18 @@ function generateMatches(caseId: string, count: number, entityType: EntityType =
     const strength = randInt(30, 99);
     const alertDate = randDate('2024-12-01', '2025-02-15');
     const reviewRequiredAt = isReviewReq ? randDate('2025-01-10', '2025-02-15') : undefined;
-    const { fields: whyMatched, explanation: matchStrengthExplanation } = generateWhyMatched(strength, matchName);
+    const { fields: whyMatched, explanation: matchStrengthExplanation } = generateWhyMatched(strength, matchName, entityType);
     const changeLog = generateChangeLog(isReviewReq);
 
     const partial: Omit<Match, 'priorityScore' | 'priorityLevel'> = {
       id: `${caseId}-m${i + 1}`,
       caseId,
       matchedName: matchName,
-      aliases: [matchName.split(' ').reverse().join(' '), `${matchName} Jr.`, `${matchName.split(' ')[0]} Al-${matchName.split(' ').pop()}`, `${matchName.split(' ')[0][0]}. ${matchName.split(' ').slice(1).join(' ')}`].slice(0, randInt(1, 4)),
+      aliases: entityType === 'Organisation'
+        ? [`${matchName} Inc`, `${matchName.split(' ')[0]} Group`, `${matchName} International`].slice(0, randInt(1, 3))
+        : entityType === 'Vessel'
+        ? [`${matchName} (ex)`, `${matchName.replace('MV ', 'M/V ').replace('SS ', 'S/S ')}`].slice(0, randInt(1, 2))
+        : [matchName.split(' ').reverse().join(' '), `${matchName} Jr.`, `${matchName.split(' ')[0]} Al-${matchName.split(' ').pop()}`, `${matchName.split(' ')[0][0]}. ${matchName.split(' ').slice(1).join(' ')}`].slice(0, randInt(1, 4)),
       strength,
       dataset,
       checkType: ct,
@@ -276,11 +302,23 @@ function generateMatches(caseId: string, count: number, entityType: EntityType =
           'Listed Date': randDate('2010-01-01', '2024-12-31'),
           'Last Updated': randDate('2024-01-01', '2025-02-01'),
         },
-        furtherInfo: `Subject is associated with ${rand(keywords).toLowerCase()} activities. Listed on multiple international watchlists. Further investigation recommended.`,
-        aliases: [matchName.split(' ').reverse().join(' '), `${matchName.split(' ')[0]} ${rand(nationalities)}`],
+        furtherInfo: entityType === 'Organisation'
+          ? `Entity is associated with ${rand(keywords).toLowerCase()} activities. Listed on multiple international watchlists. Further investigation recommended.`
+          : entityType === 'Vessel'
+          ? `Vessel is linked to ${rand(keywords).toLowerCase()} activities. Flagged across multiple maritime enforcement databases.`
+          : `Subject is associated with ${rand(keywords).toLowerCase()} activities. Listed on multiple international watchlists. Further investigation recommended.`,
+        aliases: entityType === 'Organisation'
+          ? [`${matchName} Inc`, `${matchName.split(' ')[0]} Group`]
+          : entityType === 'Vessel'
+          ? [`${matchName} (ex)`, matchName.replace('MV ', 'M/V ')]
+          : [matchName.split(' ').reverse().join(' '), `${matchName.split(' ')[0]} ${rand(nationalities)}`],
         keywords: Array.from({ length: randInt(1, 4) }, () => rand(keywords)),
-        pepRoleDetails: dataset === 'PEP' ? `Former ${rand(['Minister', 'Governor', 'Senator', 'Director', 'Ambassador'])} of ${rand(countries)}` : undefined,
-        connections: Array.from({ length: randInt(0, 3) }, () => `${rand(names)} (${rand(['Associate', 'Family', 'Business Partner'])})`),
+        pepRoleDetails: dataset === 'PEP' && entityType === 'Individual' ? `Former ${rand(['Minister', 'Governor', 'Senator', 'Director', 'Ambassador'])} of ${rand(countries)}` : undefined,
+        connections: entityType === 'Organisation'
+          ? Array.from({ length: randInt(0, 3) }, () => `${rand([...orgNames, ...names])} (${rand(['Subsidiary', 'Parent Company', 'Director', 'Shareholder'])})`)
+          : entityType === 'Vessel'
+          ? Array.from({ length: randInt(0, 3) }, () => `${rand([...orgNames, ...names])} (${rand(['Operator', 'Owner', 'Flag State Agent', 'Charterer'])})`)
+          : Array.from({ length: randInt(0, 3) }, () => `${rand(names)} (${rand(['Associate', 'Family', 'Business Partner'])})`),
         sources: [
           { name: 'OFAC SDN List', url: '#' },
           { name: 'UN Security Council', url: '#' },
