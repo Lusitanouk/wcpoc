@@ -191,8 +191,10 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
   const unresolved = bucketCounts.Unresolved;
   const reviewReq = matches.filter(m => m.reviewRequired).length;
 
-  const openMatch = (m: Match) => {
+  const [openInFullscreen, setOpenInFullscreen] = useState(false);
+  const openMatch = (m: Match, fullscreen = false) => {
     setSelectedMatch(m);
+    setOpenInFullscreen(fullscreen);
     setDrawerOpen(true);
   };
 
@@ -545,7 +547,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                                       : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                                     }
                                   </button>
-                                  <span className="font-medium cursor-pointer" onClick={() => openMatch(m)}>{m.matchedName}</span>
+                                  <span className="font-medium cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); openMatch(m, true); }}>{m.matchedName}</span>
                                   {m.aliases.length > 0 && (
                                     <span className="text-[10px] text-muted-foreground">+{m.aliases.length} aliases</span>
                                   )}
@@ -695,6 +697,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
         currentIndex={selectedMatchIndex >= 0 ? selectedMatchIndex : undefined}
         totalMatches={filteredMatches.length}
         onNavigate={navigateMatch}
+        defaultFullscreen={openInFullscreen}
       />
 
       {/* Bulk Resolve Dialog */}
