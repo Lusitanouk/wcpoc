@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Link } from 'react-router-dom';
-import { Check, ChevronRight, Search, Upload, Shield, Newspaper, CreditCard, ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Check, ChevronRight, Search, Upload, Shield, Newspaper, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -61,6 +61,7 @@ const defaultPassportData: PassportData = {
 };
 
 export default function ScreenPage() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(0);
   const [config, setConfig] = useState<ScreeningConfig>(defaultConfig);
   const [data, setData] = useState<ScreeningData>(defaultData);
@@ -517,7 +518,7 @@ export default function ScreenPage() {
               <Separator />
 
               <div className="flex justify-end">
-                <Button onClick={() => { setStep(1); setActiveResultTab(''); }} disabled={!canScreen} size="lg">
+                <Button onClick={() => navigate(`/cases/${caseId}`)} disabled={!canScreen} size="lg">
                   <Search className="h-4 w-4 mr-2" /> {isBatch ? `Screen ${batchRecords.length} Records` : 'Screen Now'}
                 </Button>
               </div>
@@ -526,76 +527,6 @@ export default function ScreenPage() {
         </div>
       )}
 
-      {/* Step 1: Results */}
-      {step === 1 && (
-        <div className="animate-fade-in">
-          {/* Case link banner */}
-          <div className="flex items-center gap-3 mb-4 p-3 rounded-lg border bg-card">
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold truncate">{caseName}</p>
-              <p className="text-xs text-muted-foreground font-mono">{caseId}</p>
-            </div>
-            <Link to={`/cases/${caseId}`}>
-              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
-                <ExternalLink className="h-3.5 w-3.5" /> Open Case
-              </Button>
-            </Link>
-          </div>
-          {resultTabs.length > 1 && (
-            <div className="flex gap-1 mb-6 p-1 bg-muted rounded-lg">
-              {resultTabs.map(tab => {
-                const icon = tab === 'Watchlists' ? <Shield className="h-3.5 w-3.5" />
-                  : tab === 'Adverse Media' ? <Newspaper className="h-3.5 w-3.5" />
-                  : <CreditCard className="h-3.5 w-3.5" />;
-                return (
-                  <Tooltip key={tab}>
-                    <TooltipTrigger asChild>
-                      <button
-                        onClick={() => setActiveResultTab(tab)}
-                        className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2 rounded-md text-sm font-medium transition-all ${
-                          currentResultTab === tab
-                            ? 'bg-background text-foreground shadow-sm'
-                            : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-                        }`}
-                      >
-                        {icon}
-                        <span className="hidden sm:inline">{tab}</span>
-                      </button>
-                    </TooltipTrigger>
-                    <TooltipContent side="bottom" className="sm:hidden text-xs">{tab}</TooltipContent>
-                  </Tooltip>
-                );
-              })}
-            </div>
-          )}
-
-          {/* Render appropriate results view */}
-          {currentResultTab === 'Watchlists' && (
-            <ResultsView
-              matches={simulatedResults.filter(m => m.checkType === 'Watchlists')}
-              caseName={caseName}
-              caseId={caseId}
-              checkTypes={['Watchlists']}
-            />
-          )}
-
-          {currentResultTab === 'Adverse Media' && mediaResult && (
-            <MediaCheckResultsView
-              result={mediaResult}
-              caseName={caseName}
-              caseId={caseId}
-            />
-          )}
-
-          {currentResultTab === 'Passport Check' && passportResult && (
-            <PassportCheckResultsView
-              result={passportResult}
-              caseName={caseName}
-              caseId={caseId}
-            />
-          )}
-        </div>
-      )}
     </div>
   );
 }
