@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronRight, Search, Upload, Shield, Newspaper, CreditCard, FileText, Loader2 } from 'lucide-react';
+import { Check, ChevronRight, Search, Upload, Shield, Newspaper, CreditCard, FileText, Loader2, User, Building2, Ship, HelpCircle, UserCheck, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -242,18 +242,22 @@ export default function ScreenPage() {
                 {/* Mode */}
                 <div className="space-y-1.5">
                   <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Mode</Label>
-                  <div className="flex flex-col gap-1">
-                    {(['Single', 'Batch'] as const).map(m => (
+                   <div className="flex flex-col gap-1">
+                    {([
+                      { key: 'Single', label: 'Single Screening', icon: <UserCheck className="h-3.5 w-3.5" /> },
+                      { key: 'Batch', label: 'Batch Screening', icon: <Users className="h-3.5 w-3.5" /> },
+                    ] as const).map(m => (
                       <button
-                        key={m}
-                        onClick={() => setConfig(c => ({ ...c, mode: m }))}
-                        className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors border text-left ${
-                          config.mode === m
+                        key={m.key}
+                        onClick={() => setConfig(c => ({ ...c, mode: m.key }))}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors border text-left ${
+                          config.mode === m.key
                             ? 'bg-primary text-primary-foreground border-primary'
                             : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
                         }`}
                       >
-                        {m === 'Single' ? 'Single Screening' : 'Batch Screening'}
+                        {m.icon}
+                        {m.label}
                       </button>
                     ))}
                   </div>
@@ -264,21 +268,27 @@ export default function ScreenPage() {
                 {/* Entity Type */}
                 <div className="space-y-1.5">
                   <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Entity Type</Label>
-                  <div className="flex flex-col gap-1">
-                    {(['Individual', 'Organisation', 'Vessel', 'Unspecified'] as EntityType[]).map(t => (
+                   <div className="flex flex-col gap-1">
+                    {([
+                      { key: 'Individual' as EntityType, icon: <User className="h-3.5 w-3.5" /> },
+                      { key: 'Organisation' as EntityType, icon: <Building2 className="h-3.5 w-3.5" /> },
+                      { key: 'Vessel' as EntityType, icon: <Ship className="h-3.5 w-3.5" /> },
+                      { key: 'Unspecified' as EntityType, icon: <HelpCircle className="h-3.5 w-3.5" /> },
+                    ]).map(t => (
                       <button
-                        key={t}
-                        onClick={() => !hasPassportCheck && setConfig(c => ({ ...c, entityType: t }))}
-                        disabled={hasPassportCheck && t !== 'Individual'}
-                        className={`px-2.5 py-1.5 rounded text-xs font-medium transition-colors border text-left ${
-                          config.entityType === t
+                        key={t.key}
+                        onClick={() => !hasPassportCheck && setConfig(c => ({ ...c, entityType: t.key }))}
+                        disabled={hasPassportCheck && t.key !== 'Individual'}
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded text-xs font-medium transition-colors border text-left ${
+                          config.entityType === t.key
                             ? 'bg-primary text-primary-foreground border-primary'
-                            : hasPassportCheck && t !== 'Individual'
+                            : hasPassportCheck && t.key !== 'Individual'
                             ? 'bg-muted/30 text-muted-foreground/40 border-transparent cursor-not-allowed'
                             : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
                         }`}
                       >
-                        {t}
+                        {t.icon}
+                        {t.key}
                       </button>
                     ))}
                   </div>
@@ -293,18 +303,20 @@ export default function ScreenPage() {
                 <div className="space-y-1.5">
                   <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Check Types</Label>
                   <div className="flex flex-col gap-1.5">
-                    {(['Watchlists', 'Adverse Media', 'Passport Check'] as CheckType[]).map(ct => (
-                      <label key={ct} className="flex items-center gap-2 text-xs cursor-pointer">
+                   {([
+                      { key: 'Watchlists' as CheckType, icon: <Shield className="h-3.5 w-3.5" />, badge: null },
+                      { key: 'Adverse Media' as CheckType, icon: <Newspaper className="h-3.5 w-3.5" />, badge: 'Articles' },
+                      { key: 'Passport Check' as CheckType, icon: <CreditCard className="h-3.5 w-3.5" />, badge: 'MRZ' },
+                    ]).map(ct => (
+                      <label key={ct.key} className="flex items-center gap-2 text-xs cursor-pointer">
                         <Checkbox
-                          checked={config.checkTypes.includes(ct)}
-                          onCheckedChange={() => handleCheckTypeToggle(ct)}
+                          checked={config.checkTypes.includes(ct.key)}
+                          onCheckedChange={() => handleCheckTypeToggle(ct.key)}
                         />
-                        <span>{ct}</span>
-                        {ct === 'Adverse Media' && (
-                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Articles</Badge>
-                        )}
-                        {ct === 'Passport Check' && (
-                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0">MRZ</Badge>
+                        {ct.icon}
+                        <span>{ct.key}</span>
+                        {ct.badge && (
+                          <Badge variant="secondary" className="text-[9px] px-1.5 py-0">{ct.badge}</Badge>
                         )}
                       </label>
                     ))}
