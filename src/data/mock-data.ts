@@ -127,27 +127,41 @@ function randDate(start: string, end: string) {
   return new Date(s + Math.random() * (e - s)).toISOString().split('T')[0];
 }
 
-function generateWhyMatched(strength: number): { fields: WhyMatchedField[]; explanation: string } {
+function generateWhyMatched(strength: number, caseName?: string): { fields: WhyMatchedField[]; explanation: string } {
   const results: MatchFieldResult[] = ['match', 'partial', 'mismatch', 'missing'];
   const nameResult: MatchFieldResult = strength >= 80 ? 'match' : strength >= 60 ? 'partial' : 'mismatch';
   const nameDetail = nameResult === 'match' ? 'Exact name match' : nameResult === 'partial' ? 'Close name variant (alias)' : 'Weak name similarity';
+  const matchedNameVariant = nameResult === 'match' ? (caseName || 'Unknown') : nameResult === 'partial' ? (caseName ? caseName.split(' ').reverse().join(' ') : 'Unknown') : rand(names);
   
   const fields: WhyMatchedField[] = [
-    { field: 'Name', result: nameResult, detail: nameDetail },
+    { field: 'Name', result: nameResult, detail: nameDetail, inputValue: caseName || 'Unknown', matchedValue: matchedNameVariant },
   ];
 
+  const inputDobs = ['1975-06-15', '1982-03-22', '1990-11-08', '1968-09-30', '1985-01-14'];
+  const matchedDobs = ['1975-06-15', '1975-??-??', '1982-03-22', '1990-11-08', '1969-09-30'];
   const dobResult = rand(results);
-  fields.push({ field: 'DOB', result: dobResult, detail: dobResult === 'match' ? 'Exact DOB match' : dobResult === 'partial' ? 'Year of birth matches' : dobResult === 'mismatch' ? 'DOB does not match' : 'DOB not available' });
+  const inputDob = rand(inputDobs);
+  const matchedDob = dobResult === 'match' ? inputDob : dobResult === 'partial' ? inputDob.slice(0, 4) + '-??-??' : dobResult === 'mismatch' ? rand(matchedDobs) : undefined;
+  fields.push({ field: 'DOB', result: dobResult, detail: dobResult === 'match' ? 'Exact DOB match' : dobResult === 'partial' ? 'Year of birth matches' : dobResult === 'mismatch' ? 'DOB does not match' : 'DOB not available', inputValue: inputDob, matchedValue: matchedDob || '—' });
   
+  const inputNats = ['US', 'UK', 'RU', 'CN', 'DE', 'FR'];
+  const matchedNats = ['US', 'UK', 'RU', 'CN', 'DE', 'IR', 'SY'];
   const natResult = rand(results);
-  fields.push({ field: 'Nationality', result: natResult, detail: natResult === 'match' ? 'Nationality matches' : natResult === 'partial' ? 'Region matches' : natResult === 'mismatch' ? 'Different nationality' : 'Nationality not provided' });
+  const inputNat = rand(inputNats);
+  const matchedNat = natResult === 'match' ? inputNat : natResult === 'partial' ? inputNat : natResult === 'mismatch' ? rand(matchedNats.filter(n => n !== inputNat)) : undefined;
+  fields.push({ field: 'Nationality', result: natResult, detail: natResult === 'match' ? 'Nationality matches' : natResult === 'partial' ? 'Region matches' : natResult === 'mismatch' ? 'Different nationality' : 'Nationality not provided', inputValue: inputNat, matchedValue: matchedNat || '—' });
   
+  const inputCountries = ['United States', 'United Kingdom', 'Russia', 'China', 'Germany'];
+  const matchedCountries = ['United States', 'United Kingdom', 'Russia', 'Iran', 'Syria', 'China'];
   const countryResult = rand(results);
-  fields.push({ field: 'Country', result: countryResult, detail: countryResult === 'match' ? 'Country/location matches' : countryResult === 'partial' ? 'Region overlap' : countryResult === 'mismatch' ? 'Different country' : 'Country not available' });
+  const inputCountry = rand(inputCountries);
+  const matchedCountry = countryResult === 'match' ? inputCountry : countryResult === 'partial' ? inputCountry : countryResult === 'mismatch' ? rand(matchedCountries.filter(c => c !== inputCountry)) : undefined;
+  fields.push({ field: 'Country', result: countryResult, detail: countryResult === 'match' ? 'Country/location matches' : countryResult === 'partial' ? 'Region overlap' : countryResult === 'mismatch' ? 'Different country' : 'Country not available', inputValue: inputCountry, matchedValue: matchedCountry || '—' });
 
   if (Math.random() > 0.5) {
     const idResult = rand(['match', 'missing'] as MatchFieldResult[]);
-    fields.push({ field: 'ID Number', result: idResult, detail: idResult === 'match' ? 'ID number matches' : 'ID not available for comparison' });
+    const inputId = `P${Math.floor(Math.random() * 900000000 + 100000000)}`;
+    fields.push({ field: 'ID Number', result: idResult, detail: idResult === 'match' ? 'ID number matches' : 'ID not available for comparison', inputValue: inputId, matchedValue: idResult === 'match' ? inputId : '—' });
   }
 
   const matchingFields = fields.filter(f => f.result === 'match').map(f => f.field);
@@ -210,7 +224,7 @@ function generateMatches(caseId: string, count: number): Match[] {
     const strength = randInt(30, 99);
     const alertDate = randDate('2024-12-01', '2025-02-15');
     const reviewRequiredAt = isReviewReq ? randDate('2025-01-10', '2025-02-15') : undefined;
-    const { fields: whyMatched, explanation: matchStrengthExplanation } = generateWhyMatched(strength);
+    const { fields: whyMatched, explanation: matchStrengthExplanation } = generateWhyMatched(strength, matchName);
     const changeLog = generateChangeLog(isReviewReq);
 
     const partial: Omit<Match, 'priorityScore' | 'priorityLevel'> = {

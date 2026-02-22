@@ -122,6 +122,8 @@ export interface WhyMatchedField {
   field: string;
   result: MatchFieldResult;
   detail: string;
+  inputValue?: string;
+  matchedValue?: string;
 }
 
 export interface ResolutionHistoryEntry {
