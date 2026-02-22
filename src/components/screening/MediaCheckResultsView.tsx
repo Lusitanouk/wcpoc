@@ -49,6 +49,10 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
   const [articleDrawerOpen, setArticleDrawerOpen] = useState(false);
   const [riskAssignment, setRiskAssignment] = useState<Record<string, MediaRiskLevel>>({});
 
+  // Infinite scroll
+  const [visibleCount, setVisibleCount] = useState(20);
+  const sentinelRef = useRef<HTMLDivElement>(null);
+
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDialog, setBulkDialog] = useState<'attach' | 'detach' | null>(null);
@@ -72,6 +76,12 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
     return () => window.removeEventListener('resize', measure);
   }, [result.articles]);
 
+  // Reset visible count when filters change
+  useEffect(() => {
+    setVisibleCount(20);
+  }, [activeBucket, smartFilterOn, searchQuery, topicFilter, countryFilter, riskFilter, selectedEntity]);
+
+  // Infinite scroll observer
   // Collect all unique topics and countries
   const allTopics = useMemo(() => {
     const set = new Set<string>();
@@ -178,6 +188,22 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
       })
       .sort((a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
   }, [result.articles, activeBucket, smartFilterOn, searchQuery, topicFilter, countryFilter, riskFilter, selectedEntity]);
+
+  const visibleArticles = useMemo(() => filteredArticles.slice(0, visibleCount), [filteredArticles, visibleCount]);
+  const hasMore = visibleCount < filteredArticles.length;
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const el = sentinelRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        setVisibleCount(prev => prev + 20);
+      }
+    }, { threshold: 0.1 });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [filteredArticles.length]);
 
   const openArticle = (article: MediaArticle) => {
     setSelectedArticle(article);
@@ -376,83 +402,93 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
             />
             <span className="text-xs text-muted-foreground">{filteredArticles.length} articles</span>
           </div>
-          <div className="divide-y">
+           <div className="divide-y">
             {filteredArticles.length === 0 ? (
               <div className="px-4 py-12 text-center text-muted-foreground text-sm">
                 No articles match the current filters.
               </div>
             ) : (
-              filteredArticles.map(article => (
-                <div
-                  key={article.id}
-                  onClick={() => openArticle(article)}
-                  className={`px-4 py-3 cursor-pointer transition-colors hover:bg-muted/30 ${article.visited ? 'bg-primary/3' : ''} ${selectedIds.has(article.id) ? 'bg-primary/5' : ''}`}
-                >
-                  <div className="flex items-start gap-3">
-                    <Checkbox
-                      checked={selectedIds.has(article.id)}
-                      onCheckedChange={() => toggleOne(article.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-4 w-4 mt-0.5 shrink-0"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <h4 className={`text-sm font-medium leading-snug ${article.visited ? 'text-muted-foreground' : ''}`}>
-                        {article.headline}
-                      </h4>
-                      <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
-                        <span>{article.publishedDate}</span>
-                        <span>·</span>
-                        <span>{article.publication}</span>
-                        <span>·</span>
-                        <span>{article.wordCount.toLocaleString()} words</span>
+              <>
+                {visibleArticles.map(article => (
+                  <div
+                    key={article.id}
+                    onClick={() => openArticle(article)}
+                    className={`px-4 py-3 cursor-pointer transition-colors hover:bg-muted/30 ${article.visited ? 'bg-primary/3' : ''} ${selectedIds.has(article.id) ? 'bg-primary/5' : ''}`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <Checkbox
+                        checked={selectedIds.has(article.id)}
+                        onCheckedChange={() => toggleOne(article.id)}
+                        onClick={(e) => e.stopPropagation()}
+                        className="h-4 w-4 mt-0.5 shrink-0"
+                      />
+                      <div className="flex-1 min-w-0">
+                        <h4 className={`text-sm font-medium leading-snug ${article.visited ? 'text-muted-foreground' : ''}`}>
+                          {article.headline}
+                        </h4>
+                        <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
+                          <span>{article.publishedDate}</span>
+                          <span>·</span>
+                          <span>{article.publication}</span>
+                          <span>·</span>
+                          <span>{article.wordCount.toLocaleString()} words</span>
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1.5">
+                          {article.topics.slice(0, 3).map(t => (
+                            <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
+                          ))}
+                        </div>
                       </div>
-                      <div className="flex flex-wrap gap-1 mt-1.5">
-                        {article.topics.slice(0, 3).map(t => (
-                          <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>
-                        ))}
+                      <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
+                        <Badge className={`text-[10px] ${riskColors[riskAssignment[article.id] || article.riskLevel]}`}>
+                          {riskAssignment[article.id] || article.riskLevel}
+                        </Badge>
+                        {article.attached && (
+                          <Paperclip className="h-3.5 w-3.5 text-primary" />
+                        )}
                       </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
-                      <Badge className={`text-[10px] ${riskColors[riskAssignment[article.id] || article.riskLevel]}`}>
-                        {riskAssignment[article.id] || article.riskLevel}
-                      </Badge>
-                      {article.attached && (
-                        <Paperclip className="h-3.5 w-3.5 text-primary" />
-                      )}
                     </div>
                   </div>
-                </div>
-              ))
+                ))}
+                {/* Infinite scroll sentinel */}
+                {hasMore && (
+                  <div ref={sentinelRef} className="px-4 py-6 text-center text-xs text-muted-foreground">
+                    Loading more articles...
+                  </div>
+                )}
+              </>
             )}
           </div>
         </Card>
       </div>
 
-
-      <Card className="mt-4">
-        <CardContent className="p-4">
-          <h3 className="text-sm font-semibold mb-3">Media Resolution</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-xs">Case Rating</Label>
-              <Select defaultValue="Unknown">
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Low">Low</SelectItem>
-                  <SelectItem value="No Risk">No Risk</SelectItem>
-                  <SelectItem value="Unknown">Not Rated</SelectItem>
-                </SelectContent>
-              </Select>
+      {/* Media Resolution — pinned to bottom */}
+      {!hasMore && filteredArticles.length > 0 && (
+        <Card className="mt-4">
+          <CardContent className="p-4">
+            <h3 className="text-sm font-semibold mb-3">Media Resolution</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-xs">Case Rating</Label>
+                <Select defaultValue="Unknown">
+                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Low">Low</SelectItem>
+                    <SelectItem value="No Risk">No Risk</SelectItem>
+                    <SelectItem value="Unknown">Not Rated</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-xs">Reason</Label>
+                <Input placeholder="Enter reason..." className="h-8 text-xs" />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label className="text-xs">Reason</Label>
-              <Input placeholder="Enter reason..." className="h-8 text-xs" />
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Bulk Attach Dialog */}
       <Dialog open={bulkDialog === 'attach'} onOpenChange={v => !v && setBulkDialog(null)}>
