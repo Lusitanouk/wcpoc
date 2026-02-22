@@ -175,28 +175,17 @@ export default function AlertsPage() {
 
   return (
     <div>
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
         <h1 className="text-xl font-bold flex items-center gap-2">
           <AlertTriangle className="h-5 w-5 text-primary" />
           Alerts
         </h1>
 
-        {showFilters && (
-          <div className="flex-1 min-w-0 ml-4">
-            <FilterBar
-              filters={FILTER_DEFS}
-              values={filterValues}
-              onChange={handleFilterChange}
-              onClearAll={() => setFilterValues({ priority: 'all', age: 'all', sort: 'priority' })}
-            />
-          </div>
-        )}
-
         <div className="flex items-center gap-1.5 ml-auto shrink-0">
           <Button
             variant={showFilters ? 'secondary' : 'outline'}
             size="sm"
-            className="h-8 text-xs gap-1"
+            className={`h-8 text-xs gap-1 ${showFilters ? 'ring-1 ring-primary/30' : ''}`}
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter className="h-3.5 w-3.5" />
@@ -261,6 +250,17 @@ export default function AlertsPage() {
             Group by Case
           </Button>
         </div>
+
+        {showFilters && (
+          <div className="w-full">
+            <FilterBar
+              filters={FILTER_DEFS}
+              values={filterValues}
+              onChange={handleFilterChange}
+              onClearAll={() => setFilterValues({ priority: 'all', age: 'all', sort: 'priority' })}
+            />
+          </div>
+        )}
       </div>
 
       {/* Summary */}
