@@ -11,6 +11,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MatchDrawer } from './MatchDrawer';
@@ -747,6 +748,18 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                 </div>
               </div>
               <div className="flex-1 min-w-0 space-y-1.5">
+                <Label className="text-xs">Match Outcome</Label>
+                <Select>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select outcome..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    <SelectItem value="Full Match" className="text-xs">Full Match</SelectItem>
+                    <SelectItem value="Partial Match" className="text-xs">Partial Match</SelectItem>
+                    <SelectItem value="No Match" className="text-xs">No Match</SelectItem>
+                    <SelectItem value="Unknown" className="text-xs">Unknown</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Label className="text-xs">{t('match.reason')}</Label>
                 <Textarea
                   value={bulkReason}
