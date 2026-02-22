@@ -88,7 +88,7 @@ export function AppHeader() {
         {/* Brand */}
         <div className="flex items-center gap-1.5 pl-2 border-l border-border">
           <Shield className="h-4 w-4 text-primary" />
-          <span className="text-xs font-semibold text-primary">WC1</span>
+          <span className="text-xs font-semibold text-primary">AML</span>
         </div>
       </div>
     </header>
