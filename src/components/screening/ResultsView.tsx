@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useReducer } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Shield, AlertTriangle, Eye, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, Database, Flame, Settings2, GripVertical, ChevronDown, ChevronRight, User } from 'lucide-react';
@@ -16,6 +16,7 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MatchDrawer } from './MatchDrawer';
 import { priorityColor } from '@/lib/priority';
+import { updateMatch, recalcCaseCounts } from '@/data/mock-data';
 import type { Match, CheckType, MatchStatus, Dataset, RiskLevel, CaseScreeningData } from '@/types';
 
 interface ResultsViewProps {
@@ -24,6 +25,7 @@ interface ResultsViewProps {
   caseId: string;
   checkTypes?: CheckType[];
   screeningData?: CaseScreeningData;
+  onMatchUpdated?: () => void;
 }
 
 const statusColors: Record<MatchStatus, string> = {
@@ -84,7 +86,7 @@ const MATCH_COLUMNS = [
 type MatchColumnKey = typeof MATCH_COLUMNS[number]['key'];
 const DEFAULT_MATCH_COLUMNS: MatchColumnKey[] = ['name', 'priority', 'strength', 'dataset', 'identifiers'];
 
-export function ResultsView({ matches, caseName, caseId, screeningData }: ResultsViewProps) {
+export function ResultsView({ matches, caseName, caseId, screeningData, onMatchUpdated }: ResultsViewProps) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
@@ -199,7 +201,10 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
   };
 
   const onUpdateMatch = (updated: Match) => {
+    updateMatch(updated.id, { status: updated.status, riskLevel: updated.riskLevel, reason: updated.reason });
+    recalcCaseCounts(caseId);
     setSelectedMatch(updated);
+    onMatchUpdated?.();
   };
 
   // Match navigation
@@ -243,14 +248,23 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
   };
 
   const handleBulkResolve = () => {
-    // In a real app this would persist; here we just close
+    selectedIds.forEach(id => {
+      updateMatch(id, { status: bulkStatus, riskLevel: bulkRisk, reason: bulkReason });
+    });
+    recalcCaseCounts(caseId);
     setBulkDialog(null);
     setSelectedIds(new Set());
+    onMatchUpdated?.();
   };
 
   const handleBulkReview = () => {
+    selectedIds.forEach(id => {
+      updateMatch(id, { reviewRequired: false });
+    });
+    recalcCaseCounts(caseId);
     setBulkDialog(null);
     setSelectedIds(new Set());
+    onMatchUpdated?.();
   };
 
   // Summary of selected for dialog

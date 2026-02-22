@@ -19,7 +19,7 @@ import { Switch } from '@/components/ui/switch';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { getCaseById, getMatchesForCase, getGroupById, groups, cases } from '@/data/mock-data';
+import { getCaseById, getMatchesForCase, getGroupById, groups, cases, updateCase, updateMatch, recalcCaseCounts } from '@/data/mock-data';
 import { generateMediaCheckResult } from '@/data/media-mock-data';
 import { generatePassportCheckResult } from '@/data/passport-mock-data';
 import { ResultsView } from '@/components/screening/ResultsView';
@@ -261,8 +261,12 @@ export default function CaseDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const caseData = id ? getCaseById(id) : undefined;
-  const matches = id ? getMatchesForCase(id) : [];
+  const [version, setVersion] = useState(0);
+  const refresh = () => setVersion(v => v + 1);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const caseData = useMemo(() => id ? getCaseById(id) : undefined, [id, version]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const matches = useMemo(() => id ? getMatchesForCase(id) : [], [id, version]);
 
   // Case-level navigation
   const caseIndex = caseData ? cases.findIndex(c => c.id === caseData.id) : -1;
@@ -316,6 +320,18 @@ export default function CaseDetailPage() {
   const [actionComment, setActionComment] = useState('');
   const [localAuditEvents, setLocalAuditEvents] = useState<CaseAuditEvent[]>([]);
   const [auditDrawerOpen, setAuditDrawerOpen] = useState(false);
+
+  // Controlled state for dialogs
+  const [editAssignee, setEditAssignee] = useState(caseData?.assignee || '');
+  const [editGroupId, setEditGroupId] = useState(caseData?.groupId || '');
+  const [editName, setEditName] = useState(caseData?.name || '');
+  const [editEntityType, setEditEntityType] = useState<EntityType>(caseData?.entityType || 'Individual');
+  const [editDob, setEditDob] = useState(caseData?.screeningData?.dob || '');
+  const [editGender, setEditGender] = useState(caseData?.screeningData?.gender || '');
+  const [editNationality, setEditNationality] = useState(caseData?.screeningData?.nationality || '');
+  const [editCountry, setEditCountry] = useState(caseData?.screeningData?.country || '');
+  const [editIdType, setEditIdType] = useState(caseData?.screeningData?.idType || '');
+  const [editIdNumber, setEditIdNumber] = useState(caseData?.screeningData?.idNumber || '');
 
   const addAuditEvent = (type: AuditEventType, text: string, comment?: string) => {
     setLocalAuditEvents(prev => [...prev, {
@@ -668,7 +684,7 @@ export default function CaseDetailPage() {
       {effectiveTab !== 'summary' && (
         <div className="min-w-0">
           {effectiveTab === 'Watchlists' && (
-            <ResultsView matches={matches} caseName={caseData.name} caseId={caseData.id} checkTypes={['Watchlists']} screeningData={caseData.screeningData} />
+            <ResultsView matches={matches} caseName={caseData.name} caseId={caseData.id} checkTypes={['Watchlists']} screeningData={caseData.screeningData} onMatchUpdated={refresh} />
           )}
           {effectiveTab === 'Adverse Media' && mediaResult && (
             <MediaCheckResultsView result={mediaResult} caseName={caseData.name} caseId={caseData.id} />
@@ -696,25 +712,25 @@ export default function CaseDetailPage() {
       </Sheet>
 
       {/* ── ACTION DIALOGS ── */}
-      <Dialog open={assignDialog} onOpenChange={setAssignDialog}>
+      <Dialog open={assignDialog} onOpenChange={v => { setAssignDialog(v); if (v) setEditAssignee(caseData.assignee); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Reassign Case</DialogTitle><DialogDescription>Select a new analyst for {caseData.name}</DialogDescription></DialogHeader>
           <div className="space-y-3">
-            <Select defaultValue={caseData.assignee}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{analysts.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent></Select>
+            <Select value={editAssignee} onValueChange={setEditAssignee}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{analysts.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}</SelectContent></Select>
             <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for reassignment..." className="min-h-[60px] text-xs resize-none" /></div>
           </div>
-          <DialogFooter><Button variant="outline" size="sm" onClick={() => setAssignDialog(false)}>Cancel</Button><Button size="sm" onClick={() => handleActionWithComment('assign', 'Case reassigned', () => setAssignDialog(false))}>Assign</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" size="sm" onClick={() => setAssignDialog(false)}>Cancel</Button><Button size="sm" onClick={() => { updateCase(caseData.id, { assignee: editAssignee }); handleActionWithComment('assign', `Reassigned to ${editAssignee}`, () => setAssignDialog(false)); refresh(); }}>Assign</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={moveDialog} onOpenChange={setMoveDialog}>
+      <Dialog open={moveDialog} onOpenChange={v => { setMoveDialog(v); if (v) setEditGroupId(caseData.groupId); }}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Move to Group</DialogTitle><DialogDescription>Move {caseData.name} to a different screening group</DialogDescription></DialogHeader>
           <div className="space-y-3">
-            <Select defaultValue={caseData.groupId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent></Select>
+            <Select value={editGroupId} onValueChange={setEditGroupId}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}</SelectContent></Select>
             <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for moving..." className="min-h-[60px] text-xs resize-none" /></div>
           </div>
-          <DialogFooter><Button variant="outline" size="sm" onClick={() => setMoveDialog(false)}>Cancel</Button><Button size="sm" onClick={() => handleActionWithComment('move', 'Case moved to new group', () => setMoveDialog(false))}>Move</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" size="sm" onClick={() => setMoveDialog(false)}>Cancel</Button><Button size="sm" onClick={() => { const newGroup = getGroupById(editGroupId); updateCase(caseData.id, { groupId: editGroupId }); handleActionWithComment('move', `Moved to ${newGroup?.name || editGroupId}`, () => setMoveDialog(false)); refresh(); }}>Move</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -730,7 +746,7 @@ export default function CaseDetailPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Archive Case</DialogTitle><DialogDescription>This will remove the case from active screening</DialogDescription></DialogHeader>
           <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for archiving..." className="min-h-[60px] text-xs resize-none" /></div>
-          <DialogFooter><Button variant="outline" size="sm" onClick={() => setArchiveDialog(false)}>Cancel</Button><Button size="sm" onClick={() => handleActionWithComment('archive', 'Case archived', () => setArchiveDialog(false))}>Archive</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" size="sm" onClick={() => setArchiveDialog(false)}>Cancel</Button><Button size="sm" onClick={() => { updateCase(caseData.id, { status: 'Archived' }); handleActionWithComment('archive', 'Case archived', () => setArchiveDialog(false)); navigate('/cases'); }}>Archive</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -738,25 +754,25 @@ export default function CaseDetailPage() {
         <DialogContent className="sm:max-w-md">
           <DialogHeader><DialogTitle>Delete Case</DialogTitle><DialogDescription>This action cannot be undone</DialogDescription></DialogHeader>
           <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (required)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Reason for deletion..." className="min-h-[60px] text-xs resize-none" /></div>
-          <DialogFooter><Button variant="outline" size="sm" onClick={() => setDeleteDialog(false)}>Cancel</Button><Button variant="destructive" size="sm" disabled={!actionComment.trim()} onClick={() => handleActionWithComment('archive', 'Case deleted', () => setDeleteDialog(false))}>Delete</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" size="sm" onClick={() => setDeleteDialog(false)}>Cancel</Button><Button variant="destructive" size="sm" disabled={!actionComment.trim()} onClick={() => { updateCase(caseData.id, { status: 'Deleted' }); handleActionWithComment('archive', 'Case deleted', () => setDeleteDialog(false)); navigate('/cases'); }}>Delete</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
-      <Dialog open={editDialog} onOpenChange={setEditDialog}>
+      <Dialog open={editDialog} onOpenChange={v => { setEditDialog(v); if (v && caseData) { setEditName(caseData.name); setEditEntityType(caseData.entityType); setEditDob(sd.dob || ''); setEditGender(sd.gender || ''); setEditNationality(sd.nationality || ''); setEditCountry(sd.country || ''); setEditIdType(sd.idType || ''); setEditIdNumber(sd.idNumber || ''); } }}>
         <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader><DialogTitle>Edit Case</DialogTitle><DialogDescription>Update case screening data and identifiers</DialogDescription></DialogHeader>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Case Name</label><Input defaultValue={caseData.name} className="h-8 text-sm" /></div>
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Entity Type</label><Select defaultValue={caseData.entityType}><SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger><SelectContent>{(['Individual', 'Organisation', 'Vessel', 'Unspecified'] as const).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">DOB</label><Input defaultValue={sd.dob || ''} className="h-8 text-sm" type="date" /></div>
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Gender</label><Select defaultValue={sd.gender || ''}><SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Male">Male</SelectItem><SelectItem value="Female">Female</SelectItem></SelectContent></Select></div>
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Nationality</label><Input defaultValue={sd.nationality || ''} className="h-8 text-sm" /></div>
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Country</label><Input defaultValue={sd.country || ''} className="h-8 text-sm" /></div>
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Primary ID Type</label><Input defaultValue={sd.idType || ''} className="h-8 text-sm" /></div>
-            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Primary ID Number</label><Input defaultValue={sd.idNumber || ''} className="h-8 text-sm" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Case Name</label><Input value={editName} onChange={e => setEditName(e.target.value)} className="h-8 text-sm" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Entity Type</label><Select value={editEntityType} onValueChange={v => setEditEntityType(v as EntityType)}><SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger><SelectContent>{(['Individual', 'Organisation', 'Vessel', 'Unspecified'] as const).map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}</SelectContent></Select></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">DOB</label><Input value={editDob} onChange={e => setEditDob(e.target.value)} className="h-8 text-sm" type="date" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Gender</label><Select value={editGender} onValueChange={setEditGender}><SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="Male">Male</SelectItem><SelectItem value="Female">Female</SelectItem></SelectContent></Select></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Nationality</label><Input value={editNationality} onChange={e => setEditNationality(e.target.value)} className="h-8 text-sm" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Country</label><Input value={editCountry} onChange={e => setEditCountry(e.target.value)} className="h-8 text-sm" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Primary ID Type</label><Input value={editIdType} onChange={e => setEditIdType(e.target.value)} className="h-8 text-sm" /></div>
+            <div><label className="text-xs font-medium text-muted-foreground mb-1 block">Primary ID Number</label><Input value={editIdNumber} onChange={e => setEditIdNumber(e.target.value)} className="h-8 text-sm" /></div>
           </div>
           <div className="mt-2"><label className="text-xs font-medium text-muted-foreground mb-1 block">Comment (optional)</label><Textarea value={actionComment} onChange={e => setActionComment(e.target.value)} placeholder="Describe what was changed..." className="min-h-[60px] text-xs resize-none" /></div>
-          <DialogFooter><Button variant="outline" size="sm" onClick={() => setEditDialog(false)}>Cancel</Button><Button size="sm" onClick={() => handleActionWithComment('edit', 'Case details updated', () => setEditDialog(false))}>Save Changes</Button></DialogFooter>
+          <DialogFooter><Button variant="outline" size="sm" onClick={() => setEditDialog(false)}>Cancel</Button><Button size="sm" onClick={() => { updateCase(caseData.id, { name: editName, entityType: editEntityType, screeningData: { ...caseData.screeningData, dob: editDob || undefined, gender: editGender || undefined, nationality: editNationality || undefined, country: editCountry || undefined, idType: editIdType || undefined, idNumber: editIdNumber || undefined } }); handleActionWithComment('edit', 'Case details updated', () => setEditDialog(false)); refresh(); }}>Save Changes</Button></DialogFooter>
         </DialogContent>
       </Dialog>
 
@@ -829,16 +845,19 @@ export default function CaseDetailPage() {
               size="sm"
               disabled={!actionComment.trim() || newRating === caseData.rating}
               onClick={() => {
+                const oldRating = caseData.rating;
+                updateCase(caseData.id, { rating: newRating });
                 setRatingHistory(prev => [{
-                  from: caseData.rating,
+                  from: oldRating,
                   to: newRating,
                   comment: actionComment,
                   author: 'Current User',
                   date: new Date().toISOString().split('T')[0],
                 }, ...prev]);
-                addAuditEvent('edit', `Rating changed from ${caseData.rating} to ${newRating}`, actionComment);
+                addAuditEvent('edit', `Rating changed from ${oldRating} to ${newRating}`, actionComment);
                 setActionComment('');
                 setRatingDialog(false);
+                refresh();
               }}
             >
               Update Rating
@@ -885,9 +904,11 @@ export default function CaseDetailPage() {
               const changes: string[] = [];
               if (ogsWcLocal !== caseData.ogsWorldCheck) changes.push(`OGS Watchlists ${ogsWcLocal ? 'enabled' : 'disabled'}`);
               if (ogsMcLocal !== caseData.ogsMediaCheck) changes.push(`OGS Adverse Media ${ogsMcLocal ? 'enabled' : 'disabled'}`);
+              updateCase(caseData.id, { ogsWorldCheck: ogsWcLocal, ogsMediaCheck: ogsMcLocal });
               if (changes.length > 0) addAuditEvent('ogs_toggle', changes.join(', '), actionComment || undefined);
               setActionComment('');
               setOgsDialog(false);
+              refresh();
             }}>
               Save
             </Button>
