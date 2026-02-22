@@ -1,11 +1,13 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Clock, ChevronDown, ChevronRight, ArrowUpDown, Calendar, Layers, BarChart3, Filter } from 'lucide-react';
+import { AlertTriangle, Clock, ChevronDown, ChevronRight, ArrowUpDown, Calendar, Layers, BarChart3, Filter, Settings2, GripVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cases, allMatches, getCaseById } from '@/data/mock-data';
 import { priorityColor } from '@/lib/priority';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
@@ -54,6 +56,16 @@ const FILTER_DEFS: FilterDefinition[] = [
     options: [{ value: 'priority', label: 'Priority' }, { value: 'age', label: 'Age' }, { value: 'strength', label: 'Strength' }],
   },
 ];
+const ALERT_COLUMNS = [
+  { key: 'case', label: 'Case', alwaysVisible: true },
+  { key: 'matchedName', label: 'Matched Name' },
+  { key: 'priority', label: 'Priority' },
+  { key: 'age', label: 'Age' },
+  { key: 'strength', label: 'Strength' },
+  { key: 'dataset', label: 'Dataset' },
+] as const;
+type AlertColumnKey = typeof ALERT_COLUMNS[number]['key'];
+const DEFAULT_ALERT_COLUMNS: AlertColumnKey[] = ['case', 'matchedName', 'priority', 'age', 'strength', 'dataset'];
 
 export default function AlertsPage() {
   const navigate = useNavigate();
@@ -62,6 +74,27 @@ export default function AlertsPage() {
   const [groupByCase, setGroupByCase] = useState(false);
   const [showFilters, setShowFilters] = useState(true);
   const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
+  const [visibleAlertCols, setVisibleAlertCols] = useState<AlertColumnKey[]>([...DEFAULT_ALERT_COLUMNS]);
+  const alertDragItem = useRef<number | null>(null);
+  const alertDragOverItem = useRef<number | null>(null);
+
+  const toggleAlertCol = (key: AlertColumnKey) => {
+    const col = ALERT_COLUMNS.find(c => c.key === key);
+    if (col && 'alwaysVisible' in col && col.alwaysVisible) return;
+    setVisibleAlertCols(prev => prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]);
+  };
+  const handleAlertDragStart = (i: number) => { alertDragItem.current = i; };
+  const handleAlertDragEnter = (i: number) => { alertDragOverItem.current = i; };
+  const handleAlertDragEnd = () => {
+    if (alertDragItem.current === null || alertDragOverItem.current === null) return;
+    const items = [...visibleAlertCols];
+    const dragged = items.splice(alertDragItem.current, 1)[0];
+    items.splice(alertDragOverItem.current, 0, dragged);
+    alertDragItem.current = null;
+    alertDragOverItem.current = null;
+    setVisibleAlertCols(items);
+  };
+  const isAlertCol = (key: AlertColumnKey) => visibleAlertCols.includes(key);
 
   const priorityFilter = filterValues.priority || 'all';
   const ageFilter = filterValues.age || 'all';
@@ -159,7 +192,7 @@ export default function AlertsPage() {
           </div>
         )}
 
-        <div className="flex items-center gap-2 ml-auto shrink-0">
+        <div className="flex items-center gap-1.5 ml-auto shrink-0">
           <Button
             variant={showFilters ? 'secondary' : 'outline'}
             size="sm"
@@ -170,6 +203,54 @@ export default function AlertsPage() {
             Filters
             {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
           </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                <Settings2 className="h-3.5 w-3.5" /> Columns
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-56 p-3">
+              <p className="text-xs font-semibold mb-2">Show / Hide & Reorder</p>
+              <div className="space-y-0.5 mb-2">
+                {visibleAlertCols.map((key, index) => {
+                  const col = ALERT_COLUMNS.find(c => c.key === key)!;
+                  const isAlwaysVisible = 'alwaysVisible' in col && col.alwaysVisible;
+                  return (
+                    <div
+                      key={col.key}
+                      draggable
+                      onDragStart={() => handleAlertDragStart(index)}
+                      onDragEnter={() => handleAlertDragEnter(index)}
+                      onDragEnd={handleAlertDragEnd}
+                      onDragOver={e => e.preventDefault()}
+                      className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50 cursor-grab active:cursor-grabbing group"
+                    >
+                      <GripVertical className="h-3 w-3 text-muted-foreground/50 group-hover:text-muted-foreground shrink-0" />
+                      <Checkbox checked={true} onCheckedChange={() => toggleAlertCol(key)} disabled={isAlwaysVisible} className="shrink-0" />
+                      <span className="truncate">{col.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {ALERT_COLUMNS.filter(c => !visibleAlertCols.includes(c.key)).length > 0 && (
+                <div className="border-t pt-2 space-y-0.5">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Hidden</p>
+                  {ALERT_COLUMNS.filter(c => !visibleAlertCols.includes(c.key)).map(col => (
+                    <div key={col.key} className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50">
+                      <div className="w-3" />
+                      <Checkbox checked={false} onCheckedChange={() => toggleAlertCol(col.key)} />
+                      <span className="truncate text-muted-foreground">{col.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <div className="border-t pt-2 mt-2">
+                <Button variant="ghost" size="sm" className="h-6 text-[11px] w-full" onClick={() => setVisibleAlertCols([...DEFAULT_ALERT_COLUMNS])}>
+                  Reset to defaults
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
           <Button
             variant={groupByCase ? 'secondary' : 'outline'}
             size="sm"
@@ -207,28 +288,27 @@ export default function AlertsPage() {
           <TabsContent key={tabKey} value={tabKey}>
             <Card>
               <div className="overflow-x-auto">
-                <table className="w-full text-sm">
+                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/50">
                       {groupByCase && <th className="w-8 px-2" />}
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Case</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Matched Name</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">Priority</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">Age</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Strength</th>
-                      <th className="text-left px-4 py-3 font-medium text-muted-foreground">Dataset</th>
+                      {visibleAlertCols.map(key => {
+                        const col = ALERT_COLUMNS.find(c => c.key === key)!;
+                        const widthClass = key === 'priority' || key === 'age' ? 'w-20' : '';
+                        return <th key={key} className={`text-left px-4 py-3 font-medium text-muted-foreground ${widthClass}`}>{col.label}</th>;
+                      })}
                       {tabKey === 'review' && <th className="text-left px-4 py-3 font-medium text-muted-foreground">What Changed</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {activeList.length === 0 ? (
-                      <tr><td colSpan={groupByCase ? 8 : 7} className="px-4 py-12 text-center text-muted-foreground">{tabKey === 'unresolved' ? 'All matches have been resolved. 🎉' : 'No reviews pending.'}</td></tr>
+                      <tr><td colSpan={(groupByCase ? 1 : 0) + visibleAlertCols.length + (tabKey === 'review' ? 1 : 0)} className="px-4 py-12 text-center text-muted-foreground">{tabKey === 'unresolved' ? 'All matches have been resolved. 🎉' : 'No reviews pending.'}</td></tr>
                     ) : groupByCase ? (
                       caseGroups.map(group => (
-                        <GroupRows key={group.caseId} group={group} isExpanded={expandedCases.has(group.caseId)} onToggle={() => toggleExpanded(group.caseId)} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} />
+                        <GroupRows key={group.caseId} group={group} isExpanded={expandedCases.has(group.caseId)} onToggle={() => toggleExpanded(group.caseId)} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} visibleCols={visibleAlertCols} />
                       ))
                     ) : (
-                      activeList.map(m => <AlertRow key={m.id} m={m} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} showGroupCol={false} />)
+                      activeList.map(m => <AlertRow key={m.id} m={m} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} showGroupCol={false} visibleCols={visibleAlertCols} />)
                     )}
                   </tbody>
                 </table>
@@ -241,31 +321,42 @@ export default function AlertsPage() {
   );
 }
 
-function AlertRow({ m, onNavigate, showChanges, showGroupCol }: { m: Match; onNavigate: (caseId: string) => void; showChanges: boolean; showGroupCol: boolean; }) {
+function AlertRow({ m, onNavigate, showChanges, showGroupCol, visibleCols }: { m: Match; onNavigate: (caseId: string) => void; showChanges: boolean; showGroupCol: boolean; visibleCols: AlertColumnKey[] }) {
   const c = getCaseById(m.caseId);
   const days = alertAgeDays(m);
   const caseAlertCount = allMatches.filter(x => x.caseId === m.caseId && (x.status === 'Unresolved' || x.reviewRequired)).length;
 
+  const renderCell = (key: AlertColumnKey) => {
+    switch (key) {
+      case 'case': return (
+        <td key={key} className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{c?.name || m.caseId}</span>
+            {caseAlertCount > 1 && <Badge variant="outline" className="text-[10px] gap-0.5"><Layers className="h-2.5 w-2.5" />{caseAlertCount}</Badge>}
+          </div>
+          <span className="text-[10px] text-muted-foreground">{m.caseId}</span>
+        </td>
+      );
+      case 'matchedName': return (
+        <td key={key} className="px-4 py-3">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{m.matchedName}</span>
+            {m.updated && <Badge className="text-[10px] bg-status-possible/15 text-status-possible border-0">Updated</Badge>}
+          </div>
+        </td>
+      );
+      case 'priority': return <td key={key} className="px-4 py-3"><Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>{m.priorityLevel}</Badge></td>;
+      case 'age': return <td key={key} className="px-4 py-3"><Badge variant="outline" className={`text-[10px] ${ageBadgeClass(days)}`}>{ageLabel(days)}</Badge></td>;
+      case 'strength': return <td key={key} className="px-4 py-3 font-mono text-xs">{m.strength}%</td>;
+      case 'dataset': return <td key={key} className="px-4 py-3"><Badge variant="secondary" className="text-[10px]">{m.dataset}</Badge></td>;
+      default: return null;
+    }
+  };
+
   return (
     <tr className={`border-b cursor-pointer hover:bg-muted/30 transition-colors ${m.reviewRequired ? 'bg-status-possible/5' : ''}`} onClick={() => onNavigate(m.caseId)} tabIndex={0} onKeyDown={e => e.key === 'Enter' && onNavigate(m.caseId)}>
       {showGroupCol && <td className="w-8 px-2" />}
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{c?.name || m.caseId}</span>
-          {caseAlertCount > 1 && <Badge variant="outline" className="text-[10px] gap-0.5"><Layers className="h-2.5 w-2.5" />{caseAlertCount}</Badge>}
-        </div>
-        <span className="text-[10px] text-muted-foreground">{m.caseId}</span>
-      </td>
-      <td className="px-4 py-3">
-        <div className="flex items-center gap-2">
-          <span className="font-medium">{m.matchedName}</span>
-          {m.updated && <Badge className="text-[10px] bg-status-possible/15 text-status-possible border-0">Updated</Badge>}
-        </div>
-      </td>
-      <td className="px-4 py-3"><Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>{m.priorityLevel}</Badge></td>
-      <td className="px-4 py-3"><Badge variant="outline" className={`text-[10px] ${ageBadgeClass(days)}`}>{ageLabel(days)}</Badge></td>
-      <td className="px-4 py-3 font-mono text-xs">{m.strength}%</td>
-      <td className="px-4 py-3"><Badge variant="secondary" className="text-[10px]">{m.dataset}</Badge></td>
+      {visibleCols.map(renderCell)}
       {showChanges && (
         <td className="px-4 py-3">
           <Tooltip>
@@ -289,8 +380,8 @@ function AlertRow({ m, onNavigate, showChanges, showGroupCol }: { m: Match; onNa
   );
 }
 
-function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges }: { group: CaseAlertGroup; isExpanded: boolean; onToggle: () => void; onNavigate: (caseId: string) => void; showChanges: boolean; }) {
-  const colSpan = showChanges ? 7 : 6;
+function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges, visibleCols }: { group: CaseAlertGroup; isExpanded: boolean; onToggle: () => void; onNavigate: (caseId: string) => void; showChanges: boolean; visibleCols: AlertColumnKey[] }) {
+  const colSpan = visibleCols.length + (showChanges ? 1 : 0);
   return (
     <>
       <tr className="border-b bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
@@ -305,7 +396,7 @@ function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges }: { g
           </div>
         </td>
       </tr>
-      {isExpanded && group.alerts.map(m => <AlertRow key={m.id} m={m} onNavigate={onNavigate} showChanges={showChanges} showGroupCol={true} />)}
+      {isExpanded && group.alerts.map(m => <AlertRow key={m.id} m={m} onNavigate={onNavigate} showChanges={showChanges} showGroupCol={true} visibleCols={visibleCols} />)}
     </>
   );
 }

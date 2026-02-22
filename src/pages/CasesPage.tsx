@@ -1,9 +1,9 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Search, Archive, Users, ArrowRightLeft, Download, ToggleRight, AlertTriangle,
   Filter, Settings2, Shield, Newspaper, CreditCard, Save, Trash2, RefreshCw,
-  UserPlus, X, SlidersHorizontal, Briefcase, Layers, User, Globe
+  UserPlus, X, SlidersHorizontal, Briefcase, Layers, User, Globe, GripVertical
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -87,6 +87,8 @@ export default function CasesPage() {
   const [visibleColumns, setVisibleColumns] = useState<string[]>(loadActiveColumns);
   const [columnSets, setColumnSets] = useState<{ name: string; columns: string[] }[]>(loadColumnSets);
   const [newSetName, setNewSetName] = useState('');
+  const dragItem = useRef<number | null>(null);
+  const dragOverItem = useRef<number | null>(null);
 
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
@@ -143,6 +145,19 @@ export default function CasesPage() {
   };
   const deleteColumnSet = (name: string) => { const updated = columnSets.filter(s => s.name !== name); setColumnSets(updated); saveColumnSets(updated); };
 
+  const handleColDragStart = (index: number) => { dragItem.current = index; };
+  const handleColDragEnter = (index: number) => { dragOverItem.current = index; };
+  const handleColDragEnd = () => {
+    if (dragItem.current === null || dragOverItem.current === null) return;
+    const items = [...visibleColumns];
+    const dragged = items.splice(dragItem.current, 1)[0];
+    items.splice(dragOverItem.current, 0, dragged);
+    dragItem.current = null;
+    dragOverItem.current = null;
+    setVisibleColumns(items);
+    persistActiveColumns(items);
+  };
+
   const isCol = (key: string) => visibleColumns.includes(key);
   const visibleColCount = visibleColumns.length + 1;
   const handleBulkAction = (action?: string) => {
@@ -180,53 +195,79 @@ export default function CasesPage() {
           <Input value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search cases..." className="pl-9 h-8 text-sm" />
         </div>
 
-        {/* Column Customisation */}
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-8 text-xs gap-1"><Settings2 className="h-3.5 w-3.5" /> Columns</Button>
-          </PopoverTrigger>
-          <PopoverContent align="end" className="w-64 p-3">
-            <p className="text-xs font-semibold mb-2">Show / Hide Columns</p>
-            <div className="space-y-1.5 mb-3">
-              {ALL_COLUMNS.map(col => (
-                <label key={col.key} className="flex items-center gap-2 text-xs cursor-pointer">
-                  <Checkbox checked={visibleColumns.includes(col.key)} onCheckedChange={() => toggleColumn(col.key)} />{col.label}
-                </label>
-              ))}
-            </div>
-            <div className="border-t pt-2">
-              <p className="text-xs font-semibold mb-1.5">Column Sets</p>
-              {columnSets.length > 0 && (
-                <div className="space-y-1 mb-2">
-                  {columnSets.map(set => (
-                    <div key={set.name} className="flex items-center gap-1">
-                      <Button variant="ghost" size="sm" className="h-6 text-[11px] flex-1 justify-start px-2" onClick={() => applyColumnSet(set)}>{set.name}</Button>
-                      <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => deleteColumnSet(set.name)}><Trash2 className="h-3 w-3 text-muted-foreground" /></Button>
+        <div className="flex items-center gap-1.5 ml-auto shrink-0">
+          <Button
+            variant={showFilters ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            Filters
+            {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1"><Settings2 className="h-3.5 w-3.5" /> Columns</Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-64 p-3">
+              <p className="text-xs font-semibold mb-2">Show / Hide & Reorder</p>
+              <div className="space-y-0.5 mb-2">
+                {visibleColumns.map((key, index) => {
+                  const col = ALL_COLUMNS.find(c => c.key === key);
+                  if (!col) return null;
+                  return (
+                    <div
+                      key={col.key}
+                      draggable
+                      onDragStart={() => handleColDragStart(index)}
+                      onDragEnter={() => handleColDragEnter(index)}
+                      onDragEnd={handleColDragEnd}
+                      onDragOver={e => e.preventDefault()}
+                      className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50 cursor-grab active:cursor-grabbing group"
+                    >
+                      <GripVertical className="h-3 w-3 text-muted-foreground/50 group-hover:text-muted-foreground shrink-0" />
+                      <Checkbox checked={true} onCheckedChange={() => toggleColumn(key)} className="shrink-0" />
+                      <span className="truncate">{col.label}</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {ALL_COLUMNS.filter(c => !visibleColumns.includes(c.key)).length > 0 && (
+                <div className="border-t pt-2 space-y-0.5">
+                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Hidden</p>
+                  {ALL_COLUMNS.filter(c => !visibleColumns.includes(c.key)).map(col => (
+                    <div key={col.key} className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50">
+                      <div className="w-3" />
+                      <Checkbox checked={false} onCheckedChange={() => toggleColumn(col.key)} />
+                      <span className="truncate text-muted-foreground">{col.label}</span>
                     </div>
                   ))}
                 </div>
               )}
-              <div className="flex gap-1">
-                <Input value={newSetName} onChange={e => setNewSetName(e.target.value)} placeholder="Set name..." className="h-7 text-xs flex-1" onKeyDown={e => e.key === 'Enter' && saveCurrentAsSet()} />
-                <Button variant="outline" size="sm" className="h-7 px-2" onClick={saveCurrentAsSet} disabled={!newSetName.trim()}><Save className="h-3 w-3" /></Button>
+              <div className="border-t pt-2 mt-2">
+                <p className="text-xs font-semibold mb-1.5">Column Sets</p>
+                {columnSets.length > 0 && (
+                  <div className="space-y-1 mb-2">
+                    {columnSets.map(set => (
+                      <div key={set.name} className="flex items-center gap-1">
+                        <Button variant="ghost" size="sm" className="h-6 text-[11px] flex-1 justify-start px-2" onClick={() => applyColumnSet(set)}>{set.name}</Button>
+                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => deleteColumnSet(set.name)}><Trash2 className="h-3 w-3 text-muted-foreground" /></Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex gap-1">
+                  <Input value={newSetName} onChange={e => setNewSetName(e.target.value)} placeholder="Set name..." className="h-7 text-xs flex-1" onKeyDown={e => e.key === 'Enter' && saveCurrentAsSet()} />
+                  <Button variant="outline" size="sm" className="h-7 px-2" onClick={saveCurrentAsSet} disabled={!newSetName.trim()}><Save className="h-3 w-3" /></Button>
+                </div>
               </div>
-            </div>
-            <div className="border-t pt-2 mt-2">
-              <Button variant="ghost" size="sm" className="h-6 text-[11px] w-full" onClick={() => { setVisibleColumns(DEFAULT_COLUMNS); persistActiveColumns(DEFAULT_COLUMNS); }}>Reset to defaults</Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-
-        <Button
-          variant={showFilters ? 'secondary' : 'outline'}
-          size="sm"
-          className="h-8 text-xs gap-1 ml-auto shrink-0"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          Filters
-          {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
-        </Button>
+              <div className="border-t pt-2 mt-2">
+                <Button variant="ghost" size="sm" className="h-6 text-[11px] w-full" onClick={() => { setVisibleColumns(DEFAULT_COLUMNS); persistActiveColumns(DEFAULT_COLUMNS); }}>Reset to defaults</Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
 
         {/* Bulk Actions */}
         {selectedIds.size > 0 && (
@@ -250,16 +291,10 @@ export default function CasesPage() {
             <thead>
               <tr className="border-b bg-muted/50">
                 <th className="px-4 py-3 w-10"><Checkbox checked={selectedIds.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} /></th>
-                {isCol('name') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Case Name</th>}
-                {isCol('id') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">ID</th>}
-                {isCol('group') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Group</th>}
-                {isCol('assignee') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Assignee</th>}
-                {isCol('checkTypes') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Check Types</th>}
-                {isCol('entityType') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Entity Type</th>}
-                {isCol('rating') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Rating</th>}
-                {isCol('lastScreened') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Last Screened</th>}
-                {isCol('ogs') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">OGS</th>}
-                {isCol('createdAt') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Created</th>}
+                {visibleColumns.map(key => {
+                  const col = ALL_COLUMNS.find(c => c.key === key);
+                  return col ? <th key={key} className="text-left px-4 py-3 font-medium text-muted-foreground">{col.label}</th> : null;
+                })}
               </tr>
             </thead>
             <tbody>
@@ -270,16 +305,21 @@ export default function CasesPage() {
                   <tr key={c.id} className={`border-b cursor-pointer transition-colors hover:bg-muted/30 ${c.mandatoryAction ? 'bg-status-possible/5' : ''}`}
                     onClick={() => navigate(`/cases/${c.id}`)} tabIndex={0} onKeyDown={e => e.key === 'Enter' && navigate(`/cases/${c.id}`)}>
                     <td className="px-4 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={selectedIds.has(c.id)} onCheckedChange={() => toggleSelect(c.id)} /></td>
-                    {isCol('name') && <td className="px-4 py-3"><div className="flex items-center gap-2"><span className="font-medium">{c.name}</span>{c.mandatoryAction && <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />}</div></td>}
-                    {isCol('id') && <td className="px-4 py-3 font-mono text-xs">{c.id}</td>}
-                    {isCol('group') && <td className="px-4 py-3 text-xs">{getGroupById(c.groupId)?.name || '—'}</td>}
-                    {isCol('assignee') && <td className="px-4 py-3 text-xs"><span className={c.assignee === 'Unassigned' ? 'text-muted-foreground italic' : ''}>{c.assignee}</span></td>}
-                    {isCol('checkTypes') && <td className="px-4 py-3"><div className="flex items-center gap-1">{c.checkTypes.map(ct => (<span key={ct} className="inline-flex items-center gap-0.5 h-5 px-1.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground" title={ct}>{checkTypeIcon[ct]}{checkTypeAbbr[ct]}</span>))}</div></td>}
-                    {isCol('entityType') && <td className="px-4 py-3 text-xs">{c.entityType}</td>}
-                    {isCol('rating') && <td className="px-4 py-3"><Badge variant="outline" className={`text-[10px] ${c.rating === 'High' ? 'border-destructive text-destructive' : c.rating === 'Medium' ? 'border-amber-500 text-amber-600' : 'border-muted-foreground text-muted-foreground'}`}>{c.rating}</Badge></td>}
-                    {isCol('lastScreened') && <td className="px-4 py-3 text-xs">{c.lastScreenedAt}</td>}
-                    {isCol('ogs') && <td className="px-4 py-3"><div className="flex gap-1">{c.ogsWorldCheck && <Badge variant="default" className="text-[10px]">WC</Badge>}{c.ogsMediaCheck && <Badge variant="default" className="text-[10px]">MC</Badge>}{!c.ogsWorldCheck && !c.ogsMediaCheck && <Badge variant="secondary" className="text-[10px]">Off</Badge>}</div></td>}
-                    {isCol('createdAt') && <td className="px-4 py-3 text-xs">{c.createdAt}</td>}
+                    {visibleColumns.map(key => {
+                      switch (key) {
+                        case 'name': return <td key={key} className="px-4 py-3"><div className="flex items-center gap-2"><span className="font-medium">{c.name}</span>{c.mandatoryAction && <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />}</div></td>;
+                        case 'id': return <td key={key} className="px-4 py-3 font-mono text-xs">{c.id}</td>;
+                        case 'group': return <td key={key} className="px-4 py-3 text-xs">{getGroupById(c.groupId)?.name || '—'}</td>;
+                        case 'assignee': return <td key={key} className="px-4 py-3 text-xs"><span className={c.assignee === 'Unassigned' ? 'text-muted-foreground italic' : ''}>{c.assignee}</span></td>;
+                        case 'checkTypes': return <td key={key} className="px-4 py-3"><div className="flex items-center gap-1">{c.checkTypes.map(ct => (<span key={ct} className="inline-flex items-center gap-0.5 h-5 px-1.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground" title={ct}>{checkTypeIcon[ct]}{checkTypeAbbr[ct]}</span>))}</div></td>;
+                        case 'entityType': return <td key={key} className="px-4 py-3 text-xs">{c.entityType}</td>;
+                        case 'rating': return <td key={key} className="px-4 py-3"><Badge variant="outline" className={`text-[10px] ${c.rating === 'High' ? 'border-destructive text-destructive' : c.rating === 'Medium' ? 'border-amber-500 text-amber-600' : 'border-muted-foreground text-muted-foreground'}`}>{c.rating}</Badge></td>;
+                        case 'lastScreened': return <td key={key} className="px-4 py-3 text-xs">{c.lastScreenedAt}</td>;
+                        case 'ogs': return <td key={key} className="px-4 py-3"><div className="flex gap-1">{c.ogsWorldCheck && <Badge variant="default" className="text-[10px]">WC</Badge>}{c.ogsMediaCheck && <Badge variant="default" className="text-[10px]">MC</Badge>}{!c.ogsWorldCheck && !c.ogsMediaCheck && <Badge variant="secondary" className="text-[10px]">Off</Badge>}</div></td>;
+                        case 'createdAt': return <td key={key} className="px-4 py-3 text-xs">{c.createdAt}</td>;
+                        default: return null;
+                      }
+                    })}
                   </tr>
                 ))
               )}
