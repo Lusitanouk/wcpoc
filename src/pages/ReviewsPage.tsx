@@ -1,6 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Clock, ChevronDown, ChevronRight, ArrowUpDown, Calendar, Layers, BarChart3, Filter, Settings2, GripVertical } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import { AlertTriangle, Clock, ChevronDown, ChevronRight, ArrowUpDown, Calendar, Layers, BarChart3, Filter, Settings2, GripVertical, Check, Eye, X, CheckSquare } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,10 +10,13 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
 import { cases, allMatches, getCaseById } from '@/data/mock-data';
 import { priorityColor } from '@/lib/priority';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
-import type { Match, PriorityLevel } from '@/types';
+import type { Match, PriorityLevel, MatchStatus, RiskLevel } from '@/types';
 
 function alertAgeDays(m: Match): number {
   const ref = m.reviewRequired && m.reviewRequiredAt ? m.reviewRequiredAt : m.alertDate;
@@ -70,6 +74,7 @@ const DEFAULT_ALERT_COLUMNS: AlertColumnKey[] = ['case', 'matchedName', 'priorit
 
 export default function AlertsPage() {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [tab, setTab] = useState('unresolved');
   const [filterValues, setFilterValues] = useState<Record<string, string>>({ priority: 'all', age: 'all', sort: 'priority' });
   const [groupByCase, setGroupByCase] = useState(false);
@@ -78,6 +83,14 @@ export default function AlertsPage() {
   const [visibleAlertCols, setVisibleAlertCols] = useState<AlertColumnKey[]>([...DEFAULT_ALERT_COLUMNS]);
   const alertDragItem = useRef<number | null>(null);
   const alertDragOverItem = useRef<number | null>(null);
+
+  // Bulk selection state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDialog, setBulkDialog] = useState<'resolve' | 'review' | null>(null);
+  const [bulkStatus, setBulkStatus] = useState<MatchStatus>('False');
+  const [bulkRisk, setBulkRisk] = useState<RiskLevel>('None');
+  const [bulkReason, setBulkReason] = useState('');
+  const [bulkComment, setBulkComment] = useState('');
 
   const toggleAlertCol = (key: AlertColumnKey) => {
     const col = ALERT_COLUMNS.find(c => c.key === key);
@@ -173,6 +186,65 @@ export default function AlertsPage() {
     const def = FILTER_DEFS.find(f => f.key === k);
     return def && v !== def.defaultValue;
   }).length;
+
+  // Bulk selection helpers
+  const allSelected = activeList.length > 0 && activeList.every(m => selectedIds.has(m.id));
+  const someSelected = activeList.some(m => selectedIds.has(m.id));
+
+  const toggleAll = () => {
+    if (allSelected) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(activeList.map(m => m.id)));
+    }
+  };
+
+  const toggleOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const selectedCount = selectedIds.size;
+  const selectedMatches = activeList.filter(m => selectedIds.has(m.id));
+
+  const openBulkDialog = (type: 'resolve' | 'review') => {
+    setBulkStatus('False');
+    setBulkRisk('None');
+    setBulkReason('');
+    setBulkComment('');
+    setBulkDialog(type);
+  };
+
+  const handleBulkResolve = () => {
+    setBulkDialog(null);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkReview = () => {
+    setBulkDialog(null);
+    setSelectedIds(new Set());
+  };
+
+  const selectionSummary = useMemo(() => {
+    const byDataset: Record<string, number> = {};
+    const byPriority: Record<string, number> = {};
+    let reviewCount = 0;
+    selectedMatches.forEach(m => {
+      byDataset[m.dataset] = (byDataset[m.dataset] || 0) + 1;
+      byPriority[m.priorityLevel] = (byPriority[m.priorityLevel] || 0) + 1;
+      if (m.reviewRequired) reviewCount++;
+    });
+    return { byDataset, byPriority, reviewCount };
+  }, [selectedMatches]);
+
+  // Clear selection on tab change
+  const handleTabChange = (newTab: string) => {
+    setTab(newTab);
+    setSelectedIds(new Set());
+  };
 
   return (
     <div>
@@ -273,7 +345,26 @@ export default function AlertsPage() {
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Multi-Alert Cases</p><p className="text-2xl font-bold mt-1">{multiAlertCaseCount}</p></CardContent></Card>
       </div>
 
-      <Tabs value={tab} onValueChange={setTab}>
+      {/* Bulk action bar */}
+      {selectedCount > 0 && (
+        <div className="flex items-center gap-2 px-3 py-1.5 mb-4 rounded-md bg-primary/10 border border-primary/20 animate-fade-in">
+          <CheckSquare className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">{selectedCount} selected</span>
+          <div className="flex gap-1.5 ml-2">
+            <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
+              <Check className="h-3 w-3" /> Bulk Resolve
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
+              <Eye className="h-3 w-3" /> Mark Reviewed
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
+
+      <Tabs value={tab} onValueChange={handleTabChange}>
         <TabsList className="mb-4">
           <ResponsiveTabsTrigger
             value="unresolved"
@@ -296,6 +387,15 @@ export default function AlertsPage() {
                  <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b bg-muted/50">
+                      <th className="px-3 py-3 w-10">
+                        <Checkbox
+                          checked={allSelected}
+                          onCheckedChange={toggleAll}
+                          aria-label="Select all"
+                          className="h-4 w-4"
+                          {...(someSelected && !allSelected ? { 'data-state': 'indeterminate' } : {})}
+                        />
+                      </th>
                       {groupByCase && <th className="w-8 px-2" />}
                       {visibleAlertCols.map(key => {
                         const col = ALERT_COLUMNS.find(c => c.key === key)!;
@@ -307,13 +407,13 @@ export default function AlertsPage() {
                   </thead>
                   <tbody>
                     {activeList.length === 0 ? (
-                      <tr><td colSpan={(groupByCase ? 1 : 0) + visibleAlertCols.length + (tabKey === 'review' ? 1 : 0)} className="px-4 py-12 text-center text-muted-foreground">{tabKey === 'unresolved' ? 'All matches have been resolved. 🎉' : 'No reviews pending.'}</td></tr>
+                      <tr><td colSpan={1 + (groupByCase ? 1 : 0) + visibleAlertCols.length + (tabKey === 'review' ? 1 : 0)} className="px-4 py-12 text-center text-muted-foreground">{tabKey === 'unresolved' ? 'All matches have been resolved. 🎉' : 'No reviews pending.'}</td></tr>
                     ) : groupByCase ? (
                       caseGroups.map(group => (
-                        <GroupRows key={group.caseId} group={group} isExpanded={expandedCases.has(group.caseId)} onToggle={() => toggleExpanded(group.caseId)} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} visibleCols={visibleAlertCols} />
+                        <GroupRows key={group.caseId} group={group} isExpanded={expandedCases.has(group.caseId)} onToggle={() => toggleExpanded(group.caseId)} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} visibleCols={visibleAlertCols} selectedIds={selectedIds} onToggleSelect={toggleOne} />
                       ))
                     ) : (
-                      activeList.map(m => <AlertRow key={m.id} m={m} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} showGroupCol={false} visibleCols={visibleAlertCols} />)
+                      activeList.map(m => <AlertRow key={m.id} m={m} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} showGroupCol={false} visibleCols={visibleAlertCols} selected={selectedIds.has(m.id)} onToggleSelect={() => toggleOne(m.id)} />)
                     )}
                   </tbody>
                 </table>
@@ -322,11 +422,208 @@ export default function AlertsPage() {
           </TabsContent>
         ))}
       </Tabs>
+
+      {/* Bulk Resolve Dialog */}
+      <Dialog open={bulkDialog === 'resolve'} onOpenChange={v => !v && setBulkDialog(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Bulk Resolve — {selectedCount} Alerts</DialogTitle>
+            <DialogDescription>Apply a resolution to all selected alerts. A mandatory reason is required.</DialogDescription>
+          </DialogHeader>
+
+          <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(selectionSummary.byDataset).map(([ds, count]) => (
+                <Badge key={ds} variant="secondary" className="text-[10px]">{ds}: {count}</Badge>
+              ))}
+              {Object.entries(selectionSummary.byPriority).map(([p, count]) => (
+                <Badge key={p} variant="outline" className={`text-[10px] ${priorityColor(p as PriorityLevel)}`}>{p}: {count}</Badge>
+              ))}
+            </div>
+            {selectionSummary.reviewCount > 0 && (
+              <div className="flex items-center gap-1 text-status-possible">
+                <AlertTriangle className="h-3 w-3" />
+                <span>{selectionSummary.reviewCount} require review</span>
+              </div>
+            )}
+          </div>
+
+          {/* Selected alerts table */}
+          <div className="max-h-40 overflow-y-auto border rounded-md">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b bg-muted/50 sticky top-0">
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Case</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Strength</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Dataset</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedMatches.map(m => {
+                  const c = getCaseById(m.caseId);
+                  return (
+                    <tr key={m.id} className="border-b">
+                      <td className="px-3 py-1.5 text-muted-foreground">{c?.name || m.caseId}</td>
+                      <td className="px-3 py-1.5 font-medium">{m.matchedName}</td>
+                      <td className="px-3 py-1.5 font-mono">{m.strength}%</td>
+                      <td className="px-3 py-1.5"><Badge variant="secondary" className="text-[9px]">{m.dataset}</Badge></td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Resolution controls — matches ResultsView disposition */}
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">{t('match.resolution')}</h4>
+            <div className="flex gap-4 items-start">
+              <div className="space-y-1.5 shrink-0">
+                <Label className="text-xs">{t('match.status')}</Label>
+                <div className="flex flex-col gap-1">
+                  {(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setBulkStatus(s)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                        bulkStatus === s
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {t(`match.${s.toLowerCase()}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5 shrink-0">
+                <Label className="text-xs">{t('match.riskLevel')}</Label>
+                <div className="flex flex-col gap-1">
+                  {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setBulkRisk(r)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                        bulkRisk === r
+                          ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
+                            : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
+                            : 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {t(`match.${r.toLowerCase()}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <Label className="text-xs">{t('match.reason')}</Label>
+                <Textarea
+                  value={bulkReason}
+                  onChange={e => setBulkReason(e.target.value)}
+                  rows={3}
+                  placeholder={t('match.resolutionReason')}
+                  className="text-xs resize-none"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t" />
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">{t('match.reviewComment')}</h4>
+            <Textarea
+              value={bulkComment}
+              onChange={e => setBulkComment(e.target.value)}
+              rows={2}
+              placeholder={t('match.optionalComment')}
+              className="text-xs resize-none"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
+            <Button size="sm" disabled={!bulkReason.trim()} onClick={handleBulkResolve}>
+              Resolve {selectedCount} Alerts
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Review Dialog */}
+      <Dialog open={bulkDialog === 'review'} onOpenChange={v => !v && setBulkDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Mark as Reviewed — {selectedCount} Alerts</DialogTitle>
+            <DialogDescription>Confirm that the selected alerts have been reviewed. Their status will remain unchanged.</DialogDescription>
+          </DialogHeader>
+
+          <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(selectionSummary.byDataset).map(([ds, count]) => (
+                <Badge key={ds} variant="secondary" className="text-[10px]">{ds}: {count}</Badge>
+              ))}
+            </div>
+            {selectionSummary.reviewCount > 0 && (
+              <div className="flex items-center gap-1 text-status-possible">
+                <AlertTriangle className="h-3 w-3" />
+                <span>{selectionSummary.reviewCount} flagged for review</span>
+              </div>
+            )}
+          </div>
+
+          <div className="max-h-32 overflow-y-auto border rounded-md">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b bg-muted/50 sticky top-0">
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Case</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Strength</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedMatches.map(m => {
+                  const c = getCaseById(m.caseId);
+                  return (
+                    <tr key={m.id} className="border-b">
+                      <td className="px-3 py-1.5 text-muted-foreground">{c?.name || m.caseId}</td>
+                      <td className="px-3 py-1.5 font-medium">{m.matchedName}</td>
+                      <td className="px-3 py-1.5 font-mono">{m.strength}%</td>
+                      <td className="px-3 py-1.5 text-muted-foreground">{m.status}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Review Comment (required)</Label>
+            <Textarea
+              value={bulkComment}
+              onChange={e => setBulkComment(e.target.value)}
+              rows={2}
+              placeholder="Review notes..."
+              className="text-xs resize-none"
+            />
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
+            <Button size="sm" disabled={!bulkComment.trim()} onClick={handleBulkReview}>
+              Confirm Reviewed
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
 
-function AlertRow({ m, onNavigate, showChanges, showGroupCol, visibleCols }: { m: Match; onNavigate: (caseId: string) => void; showChanges: boolean; showGroupCol: boolean; visibleCols: AlertColumnKey[] }) {
+function AlertRow({ m, onNavigate, showChanges, showGroupCol, visibleCols, selected, onToggleSelect }: { m: Match; onNavigate: (caseId: string) => void; showChanges: boolean; showGroupCol: boolean; visibleCols: AlertColumnKey[]; selected: boolean; onToggleSelect: () => void }) {
   const c = getCaseById(m.caseId);
   const days = alertAgeDays(m);
   const caseAlertCount = allMatches.filter(x => x.caseId === m.caseId && (x.status === 'Unresolved' || x.reviewRequired)).length;
@@ -359,7 +656,10 @@ function AlertRow({ m, onNavigate, showChanges, showGroupCol, visibleCols }: { m
   };
 
   return (
-    <tr className={`border-b cursor-pointer hover:bg-muted/30 transition-colors ${m.reviewRequired ? 'bg-status-possible/5' : ''}`} onClick={() => onNavigate(m.caseId)} tabIndex={0} onKeyDown={e => e.key === 'Enter' && onNavigate(m.caseId)}>
+    <tr className={`border-b cursor-pointer hover:bg-muted/30 transition-colors ${m.reviewRequired ? 'bg-status-possible/5' : ''} ${selected ? 'bg-primary/5' : ''}`} onClick={() => onNavigate(m.caseId)} tabIndex={0} onKeyDown={e => e.key === 'Enter' && onNavigate(m.caseId)}>
+      <td className="px-3 py-3 w-10" onClick={e => e.stopPropagation()}>
+        <Checkbox checked={selected} onCheckedChange={onToggleSelect} className="h-4 w-4" />
+      </td>
       {showGroupCol && <td className="w-8 px-2" />}
       {visibleCols.map(renderCell)}
       {showChanges && (
@@ -385,8 +685,8 @@ function AlertRow({ m, onNavigate, showChanges, showGroupCol, visibleCols }: { m
   );
 }
 
-function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges, visibleCols }: { group: CaseAlertGroup; isExpanded: boolean; onToggle: () => void; onNavigate: (caseId: string) => void; showChanges: boolean; visibleCols: AlertColumnKey[] }) {
-  const colSpan = visibleCols.length + (showChanges ? 1 : 0);
+function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges, visibleCols, selectedIds, onToggleSelect }: { group: CaseAlertGroup; isExpanded: boolean; onToggle: () => void; onNavigate: (caseId: string) => void; showChanges: boolean; visibleCols: AlertColumnKey[]; selectedIds: Set<string>; onToggleSelect: (id: string) => void }) {
+  const colSpan = 1 + visibleCols.length + (showChanges ? 1 : 0);
   return (
     <>
       <tr className="border-b bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
@@ -401,7 +701,7 @@ function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges, visib
           </div>
         </td>
       </tr>
-      {isExpanded && group.alerts.map(m => <AlertRow key={m.id} m={m} onNavigate={onNavigate} showChanges={showChanges} showGroupCol={true} visibleCols={visibleCols} />)}
+      {isExpanded && group.alerts.map(m => <AlertRow key={m.id} m={m} onNavigate={onNavigate} showChanges={showChanges} showGroupCol={true} visibleCols={visibleCols} selected={selectedIds.has(m.id)} onToggleSelect={() => onToggleSelect(m.id)} />)}
     </>
   );
 }
