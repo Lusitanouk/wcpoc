@@ -1,5 +1,6 @@
 import { useState, useMemo, useCallback } from 'react';
-import { Check, ChevronRight, Search, Upload, Shield, Newspaper, CreditCard } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Check, ChevronRight, Search, Upload, Shield, Newspaper, CreditCard, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -528,7 +529,18 @@ export default function ScreenPage() {
       {/* Step 1: Results */}
       {step === 1 && (
         <div className="animate-fade-in">
-          {/* Check type tabs if multiple */}
+          {/* Case link banner */}
+          <div className="flex items-center gap-3 mb-4 p-3 rounded-lg border bg-card">
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold truncate">{caseName}</p>
+              <p className="text-xs text-muted-foreground font-mono">{caseId}</p>
+            </div>
+            <Link to={`/cases/${caseId}`}>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1.5">
+                <ExternalLink className="h-3.5 w-3.5" /> Open Case
+              </Button>
+            </Link>
+          </div>
           {resultTabs.length > 1 && (
             <div className="flex gap-1 mb-6 p-1 bg-muted rounded-lg">
               {resultTabs.map(tab => {
