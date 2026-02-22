@@ -231,7 +231,7 @@ function generateMatches(caseId: string, count: number): Match[] {
       id: `${caseId}-m${i + 1}`,
       caseId,
       matchedName: matchName,
-      aliases: [matchName.split(' ').reverse().join(' '), `${matchName} Jr.`].slice(0, randInt(0, 2)),
+      aliases: [matchName.split(' ').reverse().join(' '), `${matchName} Jr.`, `${matchName.split(' ')[0]} Al-${matchName.split(' ').pop()}`, `${matchName.split(' ')[0][0]}. ${matchName.split(' ').slice(1).join(' ')}`].slice(0, randInt(1, 4)),
       strength,
       dataset,
       checkType: ct,
