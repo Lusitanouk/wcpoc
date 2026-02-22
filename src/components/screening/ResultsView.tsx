@@ -112,7 +112,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
   
   const [filterDataset, setFilterDataset] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<MatchColumnKey[]>([...DEFAULT_MATCH_COLUMNS]);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
