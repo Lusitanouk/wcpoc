@@ -13,15 +13,13 @@ export default function HomePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  const stats = useMemo(() => {
+    const stats = useMemo(() => {
     const myCases = cases.filter(c => c.assignee === CURRENT_USER);
-    const reviewRequired = cases.filter(c => c.reviewRequiredCount > 0);
+    const totalAlerts = allMatches;
     const unresolvedMatches = allMatches.filter(m => m.status === 'Unresolved');
-    const reviewMatches = allMatches.filter(m => m.reviewRequired);
-    const highRiskCases = cases.filter(c => c.rating === 'High');
-    const mandatoryCases = cases.filter(c => c.mandatoryAction);
+    const reviewRequired = cases.filter(c => c.reviewRequiredCount > 0);
 
-    return { myCases, reviewRequired, unresolvedMatches, reviewMatches, highRiskCases, mandatoryCases };
+    return { myCases, totalAlerts, unresolvedMatches, reviewRequired };
   }, []);
 
   return (
@@ -40,10 +38,9 @@ export default function HomePage() {
           onClick={() => navigate('/cases')}
         />
         <SummaryCard
-          label="Review Required"
-          value={stats.reviewRequired.length}
-          icon={<Eye className="h-4 w-4" />}
-          variant="warning"
+          label="Total Alerts"
+          value={stats.totalAlerts.length}
+          icon={<AlertTriangle className="h-4 w-4" />}
           onClick={() => navigate('/alerts')}
         />
         <SummaryCard
@@ -54,9 +51,9 @@ export default function HomePage() {
           onClick={() => navigate('/alerts')}
         />
         <SummaryCard
-          label="Alert Backlog"
-          value={stats.reviewMatches.length}
-          icon={<AlertTriangle className="h-4 w-4" />}
+          label="Review Required"
+          value={stats.reviewRequired.length}
+          icon={<Eye className="h-4 w-4" />}
           variant="warning"
           onClick={() => navigate('/alerts')}
         />
@@ -103,7 +100,75 @@ export default function HomePage() {
           </CardContent>
         </Card>
 
-        {/* Cases requiring review */}
+        {/* Total Alerts */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-primary" /> Total Alerts
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate('/alerts')}>
+                View all <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            {stats.totalAlerts.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">No alerts.</p>
+            ) : (
+              stats.totalAlerts.slice(0, 6).map(m => (
+                <button
+                  key={m.id}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/50 transition-colors text-left"
+                  onClick={() => navigate('/alerts')}
+                >
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium">{m.matchedName}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{m.id}</span>
+                  </div>
+                  <Badge variant={m.status === 'Unresolved' ? 'destructive' : 'secondary'} className="text-[10px]">
+                    {m.status}
+                  </Badge>
+                </button>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Unresolved Matches */}
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                <HelpCircle className="h-4 w-4 text-destructive" /> Unresolved Matches
+              </CardTitle>
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate('/alerts')}>
+                View all <ArrowRight className="h-3 w-3" />
+              </Button>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-1">
+            {stats.unresolvedMatches.length === 0 ? (
+              <p className="text-xs text-muted-foreground py-4 text-center">No unresolved matches.</p>
+            ) : (
+              stats.unresolvedMatches.slice(0, 6).map(m => (
+                <button
+                  key={m.id}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/50 transition-colors text-left"
+                  onClick={() => navigate('/alerts')}
+                >
+                  <div className="min-w-0">
+                    <span className="text-sm font-medium">{m.matchedName}</span>
+                    <span className="text-xs text-muted-foreground ml-2">{m.id}</span>
+                  </div>
+                  <Badge variant="destructive" className="text-[10px]">Unresolved</Badge>
+                </button>
+              ))
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Review Required */}
         <Card>
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
@@ -123,7 +188,7 @@ export default function HomePage() {
                 <button
                   key={c.id}
                   className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/50 transition-colors text-left"
-                  onClick={() => navigate(`/alerts`)}
+                  onClick={() => navigate('/alerts')}
                 >
                   <div className="min-w-0">
                     <span className="text-sm font-medium">{c.name}</span>
@@ -132,81 +197,6 @@ export default function HomePage() {
                   <Badge className="text-[10px] bg-status-possible/15 text-status-possible border-0">
                     {c.reviewRequiredCount} to review
                   </Badge>
-                </button>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* High risk cases */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <Shield className="h-4 w-4 text-destructive" /> High Risk Cases
-              </CardTitle>
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate('/cases')}>
-                View all <ArrowRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {stats.highRiskCases.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">No high risk cases.</p>
-            ) : (
-              stats.highRiskCases.slice(0, 6).map(c => (
-                <button
-                  key={c.id}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/50 transition-colors text-left"
-                  onClick={() => navigate(`/cases/${c.id}`)}
-                >
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium">{c.name}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{c.id}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Badge variant="destructive" className="text-[10px]">High</Badge>
-                    {c.positiveCount > 0 && (
-                      <Badge variant="secondary" className="text-[10px]">{c.positiveCount} positive</Badge>
-                    )}
-                  </div>
-                </button>
-              ))
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Alert backlog */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-status-possible" /> Alert Backlog
-              </CardTitle>
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate('/alerts')}>
-                View all <ArrowRight className="h-3 w-3" />
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-1">
-            {stats.mandatoryCases.length === 0 ? (
-              <p className="text-xs text-muted-foreground py-4 text-center">No pending alerts.</p>
-            ) : (
-              stats.mandatoryCases.slice(0, 6).map(c => (
-                <button
-                  key={c.id}
-                  className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/50 transition-colors text-left"
-                  onClick={() => navigate(`/cases/${c.id}`)}
-                >
-                  <div className="min-w-0">
-                    <span className="text-sm font-medium">{c.name}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{c.id}</span>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Badge variant="outline" className="text-[10px] text-status-possible border-status-possible/30">
-                      Action required
-                    </Badge>
-                  </div>
                 </button>
               ))
             )}
