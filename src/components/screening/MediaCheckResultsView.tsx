@@ -172,9 +172,9 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
         </Card>
       </div>
 
-      {/* View Toggle + Date Range */}
-      <div className="flex items-center justify-between mb-4">
-        <div className="flex gap-1 p-1 bg-muted rounded-lg">
+      {/* View Toggle + Filters */}
+      <div className="flex items-center gap-2 mb-4">
+        <div className="flex gap-1 p-1 bg-muted rounded-lg shrink-0">
           <button
             onClick={() => setViewMode('headlines')}
             className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${viewMode === 'headlines' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
@@ -188,30 +188,29 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
             Attached Articles ({result.attachedCount})
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant={showFilters ? 'secondary' : 'outline'}
-            size="sm"
-            className="h-8 text-xs gap-1"
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-3.5 w-3.5" />
-            Filters
-            {!showFilters && mediaActiveFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{mediaActiveFilterCount}</Badge>}
-          </Button>
-        </div>
-      </div>
 
-      {showFilters && (
-        <div className="mb-3">
-          <FilterBar
-            filters={mediaFilterDefs}
-            values={mediaFilterValues}
-            onChange={handleMediaFilterChange}
-            onClearAll={clearAllMediaFilters}
-          />
-        </div>
-      )}
+        {showFilters && (
+          <div className="flex-1 min-w-0">
+            <FilterBar
+              filters={mediaFilterDefs}
+              values={mediaFilterValues}
+              onChange={handleMediaFilterChange}
+              onClearAll={clearAllMediaFilters}
+            />
+          </div>
+        )}
+
+        <Button
+          variant={showFilters ? 'secondary' : 'outline'}
+          size="sm"
+          className="h-8 text-xs gap-1 ml-auto shrink-0"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="h-3.5 w-3.5" />
+          Filters
+          {!showFilters && mediaActiveFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{mediaActiveFilterCount}</Badge>}
+        </Button>
+      </div>
 
       <div className="grid grid-cols-[240px_1fr] gap-4">
         {/* Matched Entities Sidebar */}

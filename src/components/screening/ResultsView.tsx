@@ -334,19 +334,19 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
       </div>
 
       <div className="flex items-center gap-2 mb-4">
-        <Button
-          variant={showFilters ? 'secondary' : 'outline'}
-          size="sm"
-          className="h-8 text-xs gap-1"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <Filter className="h-3.5 w-3.5" />
-          Filters
-          {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
-        </Button>
+        {showFilters && (
+          <div className="flex-1 min-w-0">
+            <FilterBar
+              filters={matchFilterDefs}
+              values={matchFilterValues}
+              onChange={handleMatchFilterChange}
+              onClearAll={clearAllMatchFilters}
+            />
+          </div>
+        )}
 
         {selectedCount > 0 && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 flex-1 animate-fade-in">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 animate-fade-in">
             <CheckSquare className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">{selectedCount} selected</span>
             <div className="flex gap-1.5 ml-2">
@@ -362,18 +362,18 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             </div>
           </div>
         )}
-      </div>
 
-      {showFilters && (
-        <div className="mb-3">
-          <FilterBar
-            filters={matchFilterDefs}
-            values={matchFilterValues}
-            onChange={handleMatchFilterChange}
-            onClearAll={clearAllMatchFilters}
-          />
-        </div>
-      )}
+        <Button
+          variant={showFilters ? 'secondary' : 'outline'}
+          size="sm"
+          className="h-8 text-xs gap-1 ml-auto shrink-0"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <Filter className="h-3.5 w-3.5" />
+          Filters
+          {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
+        </Button>
+      </div>
 
       <Card>
 
