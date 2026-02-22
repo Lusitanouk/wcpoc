@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef, useReducer, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Shield, AlertTriangle, Eye, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, Database, Flame, Settings2, GripVertical, ChevronDown, ChevronRight, User } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, Database, Flame, Settings2, GripVertical, ChevronDown, ChevronRight, User, Filter } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -112,6 +112,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
   
   const [filterDataset, setFilterDataset] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [showFilters, setShowFilters] = useState(true);
   const [visibleColumns, setVisibleColumns] = useState<MatchColumnKey[]>([...DEFAULT_MATCH_COLUMNS]);
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
@@ -376,6 +377,78 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
               <TooltipContent side="bottom" className="sm:hidden text-xs">{bucket}</TooltipContent>
             </Tooltip>
           ))}
+          <div className="ml-auto flex items-center gap-1.5 pr-2">
+            <Button
+              variant={showFilters ? 'secondary' : 'outline'}
+              size="sm"
+              className={`h-7 text-xs gap-1 ${showFilters ? 'ring-1 ring-primary/30' : ''}`}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              Filters
+              {!showFilters && (filterDataset !== 'all' || filterPriority !== 'all') && (
+                <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">
+                  {(filterDataset !== 'all' ? 1 : 0) + (filterPriority !== 'all' ? 1 : 0)}
+                </Badge>
+              )}
+            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-7 text-xs gap-1">
+                  <Settings2 className="h-3.5 w-3.5" /> Columns
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-56 p-3">
+                <p className="text-xs font-semibold mb-2">Show / Hide & Reorder</p>
+                <div className="space-y-0.5 mb-2">
+                  {visibleColumns.map((key, index) => {
+                    const col = MATCH_COLUMNS.find(c => c.key === key)!;
+                    const isAlwaysVisible = 'alwaysVisible' in col && col.alwaysVisible;
+                    return (
+                      <div
+                        key={col.key}
+                        draggable
+                        onDragStart={() => handleDragStart(index)}
+                        onDragEnter={() => handleDragEnter(index)}
+                        onDragEnd={handleDragEnd}
+                        onDragOver={e => e.preventDefault()}
+                        className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50 cursor-grab active:cursor-grabbing group"
+                      >
+                        <GripVertical className="h-3 w-3 text-muted-foreground/50 group-hover:text-muted-foreground shrink-0" />
+                        <Checkbox
+                          checked={true}
+                          onCheckedChange={() => toggleColumn(key)}
+                          disabled={isAlwaysVisible}
+                          className="shrink-0"
+                        />
+                        <span className="truncate">{col.label}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {MATCH_COLUMNS.filter(c => !visibleColumns.includes(c.key)).length > 0 && (
+                  <div className="border-t pt-2 space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Hidden</p>
+                    {MATCH_COLUMNS.filter(c => !visibleColumns.includes(c.key)).map(col => (
+                      <div key={col.key} className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50">
+                        <div className="w-3" />
+                        <Checkbox
+                          checked={false}
+                          onCheckedChange={() => toggleColumn(col.key)}
+                        />
+                        <span className="truncate text-muted-foreground">{col.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="border-t pt-2 mt-2">
+                  <Button variant="ghost" size="sm" className="h-6 text-[11px] w-full" onClick={() => setVisibleColumns([...DEFAULT_MATCH_COLUMNS])}>
+                    Reset to defaults
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
         {/* Contextual stats row for active bucket */}
         {(() => {
@@ -427,75 +500,18 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
         })()}
       </div>
 
-      <div ref={filterRef} className="flex items-center gap-2 mb-4 flex-wrap sticky z-20 bg-background py-2 -mx-6 px-6" style={{ top: `${stickyOffsets.filter}px` }}>
-       <div className="flex items-center gap-2 flex-1 min-w-0">
-          <FilterBar
-            filters={matchFilterDefs}
-            values={matchFilterValues}
-            onChange={handleMatchFilterChange}
-            onClearAll={clearAllMatchFilters}
-          />
+      {showFilters && (
+        <div ref={filterRef} className="flex items-center gap-2 mb-4 flex-wrap sticky z-20 bg-background py-2 -mx-6 px-6" style={{ top: `${stickyOffsets.filter}px` }}>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <FilterBar
+              filters={matchFilterDefs}
+              values={matchFilterValues}
+              onChange={handleMatchFilterChange}
+              onClearAll={clearAllMatchFilters}
+            />
+          </div>
         </div>
-
-        <div className="flex items-center gap-1.5 shrink-0">
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
-                <Settings2 className="h-3.5 w-3.5" /> Columns
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-56 p-3">
-              <p className="text-xs font-semibold mb-2">Show / Hide & Reorder</p>
-              <div className="space-y-0.5 mb-2">
-                {visibleColumns.map((key, index) => {
-                  const col = MATCH_COLUMNS.find(c => c.key === key)!;
-                  const isAlwaysVisible = 'alwaysVisible' in col && col.alwaysVisible;
-                  return (
-                    <div
-                      key={col.key}
-                      draggable
-                      onDragStart={() => handleDragStart(index)}
-                      onDragEnter={() => handleDragEnter(index)}
-                      onDragEnd={handleDragEnd}
-                      onDragOver={e => e.preventDefault()}
-                      className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50 cursor-grab active:cursor-grabbing group"
-                    >
-                      <GripVertical className="h-3 w-3 text-muted-foreground/50 group-hover:text-muted-foreground shrink-0" />
-                      <Checkbox
-                        checked={true}
-                        onCheckedChange={() => toggleColumn(key)}
-                        disabled={isAlwaysVisible}
-                        className="shrink-0"
-                      />
-                      <span className="truncate">{col.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              {MATCH_COLUMNS.filter(c => !visibleColumns.includes(c.key)).length > 0 && (
-                <div className="border-t pt-2 space-y-0.5">
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Hidden</p>
-                  {MATCH_COLUMNS.filter(c => !visibleColumns.includes(c.key)).map(col => (
-                    <div key={col.key} className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50">
-                      <div className="w-3" />
-                      <Checkbox
-                        checked={false}
-                        onCheckedChange={() => toggleColumn(col.key)}
-                      />
-                      <span className="truncate text-muted-foreground">{col.label}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <div className="border-t pt-2 mt-2">
-                <Button variant="ghost" size="sm" className="h-6 text-[11px] w-full" onClick={() => setVisibleColumns([...DEFAULT_MATCH_COLUMNS])}>
-                  Reset to defaults
-                </Button>
-              </div>
-            </PopoverContent>
-          </Popover>
-        </div>
-      </div>
+      )}
 
       {selectedCount > 0 && (
         <div className="flex items-center gap-2 px-3 py-1.5 mb-4 rounded-md bg-primary/10 border border-primary/20 animate-fade-in">

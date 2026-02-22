@@ -47,6 +47,7 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
   const [hoveredBucket, setHoveredBucket] = useState<MediaBucket | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<MediaArticle | null>(null);
   const [articleDrawerOpen, setArticleDrawerOpen] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [riskAssignment, setRiskAssignment] = useState<Record<string, MediaRiskLevel>>({});
 
   // Infinite scroll
@@ -297,7 +298,21 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
               <TooltipContent side="bottom" className="sm:hidden text-xs">{bucketLabels[bucket]}</TooltipContent>
             </Tooltip>
           ))}
-          <div className="ml-auto flex items-center gap-2 pr-2">
+          <div className="ml-auto flex items-center gap-1.5 pr-2">
+            <Button
+              variant={showFilters ? 'secondary' : 'outline'}
+              size="sm"
+              className={`h-7 text-xs gap-1 ${showFilters ? 'ring-1 ring-primary/30' : ''}`}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              Filters
+              {!showFilters && (topicFilter !== 'all' || countryFilter !== 'all' || riskFilter !== 'all') && (
+                <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">
+                  {(topicFilter !== 'all' ? 1 : 0) + (countryFilter !== 'all' ? 1 : 0) + (riskFilter !== 'all' ? 1 : 0)}
+                </Badge>
+              )}
+            </Button>
             <span className="text-[11px] text-muted-foreground">Smart Filter</span>
             <Switch checked={smartFilterOn} onCheckedChange={setSmartFilterOn} className="scale-75" />
           </div>
@@ -337,16 +352,18 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
       </div>
 
       {/* Filters */}
-      <div ref={filterRef} className="flex items-center gap-2 mb-4 flex-wrap sticky z-20 bg-background py-2" style={{ top: `${stickyOffsets.filter}px` }}>
-        <div className="flex items-center gap-2 flex-1 min-w-0">
-          <FilterBar
-            filters={mediaFilterDefs}
-            values={mediaFilterValues}
-            onChange={handleMediaFilterChange}
-            onClearAll={clearAllMediaFilters}
-          />
+      {showFilters && (
+        <div ref={filterRef} className="flex items-center gap-2 mb-4 flex-wrap sticky z-20 bg-background py-2" style={{ top: `${stickyOffsets.filter}px` }}>
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <FilterBar
+              filters={mediaFilterDefs}
+              values={mediaFilterValues}
+              onChange={handleMediaFilterChange}
+              onClearAll={clearAllMediaFilters}
+            />
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Bulk action bar */}
       {selectedCount > 0 && (
