@@ -27,22 +27,24 @@ const ResponsiveTabsTrigger = React.forwardRef<
   React.ElementRef<typeof TabsTrigger>,
   ResponsiveTabsTriggerProps
 >(({ icon, label, badge, breakpoint = 'sm', className, ...props }, ref) => (
-  <Tooltip>
-    <TooltipTrigger asChild>
-      <TabsTrigger
-        ref={ref}
-        className={cn('gap-1.5 text-xs', className)}
-        {...props}
-      >
-        {icon}
-        <span className={bpClass[breakpoint]}>{label}</span>
-        {badge}
-      </TabsTrigger>
-    </TooltipTrigger>
-    <TooltipContent side="bottom" className="text-xs">
-      {label}
-    </TooltipContent>
-  </Tooltip>
+  <TabsTrigger
+    ref={ref}
+    className={cn('gap-1.5 text-xs', className)}
+    {...props}
+  >
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <span className="inline-flex items-center gap-1.5">
+          {icon}
+          <span className={bpClass[breakpoint]}>{label}</span>
+          {badge}
+        </span>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs">
+        {label}
+      </TooltipContent>
+    </Tooltip>
+  </TabsTrigger>
 ));
 ResponsiveTabsTrigger.displayName = 'ResponsiveTabsTrigger';
 
