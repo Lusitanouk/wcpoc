@@ -11,7 +11,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Separator } from '@/components/ui/separator';
-import { groups, allMatches } from '@/data/mock-data';
+import { groups, allMatches, cases } from '@/data/mock-data';
 import { generateMediaCheckResult } from '@/data/media-mock-data';
 import { generatePassportCheckResult } from '@/data/passport-mock-data';
 import { ResultsView } from '@/components/screening/ResultsView';
@@ -518,7 +518,7 @@ export default function ScreenPage() {
               <Separator />
 
               <div className="flex justify-end">
-                <Button onClick={() => navigate(`/cases/${caseId}`)} disabled={!canScreen} size="lg">
+                <Button onClick={() => { const randomCase = cases[Math.floor(Math.random() * cases.length)]; navigate(`/cases/${randomCase.id}`); }} disabled={!canScreen} size="lg">
                   <Search className="h-4 w-4 mr-2" /> {isBatch ? `Screen ${batchRecords.length} Records` : 'Screen Now'}
                 </Button>
               </div>
