@@ -4,7 +4,8 @@ import {
   ArrowLeft, Shield, Newspaper, CreditCard, User, MapPin, Calendar, Hash,
   Edit, UserPlus, ArrowRightLeft, Archive, Trash2, RefreshCw, ToggleRight,
   ChevronDown, MessageSquare, Send, Clock, FileText, Activity, AlertTriangle,
-  ChevronUp, LayoutDashboard, ChevronRight, ChevronLeft, Eye, Info, Download, PanelRightOpen, PanelRightClose
+  ChevronUp, LayoutDashboard, ChevronRight, ChevronLeft, Eye, Info, Download, PanelRightOpen, PanelRightClose,
+  Building2, Ship, HelpCircle
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -24,7 +25,7 @@ import { generatePassportCheckResult } from '@/data/passport-mock-data';
 import { ResultsView } from '@/components/screening/ResultsView';
 import { MediaCheckResultsView } from '@/components/screening/MediaCheckResultsView';
 import { PassportCheckResultsView } from '@/components/screening/PassportCheckResultsView';
-import type { CheckType, MediaCheckResult, PassportCheckResult, CaseAuditEvent, AuditEventType, AuditEventDetails, RiskLevel } from '@/types';
+import type { CheckType, MediaCheckResult, PassportCheckResult, CaseAuditEvent, AuditEventType, AuditEventDetails, RiskLevel, EntityType } from '@/types';
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/components/ui/collapsible';
 import { exportCasePdf, exportMatchesToCsv } from '@/lib/export';
 
@@ -33,6 +34,13 @@ const checkTypeIcons: Record<CheckType, React.ReactNode> = {
   'Watchlists': <Shield className="h-3.5 w-3.5" />,
   'Adverse Media': <Newspaper className="h-3.5 w-3.5" />,
   'Passport Check': <CreditCard className="h-3.5 w-3.5" />,
+};
+
+const entityTypeIcon: Record<EntityType, React.ReactNode> = {
+  'Individual': <User className="h-5 w-5 text-primary" />,
+  'Organisation': <Building2 className="h-5 w-5 text-primary" />,
+  'Vessel': <Ship className="h-5 w-5 text-primary" />,
+  'Unspecified': <HelpCircle className="h-5 w-5 text-primary" />,
 };
 
 const analysts = ['John Smith', 'Jane Doe', 'Alex Turner', 'Maria Lopez', 'Sam Wilson'];
@@ -388,7 +396,7 @@ export default function CaseDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 mb-4">
         <div className="flex items-start gap-3 min-w-0">
           <div className="shrink-0 w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center mt-0.5">
-            <User className="h-5 w-5 text-primary" />
+            {entityTypeIcon[caseData.entityType]}
           </div>
           <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
@@ -405,7 +413,6 @@ export default function CaseDetailPage() {
               {caseData.rating === 'None' ? 'Not Rated' : `${caseData.rating} Risk`}
               <Edit className="h-2.5 w-2.5" />
             </Badge>
-            <Badge variant="secondary" className="text-[10px] shrink-0">{caseData.entityType}</Badge>
             {caseData.mandatoryAction && (
               <Badge variant="destructive" className="text-[10px] shrink-0 gap-0.5">
                 <AlertTriangle className="h-2.5 w-2.5" /> Action Required
