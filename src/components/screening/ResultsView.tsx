@@ -1,13 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, SlidersHorizontal, Database, Flame } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
@@ -76,8 +75,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(true);
-  const [minStrength, setMinStrength] = useState(0);
+  const [showFilters, setShowFilters] = useState(false);
   const [filterDataset, setFilterDataset] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
 
@@ -129,14 +127,13 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
     return matches
       .filter(m => {
         if (m.status !== activeBucket) return false;
-        if (m.strength < minStrength) return false;
         if (filterDataset !== 'all' && m.dataset !== filterDataset) return false;
         if (filterPriority === 'High' && m.priorityLevel !== 'High') return false;
         if (filterPriority === 'sanctions-pep' && m.dataset !== 'Sanctions' && m.dataset !== 'PEP') return false;
         return true;
       })
       .sort((a, b) => b.priorityScore - a.priorityScore);
-  }, [matches, activeBucket, minStrength, filterDataset, filterPriority]);
+  }, [matches, activeBucket, filterDataset, filterPriority]);
 
   const total = matches.length;
   const unresolved = bucketCounts.Unresolved;
@@ -215,7 +212,49 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
     return { byDataset, byPriority, reviewCount };
   }, [selectedMatches]);
 
-  const activeFilterCount = (minStrength > 0 ? 1 : 0) + (filterDataset !== 'all' ? 1 : 0) + (filterPriority !== 'all' ? 1 : 0);
+  const activeFilterCount = (filterDataset !== 'all' ? 1 : 0) + (filterPriority !== 'all' ? 1 : 0);
+
+  const matchFilterDefs: FilterDefinition[] = [
+    {
+      key: 'dataset',
+      label: 'Dataset',
+      icon: <Database className="h-3.5 w-3.5" />,
+      options: [
+        { value: 'all', label: 'All Datasets' },
+        { value: 'Sanctions', label: 'Sanctions' },
+        { value: 'PEP', label: 'PEP' },
+        { value: 'Law Enforcement', label: 'Law Enforcement' },
+        { value: 'Other', label: 'Other' },
+      ],
+      defaultValue: 'all',
+    },
+    {
+      key: 'priority',
+      label: 'Priority',
+      icon: <Flame className="h-3.5 w-3.5" />,
+      options: [
+        { value: 'all', label: 'All Priorities' },
+        { value: 'High', label: 'High Priority Only' },
+        { value: 'sanctions-pep', label: 'Sanctions/PEP Only' },
+      ],
+      defaultValue: 'all',
+    },
+  ];
+
+  const matchFilterValues: Record<string, string> = {
+    dataset: filterDataset,
+    priority: filterPriority,
+  };
+
+  const handleMatchFilterChange = (key: string, value: string) => {
+    if (key === 'dataset') setFilterDataset(value);
+    if (key === 'priority') setFilterPriority(value);
+  };
+
+  const clearAllMatchFilters = () => {
+    setFilterDataset('all');
+    setFilterPriority('all');
+  };
 
   return (
     <div>
@@ -302,8 +341,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           onClick={() => setShowFilters(!showFilters)}
         >
           <Filter className="h-3.5 w-3.5" />
-          {showFilters ? 'Hide' : 'Filters'}
-          {activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
+          Filters
+          {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
         </Button>
 
         {selectedCount > 0 && (
@@ -325,91 +364,21 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
         )}
       </div>
 
+      {showFilters && (
+        <div className="mb-3">
+          <FilterBar
+            filters={matchFilterDefs}
+            values={matchFilterValues}
+            onChange={handleMatchFilterChange}
+            onClearAll={clearAllMatchFilters}
+          />
+        </div>
+      )}
+
       <Card>
-        <div className="flex">
-          {/* Inline Filter Sidebar */}
-          {showFilters && (
-            <div className="w-[220px] shrink-0 border-r p-4 space-y-5 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Filters</h3>
-                {activeFilterCount > 0 && (
-                  <Button variant="ghost" size="sm" className="h-5 text-[10px] px-1.5 gap-0.5" onClick={() => { setMinStrength(0); setFilterDataset('all'); setFilterPriority('all'); }}>
-                    <X className="h-2.5 w-2.5" /> Clear
-                  </Button>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Match Strength</label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    value={[minStrength]}
-                    onValueChange={v => setMinStrength(v[0])}
-                    max={100}
-                    step={5}
-                    className="flex-1"
-                  />
-                  <span className="text-xs font-mono w-8 text-right">{minStrength}%</span>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Dataset</label>
-                <Select value={filterDataset} onValueChange={setFilterDataset}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Datasets</SelectItem>
-                    <SelectItem value="Sanctions">Sanctions</SelectItem>
-                    <SelectItem value="PEP">PEP</SelectItem>
-                    <SelectItem value="Law Enforcement">Law Enforcement</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Priority</label>
-                <Select value={filterPriority} onValueChange={setFilterPriority}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Priorities</SelectItem>
-                    <SelectItem value="High">High Priority Only</SelectItem>
-                    <SelectItem value="sanctions-pep">Sanctions/PEP Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Active filter chips */}
-              {activeFilterCount > 0 && (
-                <div className="pt-3 border-t space-y-1">
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Active</p>
-                  <div className="flex flex-wrap gap-1">
-                    {minStrength > 0 && (
-                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                        ≥{minStrength}%
-                        <button onClick={() => setMinStrength(0)}><X className="h-2.5 w-2.5" /></button>
-                      </Badge>
-                    )}
-                    {filterDataset !== 'all' && (
-                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                        {filterDataset}
-                        <button onClick={() => setFilterDataset('all')}><X className="h-2.5 w-2.5" /></button>
-                      </Badge>
-                    )}
-                    {filterPriority !== 'all' && (
-                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                        {filterPriority}
-                        <button onClick={() => setFilterPriority('all')}><X className="h-2.5 w-2.5" /></button>
-                      </Badge>
-                    )}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Table */}
-          <div className="flex-1 overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
@@ -552,7 +521,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             </tbody>
           </table>
           </div>
-        </div>
       </Card>
 
       {/* Match Drawer */}
