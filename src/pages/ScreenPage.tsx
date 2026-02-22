@@ -26,7 +26,7 @@ const defaultConfig: ScreeningConfig = {
   groupId: groups[0].id,
   mode: 'Single',
   entityType: 'Individual',
-  checkTypes: ['World-Check'],
+  checkTypes: ['Watchlists'],
   ogsWorldCheck: false,
   ogsMediaCheck: false,
 };
@@ -68,8 +68,8 @@ export default function ScreenPage() {
 
   const selectedGroup = groups.find(g => g.id === config.groupId);
 
-  const hasWorldCheck = config.checkTypes.includes('World-Check');
-  const hasMediaCheck = config.checkTypes.includes('Media Check');
+  const hasWorldCheck = config.checkTypes.includes('Watchlists');
+  const hasMediaCheck = config.checkTypes.includes('Adverse Media');
   const hasPassportCheck = config.checkTypes.includes('Passport Check');
   const passportOnly = hasPassportCheck && !hasWorldCheck && !hasMediaCheck;
 
@@ -91,19 +91,19 @@ export default function ScreenPage() {
     if (step !== 1) return [];
     const subset = allMatches
       .slice(0, Math.floor(Math.random() * 10) + 5)
-      .map((m, i) => ({ ...m, caseId: data.caseId || `WC-NEW-${Date.now()}`, checkType: config.checkTypes[i % config.checkTypes.length] }));
+      .map((m, i) => ({ ...m, caseId: data.caseId || `WL-NEW-${Date.now()}`, checkType: config.checkTypes[i % config.checkTypes.length] }));
     return subset;
   }, [step]);
 
   const mediaResult: MediaCheckResult | null = useMemo(() => {
     if (step !== 1 || !hasMediaCheck) return null;
-    const cid = data.caseId || `WC-NEW-${Date.now()}`;
+    const cid = data.caseId || `WL-NEW-${Date.now()}`;
     return generateMediaCheckResult(cid, data.name || passportData.givenName + ' ' + passportData.lastName);
   }, [step]);
 
   const passportResult: PassportCheckResult | null = useMemo(() => {
     if (step !== 1 || !hasPassportCheck) return null;
-    const cid = data.caseId || `WC-NEW-${Date.now()}`;
+    const cid = data.caseId || `WL-NEW-${Date.now()}`;
     return generatePassportCheckResult(cid, passportData);
   }, [step]);
 
@@ -122,14 +122,14 @@ export default function ScreenPage() {
 
   const resultTabs = useMemo(() => {
     const tabs: string[] = [];
-    if (hasWorldCheck) tabs.push('World-Check');
-    if (hasMediaCheck) tabs.push('Media Check');
+    if (hasWorldCheck) tabs.push('Watchlists');
+    if (hasMediaCheck) tabs.push('Adverse Media');
     if (hasPassportCheck) tabs.push('Passport Check');
     return tabs;
   }, [hasWorldCheck, hasMediaCheck, hasPassportCheck]);
 
   const currentResultTab = activeResultTab || resultTabs[0] || '';
-  const caseId = data.caseId || `WC-NEW-${Date.now()}`;
+  const caseId = data.caseId || `WL-NEW-${Date.now()}`;
   const caseName = passportOnly ? `${passportData.givenName} ${passportData.lastName}` : data.name;
 
   return (
@@ -241,14 +241,14 @@ export default function ScreenPage() {
                 <div className="space-y-1.5">
                   <Label className="text-[10px] text-muted-foreground uppercase tracking-wide font-semibold">Check Types</Label>
                   <div className="flex flex-col gap-1.5">
-                    {(['World-Check', 'Media Check', 'Passport Check'] as CheckType[]).map(ct => (
+                    {(['Watchlists', 'Adverse Media', 'Passport Check'] as CheckType[]).map(ct => (
                       <label key={ct} className="flex items-center gap-2 text-xs cursor-pointer">
                         <Checkbox
                           checked={config.checkTypes.includes(ct)}
                           onCheckedChange={() => handleCheckTypeToggle(ct)}
                         />
                         <span>{ct}</span>
-                        {ct === 'Media Check' && (
+                        {ct === 'Adverse Media' && (
                           <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Articles</Badge>
                         )}
                         {ct === 'Passport Check' && (
@@ -269,11 +269,11 @@ export default function ScreenPage() {
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Switch checked={config.ogsWorldCheck} onCheckedChange={v => setConfig(c => ({ ...c, ogsWorldCheck: v }))} />
-                      <span className="text-xs">World-Check</span>
+                      <span className="text-xs">Watchlists</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Switch checked={config.ogsMediaCheck} onCheckedChange={v => setConfig(c => ({ ...c, ogsMediaCheck: v }))} />
-                      <span className="text-xs">Media Check</span>
+                      <span className="text-xs">Adverse Media</span>
                     </div>
                   </div>
                 </div>
@@ -508,7 +508,7 @@ export default function ScreenPage() {
                 <div className="p-3 rounded-lg bg-muted">
                   <Label className="text-[10px] font-medium">Link to Primary Case (optional)</Label>
                   <Input placeholder="Enter Case ID or Name..." className="mt-1.5 h-8 text-xs" />
-                  <p className="text-[9px] text-muted-foreground mt-1">Link this Media Check to an existing World-Check case</p>
+                  <p className="text-[9px] text-muted-foreground mt-1">Link this Adverse Media check to an existing Watchlists case</p>
                 </div>
               )}
 
@@ -547,16 +547,16 @@ export default function ScreenPage() {
           )}
 
           {/* Render appropriate results view */}
-          {currentResultTab === 'World-Check' && (
+          {currentResultTab === 'Watchlists' && (
             <ResultsView
-              matches={simulatedResults.filter(m => m.checkType === 'World-Check')}
+              matches={simulatedResults.filter(m => m.checkType === 'Watchlists')}
               caseName={caseName}
               caseId={caseId}
-              checkTypes={['World-Check']}
+              checkTypes={['Watchlists']}
             />
           )}
 
-          {currentResultTab === 'Media Check' && mediaResult && (
+          {currentResultTab === 'Adverse Media' && mediaResult && (
             <MediaCheckResultsView
               result={mediaResult}
               caseName={caseName}

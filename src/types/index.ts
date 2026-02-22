@@ -1,5 +1,5 @@
 export type EntityType = 'Individual' | 'Organisation' | 'Vessel' | 'Unspecified';
-export type CheckType = 'World-Check' | 'Media Check' | 'Passport Check';
+export type CheckType = 'Watchlists' | 'Adverse Media' | 'Passport Check';
 export type MatchStatus = 'Positive' | 'Possible' | 'False' | 'Unknown' | 'Unresolved';
 export type RiskLevel = 'High' | 'Medium' | 'Low' | 'None';
 export type Dataset = 'Sanctions' | 'PEP' | 'Law Enforcement' | 'Other';

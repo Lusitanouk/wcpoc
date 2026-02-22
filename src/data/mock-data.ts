@@ -23,7 +23,7 @@ const vesselNames = ['MV Oceanic Star', 'SS Northern Light', 'MV Pacific Dawn', 
 const datasets: Dataset[] = ['Sanctions', 'PEP', 'Law Enforcement', 'Other'];
 const statuses: MatchStatus[] = ['Positive', 'Possible', 'False', 'Unknown', 'Unresolved'];
 const riskLevels: RiskLevel[] = ['High', 'Medium', 'Low', 'None'];
-const checkTypes: CheckType[] = ['World-Check', 'Media Check', 'Passport Check'];
+const checkTypes: CheckType[] = ['Watchlists', 'Adverse Media', 'Passport Check'];
 const entityTypes: EntityType[] = ['Individual', 'Organisation', 'Vessel', 'Unspecified'];
 const nationalities = ['US', 'UK', 'RU', 'CN', 'DE', 'FR', 'SA', 'AE', 'JP', 'BR', 'IN', 'TR', 'IR', 'SY', 'KP'];
 const countries = ['United States', 'United Kingdom', 'Russia', 'China', 'Germany', 'France', 'Saudi Arabia', 'UAE', 'Japan', 'Brazil'];
@@ -59,7 +59,7 @@ const auditEventTemplates: { type: AuditEventType; text: string }[] = [
   { type: 'rescreen', text: 'Manual rescreen initiated' },
   { type: 'ogs_toggle', text: 'OGS enabled' },
   { type: 'edit', text: 'Nationality updated from US to UK' },
-  { type: 'status_change', text: 'Match WC-M3 resolved as False' },
+  { type: 'status_change', text: 'Match WL-M3 resolved as False' },
   { type: 'note', text: 'Added note' },
   { type: 'rescreen', text: 'OGS scheduled rescreen completed' },
   { type: 'assign', text: 'Reassigned from {analyst} to {analyst2}' },
@@ -69,7 +69,7 @@ function generateScreeningDetails(): AuditEventDetails {
   const matchCount = randInt(2, 6);
   const actions: AuditMatchDetail['action'][] = ['new', 'updated', 'auto_remediated', 'no_change'];
   const matchDetails: AuditMatchDetail[] = Array.from({ length: matchCount }, (_, i) => ({
-    matchId: `WC-M${i + 1}`,
+    matchId: `WL-M${i + 1}`,
     matchedName: rand(names),
     strength: randInt(30, 99),
     status: rand(statuses),
@@ -198,14 +198,14 @@ function generateResolutionHistory(currentStatus: MatchStatus, currentRisk: Risk
   return entries.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-// World-Check matches only — Media Check and Passport Check have their own result models
+// Watchlists matches only — Adverse Media and Passport Check have their own result models
 function generateMatches(caseId: string, count: number): Match[] {
   return Array.from({ length: count }, (_, i) => {
     const isUpdated = Math.random() > 0.7;
     const isReviewReq = isUpdated && Math.random() > 0.4;
     const status: MatchStatus = isReviewReq ? 'Unresolved' : rand(statuses);
     const dataset = rand(datasets);
-    const ct: CheckType = 'World-Check';
+    const ct: CheckType = 'Watchlists';
     const matchName = rand(names);
     const strength = randInt(30, 99);
     const alertDate = randDate('2024-12-01', '2025-02-15');
@@ -268,7 +268,7 @@ function generateMatches(caseId: string, count: number): Match[] {
 
 export const allMatches: Match[] = [];
 export const cases: Case[] = Array.from({ length: 30 }, (_, i) => {
-  const caseId = `WC-${String(2024001 + i)}`;
+  const caseId = `WL-${String(2024001 + i)}`;
   const entityType = i < 20 ? 'Individual' : i < 25 ? 'Organisation' : i < 28 ? 'Vessel' : rand(entityTypes);
   const caseName = entityType === 'Organisation' ? rand(orgNames) : entityType === 'Vessel' ? rand(vesselNames) : rand(names);
   const matchCount = randInt(2, 8);
@@ -289,8 +289,8 @@ export const cases: Case[] = Array.from({ length: 30 }, (_, i) => {
     groupId: rand(groups).id,
     mode: 'Single' as const,
     checkTypes: [
-      'World-Check' as const,
-      ...(Math.random() > 0.5 ? ['Media Check' as const] : []),
+      'Watchlists' as const,
+      ...(Math.random() > 0.5 ? ['Adverse Media' as const] : []),
       ...(entityType === 'Individual' && Math.random() > 0.6 ? ['Passport Check' as const] : []),
     ],
     ogsWorldCheck: Math.random() > 0.4,
