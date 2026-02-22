@@ -1,11 +1,12 @@
 import { useState, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, SlidersHorizontal, Database, Flame } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, SlidersHorizontal, Database, Flame, Settings2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -70,6 +71,17 @@ function strengthColor(s: number) {
 
 const BUCKETS: MatchStatus[] = ['Unresolved', 'Positive', 'Possible', 'False', 'Unknown'];
 
+const MATCH_COLUMNS = [
+  { key: 'name', label: 'Matched Name / Alias', alwaysVisible: true },
+  { key: 'priority', label: 'Priority' },
+  { key: 'strength', label: 'Strength' },
+  { key: 'dataset', label: 'Dataset' },
+  { key: 'identifiers', label: 'Key Identifiers' },
+] as const;
+
+type MatchColumnKey = typeof MATCH_COLUMNS[number]['key'];
+const DEFAULT_MATCH_COLUMNS: MatchColumnKey[] = ['name', 'priority', 'strength', 'dataset', 'identifiers'];
+
 export function ResultsView({ matches, caseName, caseId, screeningData }: ResultsViewProps) {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -78,6 +90,17 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
   const [showFilters, setShowFilters] = useState(false);
   const [filterDataset, setFilterDataset] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
+  const [visibleColumns, setVisibleColumns] = useState<MatchColumnKey[]>(DEFAULT_MATCH_COLUMNS);
+
+  const toggleColumn = (key: MatchColumnKey) => {
+    const col = MATCH_COLUMNS.find(c => c.key === key);
+    if (col && 'alwaysVisible' in col && col.alwaysVisible) return;
+    setVisibleColumns(prev =>
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
+  const isColVisible = (key: MatchColumnKey) => visibleColumns.includes(key);
+  const visibleColCount = visibleColumns.length + 2; // +2 for checkbox and action columns
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -363,16 +386,45 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           </div>
         )}
 
-        <Button
-          variant={showFilters ? 'secondary' : 'outline'}
-          size="sm"
-          className="h-8 text-xs gap-1 ml-auto shrink-0"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <Filter className="h-3.5 w-3.5" />
-          Filters
-          {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
-        </Button>
+        <div className="flex items-center gap-1.5 ml-auto shrink-0">
+          <Button
+            variant={showFilters ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            Filters
+            {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
+          </Button>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
+                <Settings2 className="h-3.5 w-3.5" /> Columns
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-52 p-3">
+              <p className="text-xs font-semibold mb-2">Show / Hide Columns</p>
+              <div className="space-y-1.5">
+                {MATCH_COLUMNS.map(col => (
+                  <label key={col.key} className="flex items-center gap-2 text-xs cursor-pointer">
+                    <Checkbox
+                      checked={visibleColumns.includes(col.key)}
+                      onCheckedChange={() => toggleColumn(col.key)}
+                      disabled={'alwaysVisible' in col && col.alwaysVisible}
+                    />
+                    {col.label}
+                  </label>
+                ))}
+              </div>
+              <div className="border-t pt-2 mt-2">
+                <Button variant="ghost" size="sm" className="h-6 text-[11px] w-full" onClick={() => setVisibleColumns(DEFAULT_MATCH_COLUMNS)}>
+                  Reset to defaults
+                </Button>
+              </div>
+            </PopoverContent>
+          </Popover>
+        </div>
       </div>
 
       <Card>
@@ -391,18 +443,18 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                     {...(someSelected && !allSelected ? { 'data-state': 'indeterminate' } : {})}
                   />
                 </th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Matched Name / Alias</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">Priority</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-32">Strength</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Dataset</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">Key Identifiers</th>
+                {isColVisible('name') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Matched Name / Alias</th>}
+                {isColVisible('priority') && <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">Priority</th>}
+                {isColVisible('strength') && <th className="text-left px-4 py-3 font-medium text-muted-foreground w-32">Strength</th>}
+                {isColVisible('dataset') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Dataset</th>}
+                {isColVisible('identifiers') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Key Identifiers</th>}
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground w-16"></th>
               </tr>
             </thead>
             <tbody>
               {filteredMatches.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-muted-foreground">
+                  <td colSpan={visibleColCount} className="px-4 py-12 text-center text-muted-foreground">
                     No matches in this bucket for the current filters.
                   </td>
                 </tr>
@@ -427,60 +479,70 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                               className="h-4 w-4"
                             />
                           </td>
-                          <td className="px-4 py-3" onClick={() => openMatch(m)}>
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{m.matchedName}</span>
-                              {m.updated && (
-                                <Badge variant="secondary" className="text-[10px] bg-status-possible/15 text-status-possible border-0">
-                                  Updated
-                                </Badge>
-                              )}
-                              {m.reviewRequired && (
-                                <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />
-                              )}
-                              {m.resolutionHistory.length > 1 && (
-                                <Badge variant="outline" className="text-[9px] px-1 py-0 text-muted-foreground">
-                                  {m.resolutionHistory.length} reviews
-                                </Badge>
-                              )}
-                            </div>
-                            {m.aliases.length > 0 && (
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                aka: {m.aliases.slice(0, 2).join(', ')}
-                              </p>
-                            )}
-                            {m.status !== 'Unresolved' && m.resolutionHistory.length > 0 && (
-                              <p className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[300px]" title={m.resolutionHistory[0].reason}>
-                                {m.resolutionHistory[0].author}: {m.resolutionHistory[0].reason}
-                              </p>
-                            )}
-                          </td>
-                          <td className="px-4 py-3" onClick={() => openMatch(m)}>
-                            <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>
-                              {m.priorityLevel}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3" onClick={() => openMatch(m)}>
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full ${strengthColor(m.strength)}`}
-                                  style={{ width: `${m.strength}%` }}
-                                />
+                          {isColVisible('name') && (
+                            <td className="px-4 py-3" onClick={() => openMatch(m)}>
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{m.matchedName}</span>
+                                {m.updated && (
+                                  <Badge variant="secondary" className="text-[10px] bg-status-possible/15 text-status-possible border-0">
+                                    Updated
+                                  </Badge>
+                                )}
+                                {m.reviewRequired && (
+                                  <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />
+                                )}
+                                {m.resolutionHistory.length > 1 && (
+                                  <Badge variant="outline" className="text-[9px] px-1 py-0 text-muted-foreground">
+                                    {m.resolutionHistory.length} reviews
+                                  </Badge>
+                                )}
                               </div>
-                              <span className="text-xs font-mono">{m.strength}%</span>
-                            </div>
-                          </td>
-                          <td className="px-4 py-3" onClick={() => openMatch(m)}>
-                            <Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[10px] border-0`} title={m.dataset}>
-                              {datasetInitials[m.dataset]}
-                            </Badge>
-                          </td>
-                          <td className="px-4 py-3 text-xs text-muted-foreground" onClick={() => openMatch(m)}>
-                            {[m.identifiers.nationality, m.identifiers.dob, m.identifiers.gender]
-                              .filter(Boolean)
-                              .join(' · ') || '—'}
-                          </td>
+                              {m.aliases.length > 0 && (
+                                <p className="text-xs text-muted-foreground mt-0.5">
+                                  aka: {m.aliases.slice(0, 2).join(', ')}
+                                </p>
+                              )}
+                              {m.status !== 'Unresolved' && m.resolutionHistory.length > 0 && (
+                                <p className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[300px]" title={m.resolutionHistory[0].reason}>
+                                  {m.resolutionHistory[0].author}: {m.resolutionHistory[0].reason}
+                                </p>
+                              )}
+                            </td>
+                          )}
+                          {isColVisible('priority') && (
+                            <td className="px-4 py-3" onClick={() => openMatch(m)}>
+                              <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>
+                                {m.priorityLevel}
+                              </Badge>
+                            </td>
+                          )}
+                          {isColVisible('strength') && (
+                            <td className="px-4 py-3" onClick={() => openMatch(m)}>
+                              <div className="flex items-center gap-2">
+                                <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full ${strengthColor(m.strength)}`}
+                                    style={{ width: `${m.strength}%` }}
+                                  />
+                                </div>
+                                <span className="text-xs font-mono">{m.strength}%</span>
+                              </div>
+                            </td>
+                          )}
+                          {isColVisible('dataset') && (
+                            <td className="px-4 py-3" onClick={() => openMatch(m)}>
+                              <Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[10px] border-0`} title={m.dataset}>
+                                {datasetInitials[m.dataset]}
+                              </Badge>
+                            </td>
+                          )}
+                          {isColVisible('identifiers') && (
+                            <td className="px-4 py-3 text-xs text-muted-foreground" onClick={() => openMatch(m)}>
+                              {[m.identifiers.nationality, m.identifiers.dob, m.identifiers.gender]
+                                .filter(Boolean)
+                                .join(' · ') || '—'}
+                            </td>
+                          )}
                           <td className="px-4 py-3" onClick={() => openMatch(m)}>
                             <Eye className="h-4 w-4 text-muted-foreground" />
                           </td>
