@@ -461,14 +461,9 @@ export default function CaseDetailPage() {
         <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1 shrink-0">
-                  <Download className="h-3.5 w-3.5" /> <span className="hidden md:inline">Export</span> <ChevronDown className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="md:hidden text-xs">Export</TooltipContent>
-            </Tooltip>
+            <Button variant="outline" size="sm" className="gap-1 shrink-0">
+              <Download className="h-3.5 w-3.5" /> <span className="hidden md:inline">Export</span> <ChevronDown className="h-3 w-3" />
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem onClick={() => exportCasePdf(caseData, matches)}>
