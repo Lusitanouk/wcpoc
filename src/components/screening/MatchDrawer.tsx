@@ -83,7 +83,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
   const [isFullscreen, setIsFullscreen] = useState(defaultFullscreen ?? false);
 
   useEffect(() => {
-    if (match) {
+    if (match && open) {
       setStatus(match.status);
       setRisk(match.riskLevel);
       setReason(match.reason);
@@ -91,7 +91,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
       setHistoryOpen(false);
       setIsFullscreen(defaultFullscreen ?? false);
     }
-  }, [match?.id, defaultFullscreen]);
+  }, [match?.id, defaultFullscreen, open]);
 
   if (!match) return null;
 
