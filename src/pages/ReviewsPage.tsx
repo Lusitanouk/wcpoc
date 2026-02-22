@@ -4,8 +4,9 @@ import { AlertTriangle, Clock, ChevronDown, ChevronRight, ArrowUpDown, Calendar,
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { ResponsiveTabsTrigger } from '@/components/ui/responsive-tabs-trigger';
 import { Checkbox } from '@/components/ui/checkbox';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cases, allMatches, getCaseById } from '@/data/mock-data';
@@ -274,14 +275,18 @@ export default function AlertsPage() {
 
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList className="mb-4">
-          <TabsTrigger value="unresolved" className="gap-1">
-            <Clock className="h-3.5 w-3.5" /> New (Unresolved)
-            <Badge variant="secondary" className="ml-1 text-[10px]">{unresolvedMatches.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="review" className="gap-1">
-            <AlertTriangle className="h-3.5 w-3.5" /> Updated (Review Required)
-            <Badge variant="secondary" className="ml-1 text-[10px]">{reviewRequiredMatches.length}</Badge>
-          </TabsTrigger>
+          <ResponsiveTabsTrigger
+            value="unresolved"
+            icon={<Clock className="h-3.5 w-3.5" />}
+            label="New (Unresolved)"
+            badge={<Badge variant="secondary" className="ml-1 text-[10px]">{unresolvedMatches.length}</Badge>}
+          />
+          <ResponsiveTabsTrigger
+            value="review"
+            icon={<AlertTriangle className="h-3.5 w-3.5" />}
+            label="Updated (Review Required)"
+            badge={<Badge variant="secondary" className="ml-1 text-[10px]">{reviewRequiredMatches.length}</Badge>}
+          />
         </TabsList>
 
         {['unresolved', 'review'].map(tabKey => (

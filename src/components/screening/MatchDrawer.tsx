@@ -3,7 +3,8 @@ import { ChevronRight, ChevronLeft, Check, HelpCircle, XCircle, CircleOff, Clock
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
+import { ResponsiveTabsTrigger } from '@/components/ui/responsive-tabs-trigger';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
@@ -394,16 +395,13 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
           <div className="p-6 border-b">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="w-full justify-start h-auto flex-wrap gap-1 p-1 mb-3">
-                <TabsTrigger value="key-data" className="text-xs">{t('match.keyData')}</TabsTrigger>
-                <TabsTrigger value="further" className="text-xs">{t('match.furtherInfo')}</TabsTrigger>
-                <TabsTrigger value="aliases" className="text-xs">{t('match.aliases')}</TabsTrigger>
-                <TabsTrigger value="keywords" className="text-xs">{t('match.keywords')}</TabsTrigger>
-                {rd.pepRoleDetails && <TabsTrigger value="pep" className="text-xs">{t('match.pepDetails')}</TabsTrigger>}
-                <TabsTrigger value="connections" className="text-xs">{t('match.connections')}</TabsTrigger>
-                <TabsTrigger value="sources" className="text-xs gap-1">
-                  <Database className="h-3 w-3" />
-                  {t('match.sources')}
-                </TabsTrigger>
+                <ResponsiveTabsTrigger value="key-data" icon={<FileText className="h-3 w-3" />} label={t('match.keyData')} />
+                <ResponsiveTabsTrigger value="further" icon={<HelpCircle className="h-3 w-3" />} label={t('match.furtherInfo')} />
+                <ResponsiveTabsTrigger value="aliases" icon={<User className="h-3 w-3" />} label={t('match.aliases')} />
+                <ResponsiveTabsTrigger value="keywords" icon={<FileText className="h-3 w-3" />} label={t('match.keywords')} />
+                {rd.pepRoleDetails && <ResponsiveTabsTrigger value="pep" icon={<User className="h-3 w-3" />} label={t('match.pepDetails')} />}
+                <ResponsiveTabsTrigger value="connections" icon={<ExternalLink className="h-3 w-3" />} label={t('match.connections')} />
+                <ResponsiveTabsTrigger value="sources" icon={<Database className="h-3 w-3" />} label={t('match.sources')} />
               </TabsList>
 
               <TabsContent value="key-data" className="space-y-2">

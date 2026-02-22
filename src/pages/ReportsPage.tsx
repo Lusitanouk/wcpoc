@@ -11,7 +11,8 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
+import { ResponsiveTabsTrigger } from '@/components/ui/responsive-tabs-trigger';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
@@ -196,14 +197,18 @@ export default function ReportsPage() {
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="mb-4">
-          <TabsTrigger value="standard" className="gap-1.5 text-xs">
-            <FileText className="h-3.5 w-3.5" /> Standard Reports
-            <Badge variant="secondary" className="ml-1 h-4 min-w-[16px] px-1 text-[9px]">{STANDARD_REPORTS.length}</Badge>
-          </TabsTrigger>
-          <TabsTrigger value="custom" className="gap-1.5 text-xs">
-            <Settings2 className="h-3.5 w-3.5" /> Custom Reports
-            <Badge variant="secondary" className="ml-1 h-4 min-w-[16px] px-1 text-[9px]">{CUSTOM_REPORTS.length}</Badge>
-          </TabsTrigger>
+          <ResponsiveTabsTrigger
+            value="standard"
+            icon={<FileText className="h-3.5 w-3.5" />}
+            label="Standard Reports"
+            badge={<Badge variant="secondary" className="ml-1 h-4 min-w-[16px] px-1 text-[9px]">{STANDARD_REPORTS.length}</Badge>}
+          />
+          <ResponsiveTabsTrigger
+            value="custom"
+            icon={<Settings2 className="h-3.5 w-3.5" />}
+            label="Custom Reports"
+            badge={<Badge variant="secondary" className="ml-1 h-4 min-w-[16px] px-1 text-[9px]">{CUSTOM_REPORTS.length}</Badge>}
+          />
         </TabsList>
 
         {/* ═══════ Standard Reports ═══════ */}
