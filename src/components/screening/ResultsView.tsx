@@ -458,10 +458,10 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           <span className="text-sm font-medium">{selectedCount} selected</span>
           <div className="flex gap-1.5 ml-2">
             <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
-              <Check className="h-3 w-3" /> Bulk Resolve
+              <Check className="h-3 w-3" /> Resolve {selectedCount === 1 ? 'Match' : 'Matches'}
             </Button>
             <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
-              <Eye className="h-3 w-3" /> Mark Reviewed
+              <Eye className="h-3 w-3" /> Review {selectedCount === 1 ? 'Match' : 'Matches'}
             </Button>
             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
               <X className="h-3 w-3" />
@@ -656,7 +656,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
       <Dialog open={bulkDialog === 'resolve'} onOpenChange={v => !v && setBulkDialog(null)}>
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Bulk Resolve — {selectedCount} Matches</DialogTitle>
+            <DialogTitle>Resolve {selectedCount === 1 ? 'Match' : 'Matches'} — {selectedCount}</DialogTitle>
             <DialogDescription>Apply the same resolution status to all selected matches.</DialogDescription>
           </DialogHeader>
 
@@ -777,7 +777,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
             <Button size="sm" disabled={!bulkReason.trim()} onClick={handleBulkResolve}>
-              Resolve {selectedCount} Matches
+              Resolve {selectedCount} {selectedCount === 1 ? 'Match' : 'Matches'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -787,7 +787,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
       <Dialog open={bulkDialog === 'review'} onOpenChange={v => !v && setBulkDialog(null)}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Mark as Reviewed — {selectedCount} Matches</DialogTitle>
+            <DialogTitle>Review {selectedCount === 1 ? 'Match' : 'Matches'} — {selectedCount}</DialogTitle>
             <DialogDescription>Confirm that the selected matches have been reviewed. Their status will remain unchanged.</DialogDescription>
           </DialogHeader>
 
@@ -840,7 +840,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           <DialogFooter>
             <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
             <Button size="sm" onClick={handleBulkReview}>
-              Confirm Reviewed
+              Review {selectedCount} {selectedCount === 1 ? 'Match' : 'Matches'}
             </Button>
           </DialogFooter>
         </DialogContent>
