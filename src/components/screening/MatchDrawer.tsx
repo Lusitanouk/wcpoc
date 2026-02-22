@@ -333,24 +333,26 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
           <div className="p-6 border-b">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-xs font-semibold">{t('match.whyMatched')}</h4>
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="h-6 text-[10px] gap-1"
-                      onClick={() => {
-                        const el = document.getElementById('disposition-section');
-                        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }}
-                    >
-                      <ArrowDown className="h-3 w-3" /> Resolve or Review
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Jump to resolution &amp; review</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              {!isFullscreen && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-6 text-[10px] gap-1"
+                        onClick={() => {
+                          const el = document.getElementById('disposition-section');
+                          el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }}
+                      >
+                        <ArrowDown className="h-3 w-3" /> Resolve or Review
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Jump to resolution &amp; review</TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
             </div>
             <div className="rounded-md border overflow-hidden">
               <table className="w-full text-xs">
