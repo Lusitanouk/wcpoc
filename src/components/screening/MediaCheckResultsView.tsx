@@ -47,7 +47,7 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
   const [hoveredBucket, setHoveredBucket] = useState<MediaBucket | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<MediaArticle | null>(null);
   const [articleDrawerOpen, setArticleDrawerOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(true);
+  const [showFilters, setShowFilters] = useState(false);
   const [riskAssignment, setRiskAssignment] = useState<Record<string, MediaRiskLevel>>({});
 
   // Infinite scroll
