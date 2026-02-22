@@ -577,7 +577,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                         m.reviewRequired ? 'bg-status-possible/5' : ''
                       } ${isSelected ? 'bg-primary/5' : ''}`}
                       tabIndex={0}
-                      onKeyDown={e => e.key === 'Enter' && openMatch(m)}
+                      onKeyDown={e => e.key === 'Enter' && openMatch(m, true)}
                     >
                       <td className="px-3 py-3 sticky left-0 z-10 bg-card" onClick={e => e.stopPropagation()}>
                         <Checkbox
@@ -627,7 +627,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                             </React.Fragment>);
                           case 'priority':
                             return (
-                              <td key={key} className="px-4 py-3" onClick={() => openMatch(m)}>
+                              <td key={key} className="px-4 py-3" onClick={() => openMatch(m, true)}>
                                 <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priorityLevel)}`}>
                                   {m.priorityLevel}
                                 </Badge>
@@ -635,7 +635,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                             );
                           case 'strength':
                             return (
-                              <td key={key} className="px-4 py-3" onClick={() => openMatch(m)}>
+                              <td key={key} className="px-4 py-3" onClick={() => openMatch(m, true)}>
                                 <div className="flex items-center gap-2">
                                   <div className="flex-1 h-2 rounded-full bg-muted overflow-hidden">
                                     <div
@@ -649,7 +649,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                             );
                           case 'dataset':
                             return (
-                              <td key={key} className="px-4 py-3" onClick={() => openMatch(m)}>
+                              <td key={key} className="px-4 py-3" onClick={() => openMatch(m, true)}>
                                 <Badge className={`${datasetColors[m.dataset]} text-primary-foreground text-[10px] border-0`} title={m.dataset}>
                                   {datasetInitials[m.dataset]}
                                 </Badge>
@@ -657,7 +657,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                             );
                           case 'identifiers':
                             return (
-                              <td key={key} className="px-4 py-3 text-xs text-muted-foreground" onClick={() => openMatch(m)}>
+                              <td key={key} className="px-4 py-3 text-xs text-muted-foreground" onClick={() => openMatch(m, true)}>
                                 {[m.identifiers.nationality, m.identifiers.dob, m.identifiers.gender]
                                   .filter(Boolean)
                                   .join(' · ') || '—'}
