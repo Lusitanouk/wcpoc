@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
+import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 
 // ─── Types ────────────────────────────────────────────────────
 interface StandardReport {
@@ -111,13 +112,17 @@ const categoryIcons: Record<string, React.ReactNode> = {
 export default function ReportsPage() {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('standard');
-  const [showFilters, setShowFilters] = useState(true);
-
   // Filters
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [filterFormat, setFilterFormat] = useState<string>('all');
-  const [filterScheduled, setFilterScheduled] = useState<string>('all');
+  const [filterValues, setFilterValues] = useState<Record<string, string>>({
+    category: 'all', format: 'all', scheduled: 'all'
+  });
   const [searchQuery, setSearchQuery] = useState('');
+
+  const reportFilterDefs: FilterDefinition[] = [
+    { key: 'category', label: 'Category', icon: <BarChart3 className="h-3 w-3" />, defaultValue: 'all', options: [{ value: 'all', label: 'All Categories' }, { value: 'screening', label: 'Screening' }, { value: 'compliance', label: 'Compliance' }, { value: 'audit', label: 'Audit' }, { value: 'risk', label: 'Risk' }] },
+    { key: 'format', label: 'Format', icon: <FileText className="h-3 w-3" />, defaultValue: 'all', options: [{ value: 'all', label: 'All Formats' }, { value: 'PDF', label: 'PDF' }, { value: 'CSV', label: 'CSV' }, { value: 'XLSX', label: 'Excel' }] },
+    { key: 'scheduled', label: 'Schedule', icon: <Clock className="h-3 w-3" />, defaultValue: 'all', options: [{ value: 'all', label: 'All' }, { value: 'scheduled', label: 'Scheduled Only' }, { value: 'on-demand', label: 'On-demand Only' }] },
+  ];
 
   // Report builder
   const [builderOpen, setBuilderOpen] = useState(false);
@@ -132,6 +137,10 @@ export default function ReportsPage() {
 
   // Preview dialog
   const [previewReport, setPreviewReport] = useState<StandardReport | null>(null);
+
+  const filterCategory = filterValues.category || 'all';
+  const filterFormat = filterValues.format || 'all';
+  const filterScheduled = filterValues.scheduled || 'all';
 
   // Filtered standard reports
   const filteredReports = useMemo(() => {
@@ -148,18 +157,10 @@ export default function ReportsPage() {
   const starredReports = filteredReports.filter(r => r.starred);
   const otherReports = filteredReports.filter(r => !r.starred);
 
-  const activeFilterCount = (filterCategory !== 'all' ? 1 : 0) + (filterFormat !== 'all' ? 1 : 0) + (filterScheduled !== 'all' ? 1 : 0);
-
   const addBuilderField = (fieldId: string) => {
-    if (!builderFields.includes(fieldId)) {
-      setBuilderFields(prev => [...prev, fieldId]);
-    }
+    if (!builderFields.includes(fieldId)) setBuilderFields(prev => [...prev, fieldId]);
   };
-
-  const removeBuilderField = (fieldId: string) => {
-    setBuilderFields(prev => prev.filter(f => f !== fieldId));
-  };
-
+  const removeBuilderField = (fieldId: string) => setBuilderFields(prev => prev.filter(f => f !== fieldId));
   const moveField = (fieldId: string, direction: 'up' | 'down') => {
     setBuilderFields(prev => {
       const idx = prev.indexOf(fieldId);
@@ -171,18 +172,10 @@ export default function ReportsPage() {
       return next;
     });
   };
-
   const resetBuilder = () => {
-    setBuilderName('');
-    setBuilderDescription('');
-    setBuilderFields([]);
-    setBuilderFieldSearch('');
-    setBuilderFilterStatus('all');
-    setBuilderFilterDataset('all');
-    setBuilderFilterPeriod('all');
-    setBuilderFilterPriority('all');
+    setBuilderName(''); setBuilderDescription(''); setBuilderFields([]); setBuilderFieldSearch('');
+    setBuilderFilterStatus('all'); setBuilderFilterDataset('all'); setBuilderFilterPeriod('all'); setBuilderFilterPriority('all');
   };
-
   const availableFieldsFiltered = AVAILABLE_FIELDS.filter(f =>
     !builderFieldSearch || f.label.toLowerCase().includes(builderFieldSearch.toLowerCase()) || f.group.toLowerCase().includes(builderFieldSearch.toLowerCase())
   );
@@ -215,146 +208,62 @@ export default function ReportsPage() {
         <TabsContent value="standard">
           {/* Toolbar */}
           <div className="flex items-center gap-2 mb-4">
-            <Button
-              variant={showFilters ? 'secondary' : 'outline'}
-              size="sm"
-              className="h-8 text-xs gap-1"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter className="h-3.5 w-3.5" />
-              {showFilters ? 'Hide' : 'Filters'}
-              {activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
-            </Button>
-
-            <div className="relative ml-auto">
+            <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 placeholder="Search reports..."
-                className="pl-8 h-8 w-64 text-xs"
+                className="pl-8 h-8 text-xs"
               />
             </div>
           </div>
 
+          {/* Filter Bar */}
+          <div className="mb-4">
+            <FilterBar
+              filters={reportFilterDefs}
+              values={filterValues}
+              onChange={(key, value) => setFilterValues(prev => ({ ...prev, [key]: value }))}
+              onClearAll={() => setFilterValues({ category: 'all', format: 'all', scheduled: 'all' })}
+            />
+          </div>
+
           <Card>
-            <div className="flex">
-              {/* Filter sidebar */}
-              {showFilters && (
-                <div className="w-[220px] shrink-0 border-r p-4 space-y-5 animate-fade-in">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Filters</h3>
-                    {activeFilterCount > 0 && (
-                      <Button variant="ghost" size="sm" className="h-5 text-[10px] px-1.5 gap-0.5" onClick={() => { setFilterCategory('all'); setFilterFormat('all'); setFilterScheduled('all'); }}>
-                        <X className="h-2.5 w-2.5" /> Clear
-                      </Button>
-                    )}
+            <div className="overflow-x-auto">
+              {/* Starred section */}
+              {starredReports.length > 0 && (
+                <>
+                  <div className="px-4 py-2 bg-muted/30 border-b flex items-center gap-1.5">
+                    <Star className="h-3 w-3 text-status-possible fill-status-possible" />
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Starred</span>
                   </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Category</label>
-                    <Select value={filterCategory} onValueChange={setFilterCategory}>
-                      <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Categories</SelectItem>
-                        <SelectItem value="screening">Screening</SelectItem>
-                        <SelectItem value="compliance">Compliance</SelectItem>
-                        <SelectItem value="audit">Audit</SelectItem>
-                        <SelectItem value="risk">Risk</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Format</label>
-                    <Select value={filterFormat} onValueChange={setFilterFormat}>
-                      <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All Formats</SelectItem>
-                        <SelectItem value="PDF">PDF</SelectItem>
-                        <SelectItem value="CSV">CSV</SelectItem>
-                        <SelectItem value="XLSX">Excel</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-medium text-muted-foreground">Schedule</label>
-                    <Select value={filterScheduled} onValueChange={setFilterScheduled}>
-                      <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="scheduled">Scheduled Only</SelectItem>
-                        <SelectItem value="on-demand">On-demand Only</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Active filter chips */}
-                  {activeFilterCount > 0 && (
-                    <div className="pt-3 border-t space-y-1">
-                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Active</p>
-                      <div className="flex flex-wrap gap-1">
-                        {filterCategory !== 'all' && (
-                          <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                            {filterCategory}
-                            <button onClick={() => setFilterCategory('all')}><X className="h-2.5 w-2.5" /></button>
-                          </Badge>
-                        )}
-                        {filterFormat !== 'all' && (
-                          <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                            {filterFormat}
-                            <button onClick={() => setFilterFormat('all')}><X className="h-2.5 w-2.5" /></button>
-                          </Badge>
-                        )}
-                        {filterScheduled !== 'all' && (
-                          <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                            {filterScheduled}
-                            <button onClick={() => setFilterScheduled('all')}><X className="h-2.5 w-2.5" /></button>
-                          </Badge>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </div>
+                  {starredReports.map(report => (
+                    <ReportRow key={report.id} report={report} onPreview={() => setPreviewReport(report)} />
+                  ))}
+                </>
               )}
 
-              {/* Reports table */}
-              <div className="flex-1 overflow-x-auto">
-                {/* Starred section */}
-                {starredReports.length > 0 && (
-                  <>
-                    <div className="px-4 py-2 bg-muted/30 border-b flex items-center gap-1.5">
-                      <Star className="h-3 w-3 text-status-possible fill-status-possible" />
-                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">Starred</span>
+              {/* All reports */}
+              {otherReports.length > 0 && (
+                <>
+                  {starredReports.length > 0 && (
+                    <div className="px-4 py-2 bg-muted/30 border-b border-t flex items-center gap-1.5">
+                      <FileText className="h-3 w-3 text-muted-foreground" />
+                      <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">All Reports</span>
                     </div>
-                    {starredReports.map(report => (
-                      <ReportRow key={report.id} report={report} onPreview={() => setPreviewReport(report)} />
-                    ))}
-                  </>
-                )}
+                  )}
+                  {otherReports.map(report => (
+                    <ReportRow key={report.id} report={report} onPreview={() => setPreviewReport(report)} />
+                  ))}
+                </>
+              )}
 
-                {/* All reports */}
-                {otherReports.length > 0 && (
-                  <>
-                    {starredReports.length > 0 && (
-                      <div className="px-4 py-2 bg-muted/30 border-b border-t flex items-center gap-1.5">
-                        <FileText className="h-3 w-3 text-muted-foreground" />
-                        <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">All Reports</span>
-                      </div>
-                    )}
-                    {otherReports.map(report => (
-                      <ReportRow key={report.id} report={report} onPreview={() => setPreviewReport(report)} />
-                    ))}
-                  </>
-                )}
-
-                {filteredReports.length === 0 && (
-                  <div className="px-4 py-12 text-center text-muted-foreground text-sm">
-                    No reports match the current filters.
-                  </div>
-                )}
-              </div>
+              {filteredReports.length === 0 && (
+                <div className="px-4 py-12 text-center text-muted-foreground text-sm">
+                  No reports match the current filters.
+                </div>
+              )}
             </div>
           </Card>
         </TabsContent>

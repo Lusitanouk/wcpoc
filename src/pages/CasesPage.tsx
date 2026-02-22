@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search, Archive, Users, ArrowRightLeft, Download, ToggleRight, AlertTriangle,
   Filter, Settings2, Shield, Newspaper, CreditCard, Save, Trash2, RefreshCw,
-  UserPlus, X, SlidersHorizontal, Briefcase
+  UserPlus, X, SlidersHorizontal, Briefcase, Layers, User, Globe
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -17,6 +17,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { toast } from 'sonner';
 import { cases, groups, getGroupById } from '@/data/mock-data';
 import { useAppContext } from '@/context/AppContext';
+import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import type { CheckType, RiskLevel, EntityType } from '@/types';
 
 // Constants, types, helpers
@@ -34,17 +35,6 @@ const riskLevelColor: Record<RiskLevel, string> = {
   Medium: 'text-yellow-500',
   Low: 'text-green-500',
   None: 'text-gray-500',
-};
-const entityTypeLabels: Record<EntityType, string> = {
-  Individual: 'Individual',
-  Organisation: 'Organisation',
-  Vessel: 'Vessel',
-  Unspecified: 'Unspecified',
-};
-const checkTypeLabels: Record<CheckType, string> = {
-  'World-Check': 'World-Check',
-  'Media Check': 'Media Check',
-  'Passport Check': 'Passport Check',
 };
 const checkTypeIcon: Record<CheckType, React.ReactNode> = {
   'World-Check': <Shield className="h-3 w-3" />,
@@ -66,14 +56,8 @@ interface CaseFilters {
   checkType: string;
   ogs: string;
 }
-interface SavedFilter { name: string; filters: CaseFilters; }
 
 const EMPTY_FILTERS: CaseFilters = { search: '', groupId: 'all', assignee: 'all', rating: 'all', entityType: 'all', checkType: 'all', ogs: 'all' };
-
-function loadSavedFilters(): SavedFilter[] {
-  try { const raw = localStorage.getItem('wc1-saved-filters'); return raw ? JSON.parse(raw) : []; } catch { return []; }
-}
-function persistSavedFilters(f: SavedFilter[]) { localStorage.setItem('wc1-saved-filters', JSON.stringify(f)); }
 
 interface ColumnDef { key: string; label: string; defaultVisible: boolean; }
 const ALL_COLUMNS: ColumnDef[] = [
@@ -88,24 +72,12 @@ const ALL_COLUMNS: ColumnDef[] = [
   { key: 'ogs', label: 'OGS', defaultVisible: true },
   { key: 'createdAt', label: 'Created', defaultVisible: false },
 ];
-interface ColumnSet { name: string; columns: string[]; }
 const DEFAULT_COLUMNS = ALL_COLUMNS.filter(c => c.defaultVisible).map(c => c.key);
 
-function loadColumnSets(): ColumnSet[] { try { const r = localStorage.getItem('wc1-column-sets'); return r ? JSON.parse(r) : []; } catch { return []; } }
-function saveColumnSets(s: ColumnSet[]) { localStorage.setItem('wc1-column-sets', JSON.stringify(s)); }
+function loadColumnSets(): { name: string; columns: string[] }[] { try { const r = localStorage.getItem('wc1-column-sets'); return r ? JSON.parse(r) : []; } catch { return []; } }
+function saveColumnSets(s: { name: string; columns: string[] }[]) { localStorage.setItem('wc1-column-sets', JSON.stringify(s)); }
 function loadActiveColumns(): string[] { try { const r = localStorage.getItem('wc1-active-columns'); return r ? JSON.parse(r) : DEFAULT_COLUMNS; } catch { return DEFAULT_COLUMNS; } }
 function persistActiveColumns(c: string[]) { localStorage.setItem('wc1-active-columns', JSON.stringify(c)); }
-
-function filtersActive(f: CaseFilters): number {
-  let count = 0;
-  if (f.groupId !== 'all') count++;
-  if (f.assignee !== 'all') count++;
-  if (f.rating !== 'all') count++;
-  if (f.entityType !== 'all') count++;
-  if (f.checkType !== 'all') count++;
-  if (f.ogs !== 'all') count++;
-  return count;
-}
 
 export default function CasesPage() {
   const navigate = useNavigate();
@@ -113,11 +85,8 @@ export default function CasesPage() {
   const [filters, setFilters] = useState<CaseFilters>(EMPTY_FILTERS);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [visibleColumns, setVisibleColumns] = useState<string[]>(loadActiveColumns);
-  const [columnSets, setColumnSets] = useState<ColumnSet[]>(loadColumnSets);
+  const [columnSets, setColumnSets] = useState<{ name: string; columns: string[] }[]>(loadColumnSets);
   const [newSetName, setNewSetName] = useState('');
-  const [savedFilters, setSavedFilters] = useState<SavedFilter[]>(loadSavedFilters);
-  const [showFilters, setShowFilters] = useState(true);
-  const [newFilterName, setNewFilterName] = useState('');
 
   const [bulkAssignOpen, setBulkAssignOpen] = useState(false);
   const [bulkMoveOpen, setBulkMoveOpen] = useState(false);
@@ -127,6 +96,16 @@ export default function CasesPage() {
   const [bulkComment, setBulkComment] = useState('');
 
   const activeCases = useMemo(() => cases.filter(c => c.status === 'Active'), []);
+  const uniqueAssignees = useMemo(() => [...new Set(activeCases.map(c => c.assignee))].sort(), [activeCases]);
+
+  const filterDefs: FilterDefinition[] = useMemo(() => [
+    { key: 'groupId', label: 'Group', icon: <Layers className="h-3 w-3" />, defaultValue: 'all', options: [{ value: 'all', label: 'All Groups' }, ...groups.map(g => ({ value: g.id, label: g.name }))] },
+    { key: 'assignee', label: 'Assignee', icon: <User className="h-3 w-3" />, defaultValue: 'all', options: [{ value: 'all', label: 'All Assignees' }, ...uniqueAssignees.map(a => ({ value: a, label: a }))] },
+    { key: 'rating', label: 'Risk Rating', icon: <AlertTriangle className="h-3 w-3" />, defaultValue: 'all', options: [{ value: 'all', label: 'All Ratings' }, ...allRatings.map(r => ({ value: r, label: r }))] },
+    { key: 'entityType', label: 'Entity Type', icon: <Globe className="h-3 w-3" />, defaultValue: 'all', options: [{ value: 'all', label: 'All Types' }, ...allEntityTypes.map(t => ({ value: t, label: t }))] },
+    { key: 'checkType', label: 'Check Type', icon: <Shield className="h-3 w-3" />, defaultValue: 'all', options: [{ value: 'all', label: 'All Checks' }, ...allCheckTypes.map(ct => ({ value: ct, label: ct }))] },
+    { key: 'ogs', label: 'OGS Status', icon: <ToggleRight className="h-3 w-3" />, defaultValue: 'all', options: [{ value: 'all', label: 'All' }, { value: 'active', label: 'Active' }, { value: 'off', label: 'Off' }] },
+  ], [uniqueAssignees]);
 
   const filtered = useMemo(() => {
     return activeCases.filter(c => {
@@ -143,7 +122,6 @@ export default function CasesPage() {
   }, [filters, activeCases]);
 
   const setFilter = (key: keyof CaseFilters, value: string) => setFilters(prev => ({ ...prev, [key]: value }));
-  const activeFilterCount = filtersActive(filters);
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
@@ -155,20 +133,13 @@ export default function CasesPage() {
   const toggleColumn = useCallback((key: string) => {
     setVisibleColumns(prev => { const next = prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]; persistActiveColumns(next); return next; });
   }, []);
-  const applyColumnSet = (set: ColumnSet) => { setVisibleColumns(set.columns); persistActiveColumns(set.columns); };
+  const applyColumnSet = (set: { name: string; columns: string[] }) => { setVisibleColumns(set.columns); persistActiveColumns(set.columns); };
   const saveCurrentAsSet = () => {
     if (!newSetName.trim()) return;
     const updated = [...columnSets.filter(s => s.name !== newSetName.trim()), { name: newSetName.trim(), columns: visibleColumns }];
     setColumnSets(updated); saveColumnSets(updated); setNewSetName('');
   };
   const deleteColumnSet = (name: string) => { const updated = columnSets.filter(s => s.name !== name); setColumnSets(updated); saveColumnSets(updated); };
-
-  const saveCurrentFilter = () => {
-    if (!newFilterName.trim()) return;
-    const updated = [...savedFilters.filter(s => s.name !== newFilterName.trim()), { name: newFilterName.trim(), filters: { ...filters } }];
-    setSavedFilters(updated); persistSavedFilters(updated); setNewFilterName('');
-  };
-  const deleteFilter = (name: string) => { const updated = savedFilters.filter(s => s.name !== name); setSavedFilters(updated); persistSavedFilters(updated); };
 
   const isCol = (key: string) => visibleColumns.includes(key);
   const visibleColCount = visibleColumns.length + 1;
@@ -179,8 +150,6 @@ export default function CasesPage() {
       toast.success(`${action} — ${count} case${count !== 1 ? 's' : ''} updated`);
     }
   };
-
-  const uniqueAssignees = useMemo(() => [...new Set(activeCases.map(c => c.assignee))].sort(), [activeCases]);
 
   return (
     <div>
@@ -194,17 +163,6 @@ export default function CasesPage() {
 
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <Button
-          variant={showFilters ? 'secondary' : 'outline'}
-          size="sm"
-          className="h-8 text-xs gap-1"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          {showFilters ? 'Hide' : 'Filters'}
-          {activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
-        </Button>
-
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search cases..." className="pl-9 h-8 text-sm" />
@@ -262,189 +220,58 @@ export default function CasesPage() {
         )}
       </div>
 
+      {/* ── Filter Bar ── */}
+      <div className="mb-3">
+        <FilterBar
+          filters={filterDefs}
+          values={filters as unknown as Record<string, string>}
+          onChange={(key, value) => setFilter(key as keyof CaseFilters, value)}
+          onClearAll={() => setFilters(EMPTY_FILTERS)}
+        />
+      </div>
+
       <Card>
-        <div className="flex">
-          {showFilters && (
-            <div className="w-[220px] shrink-0 border-r p-4 space-y-4 animate-fade-in">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Filters</h3>
-                {activeFilterCount > 0 && (
-                  <Button variant="ghost" size="sm" className="h-5 text-[10px] px-1.5 gap-0.5" onClick={() => setFilters(EMPTY_FILTERS)}>
-                    <X className="h-2.5 w-2.5" /> Clear
-                  </Button>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-muted-foreground">Group</label>
-                <Select value={filters.groupId} onValueChange={v => setFilter('groupId', v)}>
-                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Groups</SelectItem>
-                    {groups.map(g => <SelectItem key={g.id} value={g.id}>{g.name}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-muted-foreground">Assignee</label>
-                <Select value={filters.assignee} onValueChange={v => setFilter('assignee', v)}>
-                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Assignees</SelectItem>
-                    {uniqueAssignees.map(a => <SelectItem key={a} value={a}>{a}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-muted-foreground">Risk Rating</label>
-                <Select value={filters.rating} onValueChange={v => setFilter('rating', v)}>
-                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Ratings</SelectItem>
-                    {allRatings.map(r => <SelectItem key={r} value={r}>{r}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-muted-foreground">Entity Type</label>
-                <Select value={filters.entityType} onValueChange={v => setFilter('entityType', v)}>
-                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Types</SelectItem>
-                    {allEntityTypes.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-muted-foreground">Check Type</label>
-                <Select value={filters.checkType} onValueChange={v => setFilter('checkType', v)}>
-                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Checks</SelectItem>
-                    {allCheckTypes.map(ct => <SelectItem key={ct} value={ct}>{ct}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[11px] font-medium text-muted-foreground">OGS Status</label>
-                <Select value={filters.ogs} onValueChange={v => setFilter('ogs', v)}>
-                  <SelectTrigger className="h-7 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="off">Off</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Saved Filters */}
-              <div className="border-t pt-3 space-y-2">
-                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide">Saved Filters</p>
-                {savedFilters.length > 0 && (
-                  <div className="space-y-1">
-                    {savedFilters.map(sf => (
-                      <div key={sf.name} className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" className="h-6 text-[11px] flex-1 justify-start px-2" onClick={() => setFilters(sf.filters)}>{sf.name}</Button>
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => deleteFilter(sf.name)}><Trash2 className="h-3 w-3 text-muted-foreground" /></Button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-                <div className="flex gap-1">
-                  <Input value={newFilterName} onChange={e => setNewFilterName(e.target.value)} placeholder="Filter name..." className="h-7 text-xs flex-1" onKeyDown={e => e.key === 'Enter' && saveCurrentFilter()} />
-                  <Button variant="outline" size="sm" className="h-7 px-2" onClick={saveCurrentFilter} disabled={!newFilterName.trim()}><Save className="h-3 w-3" /></Button>
-                </div>
-              </div>
-
-              {/* Active filter chips */}
-              {activeFilterCount > 0 && (
-                <div className="border-t pt-3 space-y-1">
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Active</p>
-                  <div className="flex flex-wrap gap-1">
-                    {filters.groupId !== 'all' && (
-                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                        {getGroupById(filters.groupId)?.name}
-                        <button onClick={() => setFilter('groupId', 'all')}><X className="h-2.5 w-2.5" /></button>
-                      </Badge>
-                    )}
-                    {filters.assignee !== 'all' && (
-                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                        {filters.assignee}
-                        <button onClick={() => setFilter('assignee', 'all')}><X className="h-2.5 w-2.5" /></button>
-                      </Badge>
-                    )}
-                    {filters.rating !== 'all' && (
-                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                        {filters.rating}
-                        <button onClick={() => setFilter('rating', 'all')}><X className="h-2.5 w-2.5" /></button>
-                      </Badge>
-                    )}
-                    {filters.entityType !== 'all' && (
-                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                        {filters.entityType}
-                        <button onClick={() => setFilter('entityType', 'all')}><X className="h-2.5 w-2.5" /></button>
-                      </Badge>
-                    )}
-                    {filters.checkType !== 'all' && (
-                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                        {filters.checkType}
-                        <button onClick={() => setFilter('checkType', 'all')}><X className="h-2.5 w-2.5" /></button>
-                      </Badge>
-                    )}
-                    {filters.ogs !== 'all' && (
-                      <Badge variant="secondary" className="text-[10px] gap-1 pr-1">
-                        OGS: {filters.ogs}
-                        <button onClick={() => setFilter('ogs', 'all')}><X className="h-2.5 w-2.5" /></button>
-                      </Badge>
-                    )}
-                  </div>
-                </div>
+        {/* Table */}
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="px-4 py-3 w-10"><Checkbox checked={selectedIds.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} /></th>
+                {isCol('name') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Case Name</th>}
+                {isCol('id') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">ID</th>}
+                {isCol('group') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Group</th>}
+                {isCol('assignee') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Assignee</th>}
+                {isCol('checkTypes') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Check Types</th>}
+                {isCol('entityType') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Entity Type</th>}
+                {isCol('rating') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Rating</th>}
+                {isCol('lastScreened') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Last Screened</th>}
+                {isCol('ogs') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">OGS</th>}
+                {isCol('createdAt') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Created</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.length === 0 ? (
+                <tr><td colSpan={visibleColCount} className="px-4 py-12 text-center text-muted-foreground">No cases match your filters.</td></tr>
+              ) : (
+                filtered.map(c => (
+                  <tr key={c.id} className={`border-b cursor-pointer transition-colors hover:bg-muted/30 ${c.mandatoryAction ? 'bg-status-possible/5' : ''}`}
+                    onClick={() => navigate(`/cases/${c.id}`)} tabIndex={0} onKeyDown={e => e.key === 'Enter' && navigate(`/cases/${c.id}`)}>
+                    <td className="px-4 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={selectedIds.has(c.id)} onCheckedChange={() => toggleSelect(c.id)} /></td>
+                    {isCol('name') && <td className="px-4 py-3"><div className="flex items-center gap-2"><span className="font-medium">{c.name}</span>{c.mandatoryAction && <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />}</div></td>}
+                    {isCol('id') && <td className="px-4 py-3 font-mono text-xs">{c.id}</td>}
+                    {isCol('group') && <td className="px-4 py-3 text-xs">{getGroupById(c.groupId)?.name || '—'}</td>}
+                    {isCol('assignee') && <td className="px-4 py-3 text-xs"><span className={c.assignee === 'Unassigned' ? 'text-muted-foreground italic' : ''}>{c.assignee}</span></td>}
+                    {isCol('checkTypes') && <td className="px-4 py-3"><div className="flex items-center gap-1">{c.checkTypes.map(ct => (<span key={ct} className="inline-flex items-center gap-0.5 h-5 px-1.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground" title={ct}>{checkTypeIcon[ct]}{checkTypeAbbr[ct]}</span>))}</div></td>}
+                    {isCol('entityType') && <td className="px-4 py-3 text-xs">{c.entityType}</td>}
+                    {isCol('rating') && <td className="px-4 py-3"><Badge variant="outline" className={`text-[10px] ${c.rating === 'High' ? 'border-destructive text-destructive' : c.rating === 'Medium' ? 'border-amber-500 text-amber-600' : 'border-muted-foreground text-muted-foreground'}`}>{c.rating}</Badge></td>}
+                    {isCol('lastScreened') && <td className="px-4 py-3 text-xs">{c.lastScreenedAt}</td>}
+                    {isCol('ogs') && <td className="px-4 py-3"><div className="flex gap-1">{c.ogsWorldCheck && <Badge variant="default" className="text-[10px]">WC</Badge>}{c.ogsMediaCheck && <Badge variant="default" className="text-[10px]">MC</Badge>}{!c.ogsWorldCheck && !c.ogsMediaCheck && <Badge variant="secondary" className="text-[10px]">Off</Badge>}</div></td>}
+                    {isCol('createdAt') && <td className="px-4 py-3 text-xs">{c.createdAt}</td>}
+                  </tr>
+                ))
               )}
-            </div>
-          )}
-
-          {/* Table */}
-          <div className="flex-1 overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-muted/50">
-                  <th className="px-4 py-3 w-10"><Checkbox checked={selectedIds.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} /></th>
-                  {isCol('name') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Case Name</th>}
-                  {isCol('id') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">ID</th>}
-                  {isCol('group') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Group</th>}
-                  {isCol('assignee') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Assignee</th>}
-                  {isCol('checkTypes') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Check Types</th>}
-                  {isCol('entityType') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Entity Type</th>}
-                  {isCol('rating') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Rating</th>}
-                  {isCol('lastScreened') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Last Screened</th>}
-                  {isCol('ogs') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">OGS</th>}
-                  {isCol('createdAt') && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Created</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td colSpan={visibleColCount} className="px-4 py-12 text-center text-muted-foreground">No cases match your filters.</td></tr>
-                ) : (
-                  filtered.map(c => (
-                    <tr key={c.id} className={`border-b cursor-pointer transition-colors hover:bg-muted/30 ${c.mandatoryAction ? 'bg-status-possible/5' : ''}`}
-                      onClick={() => navigate(`/cases/${c.id}`)} tabIndex={0} onKeyDown={e => e.key === 'Enter' && navigate(`/cases/${c.id}`)}>
-                      <td className="px-4 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={selectedIds.has(c.id)} onCheckedChange={() => toggleSelect(c.id)} /></td>
-                      {isCol('name') && <td className="px-4 py-3"><div className="flex items-center gap-2"><span className="font-medium">{c.name}</span>{c.mandatoryAction && <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />}</div></td>}
-                      {isCol('id') && <td className="px-4 py-3 font-mono text-xs">{c.id}</td>}
-                      {isCol('group') && <td className="px-4 py-3 text-xs">{getGroupById(c.groupId)?.name || '—'}</td>}
-                      {isCol('assignee') && <td className="px-4 py-3 text-xs"><span className={c.assignee === 'Unassigned' ? 'text-muted-foreground italic' : ''}>{c.assignee}</span></td>}
-                      {isCol('checkTypes') && <td className="px-4 py-3"><div className="flex items-center gap-1">{c.checkTypes.map(ct => (<span key={ct} className="inline-flex items-center gap-0.5 h-5 px-1.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground" title={ct}>{checkTypeIcon[ct]}{checkTypeAbbr[ct]}</span>))}</div></td>}
-                      {isCol('entityType') && <td className="px-4 py-3 text-xs">{c.entityType}</td>}
-                      {isCol('rating') && <td className="px-4 py-3"><Badge variant="outline" className={`text-[10px] ${c.rating === 'High' ? 'border-destructive text-destructive' : c.rating === 'Medium' ? 'border-amber-500 text-amber-600' : 'border-muted-foreground text-muted-foreground'}`}>{c.rating}</Badge></td>}
-                      {isCol('lastScreened') && <td className="px-4 py-3 text-xs">{c.lastScreenedAt}</td>}
-                      {isCol('ogs') && <td className="px-4 py-3"><div className="flex gap-1">{c.ogsWorldCheck && <Badge variant="default" className="text-[10px]">WC</Badge>}{c.ogsMediaCheck && <Badge variant="default" className="text-[10px]">MC</Badge>}{!c.ogsWorldCheck && !c.ogsMediaCheck && <Badge variant="secondary" className="text-[10px]">Off</Badge>}</div></td>}
-                      {isCol('createdAt') && <td className="px-4 py-3 text-xs">{c.createdAt}</td>}
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
+            </tbody>
+          </table>
         </div>
       </Card>
 
