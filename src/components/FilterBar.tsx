@@ -82,6 +82,18 @@ function FilterChip({
           </div>
         </div>
         <div className="max-h-48 overflow-y-auto p-1">
+          {value !== filter.defaultValue && (
+            <button
+              onClick={() => { onChange(filter.defaultValue); setOpen(false); setSearch(''); }}
+              className="w-full flex items-center gap-2 px-2 py-1.5 text-xs rounded-md transition-colors text-left text-muted-foreground hover:bg-muted hover:text-foreground mb-0.5"
+            >
+              <X className="h-3.5 w-3.5" />
+              Clear filter
+            </button>
+          )}
+          {value !== filter.defaultValue && filteredOptions.length > 0 && (
+            <div className="border-b border-border/50 mb-0.5" />
+          )}
           {filteredOptions.map(option => (
             <button
               key={option.value}
