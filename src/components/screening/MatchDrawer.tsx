@@ -68,9 +68,10 @@ interface MatchDrawerProps {
   currentIndex?: number;
   totalMatches?: number;
   onNavigate?: (direction: 'prev' | 'next') => void;
+  defaultFullscreen?: boolean;
 }
 
-export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screeningData, currentIndex, totalMatches, onNavigate }: MatchDrawerProps) {
+export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screeningData, currentIndex, totalMatches, onNavigate, defaultFullscreen }: MatchDrawerProps) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<MatchStatus>(match?.status || 'Unresolved');
   const [risk, setRisk] = useState<RiskLevel>(match?.riskLevel || 'None');
@@ -79,7 +80,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
   const [comment, setComment] = useState('');
   const [activeTab, setActiveTab] = useState('key-data');
   const [historyOpen, setHistoryOpen] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(defaultFullscreen ?? false);
 
   useEffect(() => {
     if (match) {
@@ -88,8 +89,9 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
       setReason(match.reason);
       setComment('');
       setHistoryOpen(false);
+      setIsFullscreen(defaultFullscreen ?? false);
     }
-  }, [match?.id]);
+  }, [match?.id, defaultFullscreen]);
 
   if (!match) return null;
 
