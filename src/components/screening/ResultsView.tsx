@@ -328,7 +328,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
     <div>
 
       {/* Disposition Summary & Bucket Tabs */}
-      <div className="mb-4 rounded-lg border bg-card w-fit">
+      <div className="mb-4 rounded-lg border bg-card">
         {/* Bucket tabs */}
         <div className="flex gap-1 p-1">
           {BUCKETS.map(bucket => (
