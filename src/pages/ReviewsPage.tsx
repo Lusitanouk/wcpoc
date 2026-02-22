@@ -365,18 +365,20 @@ export default function AlertsPage() {
       )}
 
       <Tabs value={tab} onValueChange={handleTabChange}>
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 h-auto gap-1 bg-muted p-1 rounded-lg">
           <ResponsiveTabsTrigger
             value="unresolved"
             icon={<Clock className="h-3.5 w-3.5" />}
             label="New (Unresolved)"
             badge={<Badge variant="secondary" className="ml-1 text-[10px]">{unresolvedMatches.length}</Badge>}
+            className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-background/50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
           />
           <ResponsiveTabsTrigger
             value="review"
             icon={<AlertTriangle className="h-3.5 w-3.5" />}
             label="Updated (Review Required)"
             badge={<Badge variant="secondary" className="ml-1 text-[10px]">{reviewRequiredMatches.length}</Badge>}
+            className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-background/50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
           />
         </TabsList>
 
