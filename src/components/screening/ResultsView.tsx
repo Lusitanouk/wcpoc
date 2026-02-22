@@ -325,10 +325,10 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-220px)]">
+    <div>
 
       {/* Disposition Summary & Bucket Tabs */}
-      <div className="mb-4 rounded-lg border bg-card shrink-0">
+      <div className="mb-4 rounded-lg border bg-card sticky -top-6 z-20 -mx-6 px-6 pt-6">
         {/* Bucket tabs */}
         <div className="flex gap-1 p-1">
           {BUCKETS.map(bucket => (
@@ -493,7 +493,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
         </div>
       )}
 
-      <Card className="flex-1 min-h-0 overflow-y-auto">
+      <Card>
 
           {/* Table */}
           <div className="overflow-x-auto">
