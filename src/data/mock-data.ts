@@ -401,3 +401,33 @@ export function getCaseById(caseId: string): Case | undefined {
 export function getGroupById(groupId: string): Group | undefined {
   return groups.find(g => g.id === groupId);
 }
+
+// ─── Mutation helpers ────────────────────────────────────────
+
+export function updateCase(caseId: string, patch: Partial<Case>): Case | undefined {
+  const idx = cases.findIndex(c => c.id === caseId);
+  if (idx === -1) return undefined;
+  Object.assign(cases[idx], patch);
+  return cases[idx];
+}
+
+export function updateMatch(matchId: string, patch: Partial<Match>): Match | undefined {
+  const idx = allMatches.findIndex(m => m.id === matchId);
+  if (idx === -1) return undefined;
+  Object.assign(allMatches[idx], patch);
+  return allMatches[idx];
+}
+
+/** Recalculate case aggregate counts from its current matches */
+export function recalcCaseCounts(caseId: string): void {
+  const c = cases.find(c => c.id === caseId);
+  if (!c) return;
+  const m = allMatches.filter(m => m.caseId === caseId);
+  c.unresolvedCount = m.filter(x => x.status === 'Unresolved').length;
+  c.reviewRequiredCount = m.filter(x => x.reviewRequired).length;
+  c.positiveCount = m.filter(x => x.status === 'Positive').length;
+  c.possibleCount = m.filter(x => x.status === 'Possible').length;
+  c.falseCount = m.filter(x => x.status === 'False').length;
+  c.unknownCount = m.filter(x => x.status === 'Unknown').length;
+  c.mandatoryAction = c.reviewRequiredCount > 0 || c.unresolvedCount > 2;
+}
