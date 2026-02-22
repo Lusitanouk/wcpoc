@@ -481,8 +481,7 @@ export default function CaseDetailPage() {
             <DropdownMenuItem onClick={() => { setActionComment(''); setMoveDialog(true); }}><ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> Move Group</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => { setActionComment(''); setRescreenDialog(true); }}><RefreshCw className="h-3.5 w-3.5 mr-2" /> Rescreen</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => addAuditEvent('ogs_toggle', `OGS Watchlists ${caseData.ogsWorldCheck ? 'disabled' : 'enabled'}`)}><ToggleRight className="h-3.5 w-3.5 mr-2" /> {caseData.ogsWorldCheck ? 'Disable' : 'Enable'} OGS WL</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => addAuditEvent('ogs_toggle', `OGS Adverse Media ${caseData.ogsMediaCheck ? 'disabled' : 'enabled'}`)}><ToggleRight className="h-3.5 w-3.5 mr-2" /> {caseData.ogsMediaCheck ? 'Disable' : 'Enable'} OGS AM</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => { setActionComment(''); setOgsDialog(true); }}><ToggleRight className="h-3.5 w-3.5 mr-2" /> Ongoing Screening</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => { setActionComment(''); setArchiveDialog(true); }}><Archive className="h-3.5 w-3.5 mr-2" /> Archive</DropdownMenuItem>
             <DropdownMenuItem className="text-destructive" onClick={() => { setActionComment(''); setDeleteDialog(true); }}><Trash2 className="h-3.5 w-3.5 mr-2" /> Delete</DropdownMenuItem>
