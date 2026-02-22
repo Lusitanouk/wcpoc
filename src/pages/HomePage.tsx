@@ -44,14 +44,14 @@ export default function HomePage() {
           value={stats.reviewRequired.length}
           icon={<Eye className="h-4 w-4" />}
           variant="warning"
-          onClick={() => navigate('/cases')}
+          onClick={() => navigate('/alerts')}
         />
         <SummaryCard
           label="Unresolved Matches"
           value={stats.unresolvedMatches.length}
           icon={<HelpCircle className="h-4 w-4" />}
           variant="danger"
-          onClick={() => navigate('/cases')}
+          onClick={() => navigate('/alerts')}
         />
         <SummaryCard
           label="Alert Backlog"
@@ -110,7 +110,7 @@ export default function HomePage() {
               <CardTitle className="text-sm font-semibold flex items-center gap-2">
                 <Eye className="h-4 w-4 text-status-possible" /> Review Required
               </CardTitle>
-              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate('/cases')}>
+              <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={() => navigate('/alerts')}>
                 View all <ArrowRight className="h-3 w-3" />
               </Button>
             </div>
@@ -123,7 +123,7 @@ export default function HomePage() {
                 <button
                   key={c.id}
                   className="w-full flex items-center justify-between px-3 py-2 rounded-md hover:bg-muted/50 transition-colors text-left"
-                  onClick={() => navigate(`/cases/${c.id}`)}
+                  onClick={() => navigate(`/alerts`)}
                 >
                   <div className="min-w-0">
                     <span className="text-sm font-medium">{c.name}</span>
