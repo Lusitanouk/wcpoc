@@ -471,14 +471,9 @@ export default function CaseDetailPage() {
         </Tooltip>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-1 shrink-0">
-                  <span className="hidden md:inline">Actions</span> <ChevronDown className="h-3 w-3" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="md:hidden text-xs">Actions</TooltipContent>
-            </Tooltip>
+            <Button variant="outline" size="sm" className="gap-1 shrink-0">
+              <span className="hidden md:inline">Actions</span> <ChevronDown className="h-3 w-3" />
+            </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem onClick={() => { setActionComment(''); setEditDialog(true); }}><Edit className="h-3.5 w-3.5 mr-2" /> Edit Case</DropdownMenuItem>
