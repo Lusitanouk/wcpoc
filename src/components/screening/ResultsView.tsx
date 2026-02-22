@@ -516,8 +516,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
           {/* Table */}
             <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50 sticky z-30" style={{ top: `${stickyOffsets.thead}px` }}>
-                <th className="px-3 py-3 w-10 sticky left-0 z-20 bg-muted/50">
+              <tr className="border-b bg-card sticky z-30" style={{ top: `${stickyOffsets.thead}px` }}>
+                <th className="px-3 py-3 w-10 sticky left-0 z-20 bg-card">
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={toggleAll}
@@ -529,7 +529,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                 {visibleColumns.map(key => {
                   const col = MATCH_COLUMNS.find(c => c.key === key)!;
                   const widthClass = key === 'priority' ? 'w-20' : key === 'strength' ? 'w-32' : '';
-                  const stickyClass = key === 'name' ? 'sticky left-10 z-20 bg-muted/50 min-w-[250px]' : '';
+                  const stickyClass = key === 'name' ? 'sticky left-10 z-20 bg-card min-w-[250px]' : '';
                   return (
                     <React.Fragment key={key}>
                       <th className={`text-left px-4 py-3 font-medium text-muted-foreground ${widthClass} ${stickyClass}`}>{col.label}</th>
