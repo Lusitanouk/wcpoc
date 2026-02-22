@@ -638,7 +638,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
           </SheetContent>
         </Sheet>
         <Dialog open={open} onOpenChange={v => { if (!v) { setIsFullscreen(false); onClose(); } }}>
-          <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] p-0 overflow-hidden">
+          <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] p-0 overflow-hidden [&>button.absolute]:hidden">
             {drawerContent}
           </DialogContent>
         </Dialog>
