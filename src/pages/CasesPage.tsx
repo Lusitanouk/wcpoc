@@ -94,6 +94,7 @@ export default function CasesPage() {
   const [bulkAssignee, setBulkAssignee] = useState('');
   const [bulkGroup, setBulkGroup] = useState('');
   const [bulkComment, setBulkComment] = useState('');
+  const [showFilters, setShowFilters] = useState(true);
 
   const activeCases = useMemo(() => cases.filter(c => c.status === 'Active'), []);
   const uniqueAssignees = useMemo(() => [...new Set(activeCases.map(c => c.assignee))].sort(), [activeCases]);
@@ -122,6 +123,7 @@ export default function CasesPage() {
   }, [filters, activeCases]);
 
   const setFilter = (key: keyof CaseFilters, value: string) => setFilters(prev => ({ ...prev, [key]: value }));
+  const activeFilterCount = Object.entries(filters).filter(([k, v]) => k !== 'search' && v !== 'all').length;
 
   const toggleSelect = (id: string) => {
     setSelectedIds(prev => { const next = new Set(prev); next.has(id) ? next.delete(id) : next.add(id); return next; });
@@ -163,6 +165,16 @@ export default function CasesPage() {
 
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
+        <Button
+          variant={showFilters ? 'secondary' : 'outline'}
+          size="sm"
+          className="h-8 text-xs gap-1"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Filters
+          {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
+        </Button>
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search cases..." className="pl-9 h-8 text-sm" />
@@ -221,14 +233,16 @@ export default function CasesPage() {
       </div>
 
       {/* ── Filter Bar ── */}
-      <div className="mb-3">
-        <FilterBar
-          filters={filterDefs}
-          values={filters as unknown as Record<string, string>}
-          onChange={(key, value) => setFilter(key as keyof CaseFilters, value)}
-          onClearAll={() => setFilters(EMPTY_FILTERS)}
-        />
-      </div>
+      {showFilters && (
+        <div className="mb-3">
+          <FilterBar
+            filters={filterDefs}
+            values={filters as unknown as Record<string, string>}
+            onChange={(key, value) => setFilter(key as keyof CaseFilters, value)}
+            onClearAll={() => setFilters(EMPTY_FILTERS)}
+          />
+        </div>
+      )}
 
       <Card>
         {/* Table */}
