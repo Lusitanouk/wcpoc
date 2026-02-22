@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { AlertTriangle, Clock, ChevronDown, ChevronRight, ArrowUpDown, Calendar, Layers, BarChart3 } from 'lucide-react';
+import { AlertTriangle, Clock, ChevronDown, ChevronRight, ArrowUpDown, Calendar, Layers, BarChart3, Filter } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -60,6 +60,7 @@ export default function AlertsPage() {
   const [tab, setTab] = useState('unresolved');
   const [filterValues, setFilterValues] = useState<Record<string, string>>({ priority: 'all', age: 'all', sort: 'priority' });
   const [groupByCase, setGroupByCase] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
   const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
 
   const priorityFilter = filterValues.priority || 'all';
@@ -134,6 +135,11 @@ export default function AlertsPage() {
     });
   };
 
+  const activeFilterCount = Object.entries(filterValues).filter(([k, v]) => {
+    const def = FILTER_DEFS.find(f => f.key === k);
+    return def && v !== def.defaultValue;
+  }).length;
+
   return (
     <div>
       <div className="flex items-center justify-between mb-4">
@@ -141,26 +147,40 @@ export default function AlertsPage() {
           <AlertTriangle className="h-5 w-5 text-primary" />
           Alerts
         </h1>
-        <Button
-          variant={groupByCase ? 'secondary' : 'outline'}
-          size="sm"
-          className="h-8 text-xs gap-1"
-          onClick={() => setGroupByCase(!groupByCase)}
-        >
-          <Layers className="h-3.5 w-3.5" />
-          Group by Case
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant={showFilters ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            Filters
+            {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
+          </Button>
+          <Button
+            variant={groupByCase ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => setGroupByCase(!groupByCase)}
+          >
+            <Layers className="h-3.5 w-3.5" />
+            Group by Case
+          </Button>
+        </div>
       </div>
 
       {/* ── Filter Bar ── */}
-      <div className="mb-4">
-        <FilterBar
-          filters={FILTER_DEFS}
-          values={filterValues}
-          onChange={handleFilterChange}
-          onClearAll={() => setFilterValues({ priority: 'all', age: 'all', sort: 'priority' })}
-        />
-      </div>
+      {showFilters && (
+        <div className="mb-4">
+          <FilterBar
+            filters={FILTER_DEFS}
+            values={filterValues}
+            onChange={handleFilterChange}
+            onClearAll={() => setFilterValues({ priority: 'all', age: 'all', sort: 'priority' })}
+          />
+        </div>
+      )}
 
       {/* Summary */}
       <div className="grid grid-cols-5 gap-3 mb-6">
