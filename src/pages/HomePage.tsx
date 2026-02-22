@@ -1,32 +1,66 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Briefcase, AlertTriangle, Eye, Clock, ArrowRight, Shield, CheckCircle, XCircle, HelpCircle, User } from 'lucide-react';
+import { Briefcase, AlertTriangle, Eye, Clock, ArrowRight, Shield, CheckCircle, XCircle, HelpCircle, User, Filter } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cases, allMatches } from '@/data/mock-data';
+import { computePriorityScore, priorityLevel, priorityColor } from '@/lib/priority';
+import type { PriorityLevel } from '@/types';
 
 const CURRENT_USER = 'Jane Doe';
+
+type PriorityFilter = 'All' | PriorityLevel;
 
 export default function HomePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('All');
 
-    const stats = useMemo(() => {
+  const matchesWithPriority = useMemo(() =>
+    allMatches.map(m => ({
+      ...m,
+      priorityScore: computePriorityScore(m),
+      priority: priorityLevel(computePriorityScore(m)),
+    })),
+  []);
+
+  const stats = useMemo(() => {
+    const filtered = priorityFilter === 'All'
+      ? matchesWithPriority
+      : matchesWithPriority.filter(m => m.priority === priorityFilter);
+
     const myCases = cases.filter(c => c.assignee === CURRENT_USER);
-    const totalAlerts = allMatches;
-    const unresolvedMatches = allMatches.filter(m => m.status === 'Unresolved');
+    const totalAlerts = filtered;
+    const unresolvedMatches = filtered.filter(m => m.status === 'Unresolved');
     const reviewRequired = cases.filter(c => c.reviewRequiredCount > 0);
 
     return { myCases, totalAlerts, unresolvedMatches, reviewRequired };
-  }, []);
+  }, [priorityFilter, matchesWithPriority]);
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Welcome back, {CURRENT_USER}</h1>
-        <p className="text-sm text-muted-foreground mt-1">Here's what needs your attention today.</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">Welcome back, {CURRENT_USER}</h1>
+          <p className="text-sm text-muted-foreground mt-1">Here's what needs your attention today.</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Filter className="h-4 w-4 text-muted-foreground" />
+          <Select value={priorityFilter} onValueChange={(v) => setPriorityFilter(v as PriorityFilter)}>
+            <SelectTrigger className="w-[140px] h-8 text-xs">
+              <SelectValue placeholder="Priority" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectItem value="All">All Priorities</SelectItem>
+              <SelectItem value="High">High Priority</SelectItem>
+              <SelectItem value="Medium">Medium Priority</SelectItem>
+              <SelectItem value="Low">Low Priority</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Summary cards */}
@@ -126,9 +160,12 @@ export default function HomePage() {
                     <span className="text-sm font-medium">{m.matchedName}</span>
                     <span className="text-xs text-muted-foreground ml-2">{m.id}</span>
                   </div>
-                  <Badge variant={m.status === 'Unresolved' ? 'destructive' : 'secondary'} className="text-[10px]">
-                    {m.status}
-                  </Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priority)}`}>{m.priority}</Badge>
+                    <Badge variant={m.status === 'Unresolved' ? 'destructive' : 'secondary'} className="text-[10px]">
+                      {m.status}
+                    </Badge>
+                  </div>
                 </button>
               ))
             )}
@@ -161,7 +198,10 @@ export default function HomePage() {
                     <span className="text-sm font-medium">{m.matchedName}</span>
                     <span className="text-xs text-muted-foreground ml-2">{m.id}</span>
                   </div>
-                  <Badge variant="destructive" className="text-[10px]">Unresolved</Badge>
+                  <div className="flex items-center gap-1.5 shrink-0">
+                    <Badge variant="outline" className={`text-[10px] ${priorityColor(m.priority)}`}>{m.priority}</Badge>
+                    <Badge variant="destructive" className="text-[10px]">Unresolved</Badge>
+                  </div>
                 </button>
               ))
             )}
