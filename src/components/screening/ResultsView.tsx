@@ -591,7 +591,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                                   </p>
                                 )}
                               </td>
-                              <td className="px-2 py-3 sticky left-[290px] z-10 bg-card border-r" onClick={() => openMatch(m, true)}>
+                              <td className="px-2 py-3 sticky left-[290px] z-10 bg-card border-r" onClick={(e) => { e.stopPropagation(); openMatch(m); }}>
                                 <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                               </td>
                             </React.Fragment>);
