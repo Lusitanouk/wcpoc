@@ -555,7 +555,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                         switch (key) {
                           case 'name':
                             return (<React.Fragment key={key}>
-                              <td className={`px-4 py-3 ${stickyName}`}>
+                              <td className={`px-4 py-3 ${stickyName}`} onClick={(e) => { e.stopPropagation(); openMatch(m, true); }}>
                                 <div className="flex items-center gap-2">
                                   <button
                                     className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
@@ -567,7 +567,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                                       : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
                                     }
                                   </button>
-                                  <span className="font-medium cursor-pointer hover:underline" onClick={(e) => { e.stopPropagation(); openMatch(m, true); }}>{m.matchedName}</span>
+                                  <span className="font-medium cursor-pointer hover:underline">{m.matchedName}</span>
                                   {m.aliases.length > 0 && (
                                     <span className="text-[10px] text-muted-foreground">+{m.aliases.length} aliases</span>
                                   )}
@@ -591,7 +591,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                                   </p>
                                 )}
                               </td>
-                              <td className="px-2 py-3 sticky left-[290px] z-10 bg-card border-r" onClick={() => openMatch(m)}>
+                              <td className="px-2 py-3 sticky left-[290px] z-10 bg-card border-r" onClick={() => openMatch(m, true)}>
                                 <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
                               </td>
                             </React.Fragment>);
