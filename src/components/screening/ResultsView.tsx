@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
@@ -308,24 +309,28 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
         {/* Bucket tabs */}
         <div className="flex gap-1 p-1">
           {BUCKETS.map(bucket => (
-            <button
-              key={bucket}
-              onClick={(e) => { e.stopPropagation(); handleBucketChange(bucket); }}
-              className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all border-b-2 ${
-                activeBucket === bucket
-                  ? 'border-primary text-foreground'
-                  : 'border-transparent text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {bucketIcons[bucket]}
-              <span className="hidden sm:inline">{bucket}</span>
-              <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-[10px]">
-                {bucketCounts[bucket]}
-              </Badge>
-              {bucketHasReviewRequired[bucket] && (
-                <AlertTriangle className="h-3 w-3 text-status-possible" />
-              )}
-            </button>
+            <Tooltip key={bucket}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={(e) => { e.stopPropagation(); handleBucketChange(bucket); }}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all border-b-2 ${
+                    activeBucket === bucket
+                      ? 'border-primary text-foreground'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {bucketIcons[bucket]}
+                  <span className="hidden sm:inline">{bucket}</span>
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-[10px]">
+                    {bucketCounts[bucket]}
+                  </Badge>
+                  {bucketHasReviewRequired[bucket] && (
+                    <AlertTriangle className="h-3 w-3 text-status-possible" />
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="sm:hidden text-xs">{bucket}</TooltipContent>
+            </Tooltip>
           ))}
         </div>
         {/* Contextual stats row for active bucket */}

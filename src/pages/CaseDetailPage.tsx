@@ -7,6 +7,7 @@ import {
   ChevronUp, LayoutDashboard, ChevronRight, ChevronLeft, Eye, Info, Download
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -498,24 +499,27 @@ export default function CaseDetailPage() {
             ? (passportResult?.verificationStatus === 'pending' ? 1 : 0)
             : 0;
           return (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`flex items-center gap-1.5 min-w-0 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
-                isActive
-                  ? 'bg-background text-foreground shadow-sm'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
-              }`}
-            >
-              {icon}
-              <span className="hidden sm:inline">{label}</span>
-              <span className="sm:hidden">{shortLabel}</span>
-              {actionCount > 0 && (
-                <Badge variant="destructive" className="h-4 min-w-[16px] px-1 text-[10px] shrink-0">
-                  {actionCount}
-                </Badge>
-              )}
-            </button>
+            <Tooltip key={tab}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setActiveTab(tab)}
+                  className={`flex items-center gap-1.5 min-w-0 px-3 sm:px-4 py-2 rounded-md text-xs sm:text-sm font-medium transition-all whitespace-nowrap ${
+                    isActive
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground hover:bg-background/50'
+                  }`}
+                >
+                  {icon}
+                  <span className="hidden sm:inline">{label}</span>
+                  {actionCount > 0 && (
+                    <Badge variant="destructive" className="h-4 min-w-[16px] px-1 text-[10px] shrink-0">
+                      {actionCount}
+                    </Badge>
+                  )}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="sm:hidden text-xs">{label}</TooltipContent>
+            </Tooltip>
           );
         })}
       </div>
