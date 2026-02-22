@@ -196,18 +196,20 @@ export default function ReportsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4">
+        <TabsList className="mb-4 bg-transparent border-b border-border rounded-none p-0 h-auto gap-0">
           <ResponsiveTabsTrigger
             value="standard"
             icon={<FileText className="h-3.5 w-3.5" />}
             label="Standard Reports"
             badge={<Badge variant="secondary" className="ml-1 h-4 min-w-[16px] px-1 text-[9px]">{STANDARD_REPORTS.length}</Badge>}
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2"
           />
           <ResponsiveTabsTrigger
             value="custom"
             icon={<Settings2 className="h-3.5 w-3.5" />}
             label="Custom Reports"
             badge={<Badge variant="secondary" className="ml-1 h-4 min-w-[16px] px-1 text-[9px]">{CUSTOM_REPORTS.length}</Badge>}
+            className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none px-4 py-2"
           />
         </TabsList>
 
