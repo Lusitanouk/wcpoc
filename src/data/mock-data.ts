@@ -17,8 +17,8 @@ const names = [
   'Yusuf Demir', 'Catherine Moreau', 'Raj Kapoor', 'Sofia Rossi', 'Abdul Rahman',
 ];
 
-const orgNames = ['Global Trade Corp', 'Oceanic Shipping Ltd', 'Meridian Holdings', 'Atlas Energy Group', 'Phoenix Financial Services'];
-const vesselNames = ['MV Oceanic Star', 'SS Northern Light', 'MV Pacific Dawn', 'SS Caspian Wave', 'MV Arctic Explorer'];
+const orgNames = ['Global Trade Corp', 'Oceanic Shipping Ltd', 'Meridian Holdings', 'Atlas Energy Group', 'Phoenix Financial Services', 'Crescent Capital Partners', 'Vanguard Logistics Inc', 'Eastern Commodities LLC', 'Apex Industrial Group', 'Sovereign Wealth Management'];
+const vesselNames = ['MV Oceanic Star', 'SS Northern Light', 'MV Pacific Dawn', 'SS Caspian Wave', 'MV Arctic Explorer', 'MV Golden Horizon', 'SS Red Falcon', 'MV Blue Mariner', 'SS Iron Eagle', 'MV Coral Reef'];
 
 const datasets: Dataset[] = ['Sanctions', 'PEP', 'Law Enforcement', 'Other'];
 const statuses: MatchStatus[] = ['Positive', 'Possible', 'False', 'Unknown', 'Unresolved'];
@@ -213,14 +213,15 @@ function generateResolutionHistory(currentStatus: MatchStatus, currentRisk: Risk
 }
 
 // Watchlists matches only — Adverse Media and Passport Check have their own result models
-function generateMatches(caseId: string, count: number): Match[] {
+function generateMatches(caseId: string, count: number, entityType: EntityType = 'Individual'): Match[] {
+  const namePool = entityType === 'Organisation' ? orgNames : entityType === 'Vessel' ? vesselNames : names;
   return Array.from({ length: count }, (_, i) => {
     const status: MatchStatus = rand(statuses);
     const isUpdated = status !== 'Unresolved' && Math.random() > 0.7;
     const isReviewReq = isUpdated && Math.random() > 0.4;
     const dataset = rand(datasets);
     const ct: CheckType = 'Watchlists';
-    const matchName = rand(names);
+    const matchName = rand(namePool);
     const strength = randInt(30, 99);
     const alertDate = randDate('2024-12-01', '2025-02-15');
     const reviewRequiredAt = isReviewReq ? randDate('2025-01-10', '2025-02-15') : undefined;
@@ -247,13 +248,27 @@ function generateMatches(caseId: string, count: number): Match[] {
       whyMatched,
       matchStrengthExplanation,
       identifiers: {
-        dob: Math.random() > 0.3 ? randDate('1950-01-01', '2000-12-31') : undefined,
-        gender: Math.random() > 0.3 ? rand(['Male', 'Female']) : undefined,
-        nationality: Math.random() > 0.2 ? rand(nationalities) : undefined,
+        dob: entityType === 'Individual' && Math.random() > 0.3 ? randDate('1950-01-01', '2000-12-31') : undefined,
+        gender: entityType === 'Individual' && Math.random() > 0.3 ? rand(['Male', 'Female']) : undefined,
+        nationality: entityType !== 'Vessel' && Math.random() > 0.2 ? rand(nationalities) : undefined,
         country: Math.random() > 0.3 ? rand(countries) : undefined,
       },
       recordData: {
-        keyData: {
+        keyData: entityType === 'Organisation' ? {
+          'Entity Name': matchName,
+          'Jurisdiction': rand(countries),
+          'Registration No.': `REG-${randInt(100000, 999999)}`,
+          'Category': dataset,
+          'Listed Date': randDate('2010-01-01', '2024-12-31'),
+          'Last Updated': randDate('2024-01-01', '2025-02-01'),
+        } : entityType === 'Vessel' ? {
+          'Vessel Name': matchName,
+          'IMO Number': `IMO${randInt(1000000, 9999999)}`,
+          'Flag State': rand(countries),
+          'Category': dataset,
+          'Listed Date': randDate('2010-01-01', '2024-12-31'),
+          'Last Updated': randDate('2024-01-01', '2025-02-01'),
+        } : {
           'Full Name': matchName,
           'Date of Birth': randDate('1950-01-01', '2000-12-31'),
           'Nationality': rand(nationalities),
@@ -286,7 +301,7 @@ export const cases: Case[] = Array.from({ length: 30 }, (_, i) => {
   const entityType = i < 20 ? 'Individual' : i < 25 ? 'Organisation' : i < 28 ? 'Vessel' : rand(entityTypes);
   const caseName = entityType === 'Organisation' ? rand(orgNames) : entityType === 'Vessel' ? rand(vesselNames) : rand(names);
   const matchCount = randInt(2, 8);
-  const matches = generateMatches(caseId, matchCount);
+  const matches = generateMatches(caseId, matchCount, entityType);
   allMatches.push(...matches);
 
   const unresolvedCount = matches.filter(m => m.status === 'Unresolved').length;
