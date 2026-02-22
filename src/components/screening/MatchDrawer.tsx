@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Check, HelpCircle, XCircle, CircleOff, Clock, User, History, ChevronsUpDown, Maximize2, Minimize2, ExternalLink, FileText, Database, Download } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, HelpCircle, XCircle, CircleOff, Clock, User, History, ChevronsUpDown, Maximize2, Minimize2, ExternalLink, FileText, Database, Download, ArrowDown } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -326,19 +326,56 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
             </div>
           )}
 
-          {/* Why it matched */}
+          {/* Why it matched — enhanced comparison table */}
           <div className="p-6 border-b">
-            <h4 className="text-xs font-semibold mb-2">{t('match.whyMatched')}</h4>
-            <ul className="space-y-1.5 mb-2">
-              {match.whyMatched.map((wf, i) => (
-                <li key={i} className="flex items-center gap-2 text-xs">
-                  {fieldResultIcon(wf.result)}
-                  <span className="font-medium w-20">{wf.field}</span>
-                  <span className="text-muted-foreground">{wf.detail}</span>
-                </li>
-              ))}
-            </ul>
-            <p className="text-[10px] text-muted-foreground italic mt-1">{match.matchStrengthExplanation}</p>
+            <div className="flex items-center justify-between mb-3">
+              <h4 className="text-xs font-semibold">{t('match.whyMatched')}</h4>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-6 text-[10px] gap-1"
+                      onClick={() => {
+                        const el = document.getElementById('disposition-section');
+                        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                    >
+                      <ArrowDown className="h-3 w-3" /> Disposition
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Jump to resolution &amp; review</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+            <div className="rounded-md border overflow-hidden">
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="bg-muted/50 border-b">
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground w-8"></th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Field</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Screened</th>
+                    <th className="text-left px-3 py-2 font-medium text-muted-foreground">Matched Record</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {match.whyMatched.map((wf, i) => (
+                    <tr key={i} className={`border-b last:border-b-0 ${
+                      wf.result === 'match' ? 'bg-status-positive/5'
+                      : wf.result === 'mismatch' ? 'bg-status-unresolved/5'
+                      : ''
+                    }`}>
+                      <td className="px-3 py-2">{fieldResultIcon(wf.result)}</td>
+                      <td className="px-3 py-2 font-medium">{wf.field}</td>
+                      <td className="px-3 py-2 text-muted-foreground">{wf.inputValue || '—'}</td>
+                      <td className="px-3 py-2 font-medium">{wf.matchedValue || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <p className="text-[10px] text-muted-foreground italic mt-2">{match.matchStrengthExplanation}</p>
             <div className="flex flex-wrap gap-1 mt-2">
               {match.whyMatched.map((wf, i) => (
                 <Badge key={i} variant="secondary" className="text-[10px]">{wf.field}</Badge>
@@ -375,21 +412,6 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
               </table>
             </div>
           )}
-
-          {/* Comparison */}
-          <div className="p-6 border-b">
-            <h4 className="text-xs font-medium text-muted-foreground mb-3">{t('match.submittedVsMatched')}</h4>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="p-3 rounded bg-muted">
-                <p className="text-xs text-muted-foreground mb-1">{t('match.submitted')}</p>
-                <p className="font-medium">{caseName}</p>
-              </div>
-              <div className="p-3 rounded bg-primary/5">
-                <p className="text-xs text-muted-foreground mb-1">{t('match.matched')}</p>
-                <p className="font-medium">{match.matchedName}</p>
-              </div>
-            </div>
-          </div>
 
           {/* Record Tabs */}
           <div className="p-6 border-b">
@@ -487,7 +509,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
         </div>
 
         {/* Resolution & Review Controls — in fullscreen this is a right sidebar */}
-        <div className={`p-6 space-y-6 ${isFullscreen ? 'overflow-y-auto' : ''}`}>
+        <div id="disposition-section" className={`p-6 space-y-6 ${isFullscreen ? 'overflow-y-auto' : ''}`}>
           {/* ── Section 1: Resolve ── */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold">{t('match.resolution')}</h4>
