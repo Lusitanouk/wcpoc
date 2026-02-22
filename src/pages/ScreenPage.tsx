@@ -1,6 +1,6 @@
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, ChevronRight, Search, Upload, Shield, Newspaper, CreditCard } from 'lucide-react';
+import { Check, ChevronRight, Search, Upload, Shield, Newspaper, CreditCard, FileText, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -68,12 +68,60 @@ export default function ScreenPage() {
   const [passportData, setPassportData] = useState<PassportData>(defaultPassportData);
   const [showCustomFields, setShowCustomFields] = useState(false);
   const [batchRecords, setBatchRecords] = useState<BatchRecord[]>([]);
-
-  const selectedGroup = groups.find(g => g.id === config.groupId);
+  const [ocrProcessing, setOcrProcessing] = useState(false);
+  const [ocrDragOver, setOcrDragOver] = useState(false);
+  const [ocrFileName, setOcrFileName] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const hasWorldCheck = config.checkTypes.includes('Watchlists');
   const hasMediaCheck = config.checkTypes.includes('Adverse Media');
   const hasPassportCheck = config.checkTypes.includes('Passport Check');
+
+  const mockOcrExtract = useCallback((fileName: string) => {
+    setOcrProcessing(true);
+    setOcrFileName(fileName);
+    setTimeout(() => {
+      // Mock OCR results
+      setData(d => ({
+        ...d,
+        name: 'Alexander James Thomson',
+        dob: '1985-03-14',
+        gender: 'Male',
+        nationalities: ['GB'],
+        countries: ['GB'],
+        identificationDocuments: [{ type: 'Passport', number: 'P90215847', country: 'GB' }],
+      }));
+      if (hasPassportCheck) {
+        setPassportData(p => ({
+          ...p,
+          givenName: 'Alexander James',
+          lastName: 'Thomson',
+          gender: 'Male',
+          nationality: 'GBR',
+          issuingState: 'GBR',
+          dob: '1985-03-14',
+          documentType: 'Passport',
+          identificationNumber: 'P90215847',
+          dateOfExpiry: '2030-08-22',
+        }));
+      }
+      setOcrProcessing(false);
+    }, 1500);
+  }, [hasPassportCheck]);
+
+  const handleOcrDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    setOcrDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) mockOcrExtract(file.name);
+  }, [mockOcrExtract]);
+
+  const handleOcrFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) mockOcrExtract(file.name);
+  }, [mockOcrExtract]);
+
+  const selectedGroup = groups.find(g => g.id === config.groupId);
   const passportOnly = hasPassportCheck && !hasWorldCheck && !hasMediaCheck;
 
   // When Passport Check is selected, force entity type to Individual
@@ -295,6 +343,49 @@ export default function ScreenPage() {
                   ))}
                 </div>
               </div>
+
+              {/* OCR Drop Zone - Single mode only */}
+              {!isBatch && (
+                <div
+                  onDragOver={e => { e.preventDefault(); setOcrDragOver(true); }}
+                  onDragLeave={() => setOcrDragOver(false)}
+                  onDrop={handleOcrDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                    ocrDragOver
+                      ? 'border-primary bg-primary/5'
+                      : ocrProcessing
+                      ? 'border-muted bg-muted/30'
+                      : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'
+                  }`}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,.pdf"
+                    className="hidden"
+                    onChange={handleOcrFileSelect}
+                  />
+                  {ocrProcessing ? (
+                    <div className="flex items-center justify-center gap-2 py-1">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      <span className="text-xs text-muted-foreground">Extracting data from {ocrFileName}...</span>
+                    </div>
+                  ) : ocrFileName && !ocrProcessing ? (
+                    <div className="flex items-center justify-center gap-2 py-1">
+                      <FileText className="h-4 w-4 text-primary" />
+                      <span className="text-xs text-foreground font-medium">Extracted from {ocrFileName}</span>
+                      <span className="text-[10px] text-muted-foreground">— drop another to replace</span>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center gap-1 py-1">
+                      <Upload className="h-5 w-5 text-muted-foreground" />
+                      <span className="text-xs font-medium">Drop identity document to auto-fill</span>
+                      <span className="text-[10px] text-muted-foreground">Passport, ID card, or driving licence — image or PDF</span>
+                    </div>
+                  )}
+                </div>
+              )}
 
               {/* Batch mode: file upload */}
               {isBatch && (
