@@ -499,7 +499,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50">
+              <tr className="border-b bg-muted/50 sticky top-0 z-30">
                 <th className="px-3 py-3 w-10 sticky left-0 z-20 bg-muted/50">
                   <Checkbox
                     checked={allSelected}
