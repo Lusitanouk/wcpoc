@@ -129,7 +129,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
     return next;
   });
   const isColVisible = (key: MatchColumnKey) => visibleColumns.includes(key);
-  const visibleColCount = visibleColumns.length + 2; // +2 for checkbox and action columns
+  const visibleColCount = visibleColumns.length + 2; // +2 for checkbox and preview columns
 
   // Bulk selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -498,10 +498,14 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                 {visibleColumns.map(key => {
                   const col = MATCH_COLUMNS.find(c => c.key === key)!;
                   const widthClass = key === 'priority' ? 'w-20' : key === 'strength' ? 'w-32' : '';
-                  const stickyClass = key === 'name' ? 'sticky left-10 z-20 bg-muted/50 min-w-[250px] border-r' : '';
-                  return <th key={key} className={`text-left px-4 py-3 font-medium text-muted-foreground ${widthClass} ${stickyClass}`}>{col.label}</th>;
+                  const stickyClass = key === 'name' ? 'sticky left-10 z-20 bg-muted/50 min-w-[250px]' : '';
+                  return (
+                    <React.Fragment key={key}>
+                      <th className={`text-left px-4 py-3 font-medium text-muted-foreground ${widthClass} ${stickyClass}`}>{col.label}</th>
+                      {key === 'name' && <th className="px-2 py-3 w-10 sticky left-[290px] z-20 bg-muted/50 border-r"></th>}
+                    </React.Fragment>
+                  );
                 })}
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground w-16"></th>
               </tr>
             </thead>
             <tbody>
@@ -533,11 +537,11 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                         />
                       </td>
                       {visibleColumns.map(key => {
-                        const stickyName = key === 'name' ? 'sticky left-10 z-10 bg-card border-r min-w-[250px]' : '';
+                        const stickyName = key === 'name' ? 'sticky left-10 z-10 bg-card min-w-[250px]' : '';
                         switch (key) {
                           case 'name':
-                            return (
-                              <td key={key} className={`px-4 py-3 ${stickyName}`}>
+                            return (<React.Fragment key={key}>
+                              <td className={`px-4 py-3 ${stickyName}`}>
                                 <div className="flex items-center gap-2">
                                   <button
                                     className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
@@ -573,7 +577,10 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                                   </p>
                                 )}
                               </td>
-                            );
+                              <td className="px-2 py-3 sticky left-[290px] z-10 bg-card border-r" onClick={() => openMatch(m)}>
+                                <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+                              </td>
+                            </React.Fragment>);
                           case 'priority':
                             return (
                               <td key={key} className="px-4 py-3" onClick={() => openMatch(m)}>
@@ -616,9 +623,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                             return null;
                         }
                       })}
-                      <td className="px-4 py-3" onClick={() => openMatch(m)}>
-                        <Eye className="h-4 w-4 text-muted-foreground" />
-                      </td>
                     </tr>
                     {isExpanded && (
                       <tr className="border-b bg-muted/20">
