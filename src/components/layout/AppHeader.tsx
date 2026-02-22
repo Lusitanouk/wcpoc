@@ -1,6 +1,6 @@
 import { Search, Shield, Sun, Moon } from 'lucide-react';
 import { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '@/context/AppContext'; // isDark, toggleTheme still used
 import { Input } from '@/components/ui/input';
@@ -45,13 +45,20 @@ export function AppHeader() {
 
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1.5 text-sm min-w-0">
-        <span className="text-muted-foreground">{t('nav.home')}</span>
-        {breadcrumbs.map((b) => (
-          <span key={b.path} className="flex items-center gap-1.5 min-w-0">
-            <span className="text-muted-foreground">/</span>
-            <span className="font-medium text-foreground truncate max-w-[200px]">{b.label}</span>
-          </span>
-        ))}
+        <Link to="/home" className="text-muted-foreground hover:text-foreground transition-colors">{t('nav.home')}</Link>
+        {breadcrumbs.map((b, i) => {
+          const isLast = i === breadcrumbs.length - 1;
+          return (
+            <span key={b.path} className="flex items-center gap-1.5 min-w-0">
+              <span className="text-muted-foreground">/</span>
+              {isLast ? (
+                <span className="font-medium text-foreground truncate max-w-[200px]">{b.label}</span>
+              ) : (
+                <Link to={b.path} className="font-medium text-muted-foreground hover:text-foreground transition-colors truncate max-w-[200px]">{b.label}</Link>
+              )}
+            </span>
+          );
+        })}
       </nav>
 
       {/* Global Search */}
