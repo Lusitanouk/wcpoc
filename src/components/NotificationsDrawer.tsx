@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Bell, Upload, CheckCircle, AlertTriangle, Clock, X, Layers } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Bell, Upload, CheckCircle, AlertTriangle, Clock, X, Layers, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
@@ -14,6 +15,7 @@ interface Notification {
   description: string;
   timestamp: string;
   read: boolean;
+  link?: string;
 }
 
 const typeIcon: Record<NotificationType, React.ReactNode> = {
@@ -33,6 +35,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     description: '142 records screened — 23 matches found, 8 require review.',
     timestamp: '2 min ago',
     read: false,
+    link: '/screen',
   },
   {
     id: 'n2',
@@ -41,6 +44,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     description: '12 matches marked as False across 4 cases by Jane Doe.',
     timestamp: '18 min ago',
     read: false,
+    link: '/alerts',
   },
   {
     id: 'n3',
@@ -49,6 +53,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     description: '6 cases reassigned to Alex Turner.',
     timestamp: '1 hour ago',
     read: false,
+    link: '/cases',
   },
   {
     id: 'n4',
@@ -57,6 +62,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     description: '3 new matches detected during ongoing screening for WL-2024005.',
     timestamp: '2 hours ago',
     read: true,
+    link: '/cases/WL-2024005',
   },
   {
     id: 'n5',
@@ -65,6 +71,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     description: 'File "sanctions_batch_feb.csv" — 14 rows had invalid data and were skipped.',
     timestamp: '3 hours ago',
     read: true,
+    link: '/screen',
   },
   {
     id: 'n6',
@@ -73,6 +80,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     description: 'Case WL-2024012 rescreened — 2 updated matches, 1 new match found.',
     timestamp: '5 hours ago',
     read: true,
+    link: '/cases/WL-2024012',
   },
   {
     id: 'n7',
@@ -81,6 +89,7 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     description: '8 matches marked as Positive across 2 cases by Maria Lopez.',
     timestamp: 'Yesterday',
     read: true,
+    link: '/alerts',
   },
   {
     id: 'n8',
@@ -89,10 +98,12 @@ const MOCK_NOTIFICATIONS: Notification[] = [
     description: '89 records screened — 11 matches found, 3 require review.',
     timestamp: 'Yesterday',
     read: true,
+    link: '/screen',
   },
 ];
 
 export function NotificationsDrawer() {
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
   const [filter, setFilter] = useState<'all' | 'batch' | 'bulk' | 'ogs'>('all');
@@ -184,7 +195,13 @@ export function NotificationsDrawer() {
                     className={`px-4 py-3 flex gap-3 group transition-colors cursor-pointer hover:bg-muted/50 ${
                       !n.read ? 'bg-primary/5' : ''
                     }`}
-                    onClick={() => markRead(n.id)}
+                    onClick={() => {
+                      markRead(n.id);
+                      if (n.link) {
+                        navigate(n.link);
+                        setOpen(false);
+                      }
+                    }}
                   >
                     <div className="mt-0.5 shrink-0">{typeIcon[n.type]}</div>
                     <div className="min-w-0 flex-1">
@@ -200,7 +217,14 @@ export function NotificationsDrawer() {
                         </button>
                       </div>
                       <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">{n.description}</p>
-                      <span className="text-[10px] text-muted-foreground/60 mt-1 block">{n.timestamp}</span>
+                      <div className="flex items-center justify-between mt-1">
+                        <span className="text-[10px] text-muted-foreground/60">{n.timestamp}</span>
+                        {n.link && (
+                          <span className="text-[10px] text-primary flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                            View <ExternalLink className="h-2.5 w-2.5" />
+                          </span>
+                        )}
+                      </div>
                     </div>
                     {!n.read && (
                       <div className="w-1.5 h-1.5 rounded-full bg-primary mt-1.5 shrink-0" />
