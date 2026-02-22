@@ -196,20 +196,20 @@ export default function ReportsPage() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="mb-4 h-auto gap-1 bg-muted p-1">
+        <TabsList className="mb-4 h-auto gap-1 bg-muted p-1 rounded-lg">
           <ResponsiveTabsTrigger
             value="standard"
             icon={<FileText className="h-3.5 w-3.5" />}
             label="Standard Reports"
             badge={<Badge variant="secondary" className="ml-1 h-4 min-w-[16px] px-1 text-[9px]">{STANDARD_REPORTS.length}</Badge>}
-            className="px-3 sm:px-4 py-2 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-background/50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
           />
           <ResponsiveTabsTrigger
             value="custom"
             icon={<Settings2 className="h-3.5 w-3.5" />}
             label="Custom Reports"
             badge={<Badge variant="secondary" className="ml-1 h-4 min-w-[16px] px-1 text-[9px]">{CUSTOM_REPORTS.length}</Badge>}
-            className="px-3 sm:px-4 py-2 text-xs sm:text-sm data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+            className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-background/50 data-[state=active]:bg-background data-[state=active]:text-foreground data-[state=active]:shadow-sm"
           />
         </TabsList>
 
