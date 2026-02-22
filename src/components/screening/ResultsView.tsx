@@ -184,6 +184,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
   }, []);
 
   const [activeBucket, setActiveBucket] = useState<MatchStatus>(defaultBucket);
+  const [hoveredBucket, setHoveredBucket] = useState<MatchStatus | null>(null);
 
   const handleBucketChange = (bucket: MatchStatus) => {
     setActiveBucket(bucket);
@@ -354,6 +355,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
               <TooltipTrigger asChild>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleBucketChange(bucket); }}
+                  onMouseEnter={() => setHoveredBucket(bucket)}
+                  onMouseLeave={() => setHoveredBucket(null)}
                   className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all border-b-2 ${
                     activeBucket === bucket
                       ? 'border-primary text-foreground'
@@ -376,7 +379,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
         </div>
         {/* Contextual stats row for active bucket */}
         {(() => {
-          const bucketMatches = matches.filter(m => m.status === activeBucket);
+          const statsBucket = hoveredBucket || activeBucket;
+          const bucketMatches = matches.filter(m => m.status === statsBucket);
           const bucketTotal = bucketMatches.length;
           const bucketReview = bucketMatches.filter(m => m.reviewRequired).length;
           const datasetCounts: Record<string, number> = {};
@@ -385,7 +389,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
           bucketMatches.forEach(m => { riskCounts[m.riskLevel] = (riskCounts[m.riskLevel] || 0) + 1; });
           return (
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 border-t bg-muted/30 text-xs max-h-0 overflow-hidden opacity-0 group-hover/buckets:max-h-20 group-hover/buckets:opacity-100 group-hover/buckets:py-2 transition-all duration-200">
-              <span className="font-medium text-foreground">{bucketTotal} {activeBucket.toLowerCase()}</span>
+              <span className="font-medium text-foreground">{bucketTotal} {statsBucket.toLowerCase()}</span>
               {Object.keys(datasetCounts).length > 0 && (
                 <>
                   <span className="text-muted-foreground">·</span>
