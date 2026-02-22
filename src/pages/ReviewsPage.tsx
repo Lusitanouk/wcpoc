@@ -345,25 +345,6 @@ export default function AlertsPage() {
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Multi-Alert Cases</p><p className="text-2xl font-bold mt-1">{multiAlertCaseCount}</p></CardContent></Card>
       </div>
 
-      {/* Bulk action bar */}
-      {selectedCount > 0 && (
-        <div className="flex items-center gap-2 px-3 py-1.5 mb-4 rounded-md bg-primary/10 border border-primary/20 animate-fade-in">
-          <CheckSquare className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">{selectedCount} selected</span>
-          <div className="flex gap-1.5 ml-2">
-            <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
-              <Check className="h-3 w-3" /> Bulk Resolve
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
-              <Eye className="h-3 w-3" /> Mark Reviewed
-            </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        </div>
-      )}
-
       <Tabs value={tab} onValueChange={handleTabChange}>
         <TabsList className="mb-4 h-auto gap-1 bg-muted p-1 rounded-lg">
           <ResponsiveTabsTrigger
@@ -381,6 +362,25 @@ export default function AlertsPage() {
             className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-md"
           />
         </TabsList>
+
+        {/* Bulk action bar */}
+        {selectedCount > 0 && (
+          <div className="flex items-center gap-2 px-3 py-1.5 mb-4 rounded-md border border-primary/20 animate-fade-in shadow-sm" style={{ backgroundColor: 'color-mix(in srgb, hsl(var(--primary)) 10%, hsl(var(--background)))' }}>
+            <CheckSquare className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{selectedCount} selected</span>
+            <div className="flex gap-1.5 ml-2">
+              <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
+                <Check className="h-3 w-3" /> Bulk Resolve
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
+                <Eye className="h-3 w-3" /> Mark Reviewed
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          </div>
+        )}
 
         {['unresolved', 'review'].map(tabKey => (
           <TabsContent key={tabKey} value={tabKey}>
