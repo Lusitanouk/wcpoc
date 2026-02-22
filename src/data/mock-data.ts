@@ -215,9 +215,9 @@ function generateResolutionHistory(currentStatus: MatchStatus, currentRisk: Risk
 // Watchlists matches only — Adverse Media and Passport Check have their own result models
 function generateMatches(caseId: string, count: number): Match[] {
   return Array.from({ length: count }, (_, i) => {
-    const isUpdated = Math.random() > 0.7;
+    const status: MatchStatus = rand(statuses);
+    const isUpdated = status !== 'Unresolved' && Math.random() > 0.7;
     const isReviewReq = isUpdated && Math.random() > 0.4;
-    const status: MatchStatus = isReviewReq ? 'Unresolved' : rand(statuses);
     const dataset = rand(datasets);
     const ct: CheckType = 'Watchlists';
     const matchName = rand(names);
