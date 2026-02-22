@@ -346,7 +346,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
     <div>
 
       {/* Disposition Summary & Bucket Tabs */}
-      <div ref={bucketRef} className="mb-4 rounded-lg border bg-card sticky -top-6 z-20 -mx-6 px-6 pt-2 group/buckets">
+      <div ref={bucketRef} className="mb-4 rounded-lg border bg-card sticky -top-6 z-20 group/buckets">
         {/* Bucket tabs */}
         <div className="flex gap-1 p-1">
           {BUCKETS.map(bucket => (
