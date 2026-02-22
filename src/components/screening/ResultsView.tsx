@@ -346,7 +346,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
     <div>
 
       {/* Disposition Summary & Bucket Tabs */}
-      <div ref={bucketRef} className="mb-4 rounded-lg border bg-card sticky -top-6 z-20 -mx-6 px-6 pt-6">
+      <div ref={bucketRef} className="mb-4 rounded-lg border bg-card sticky -top-6 z-20 -mx-6 px-6 pt-6 group/buckets">
         {/* Bucket tabs */}
         <div className="flex gap-1 p-1">
           {BUCKETS.map(bucket => (
@@ -384,7 +384,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
           const riskCounts: Record<string, number> = {};
           bucketMatches.forEach(m => { riskCounts[m.riskLevel] = (riskCounts[m.riskLevel] || 0) + 1; });
           return (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-2 border-t bg-muted/30 text-xs">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 border-t bg-muted/30 text-xs max-h-0 overflow-hidden opacity-0 group-hover/buckets:max-h-20 group-hover/buckets:opacity-100 group-hover/buckets:py-2 transition-all duration-200">
               <span className="font-medium text-foreground">{bucketTotal} {activeBucket.toLowerCase()}</span>
               {Object.keys(datasetCounts).length > 0 && (
                 <>
