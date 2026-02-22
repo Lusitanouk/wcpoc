@@ -95,8 +95,17 @@ const MOCK_NOTIFICATIONS: Notification[] = [
 export function NotificationsDrawer() {
   const [open, setOpen] = useState(false);
   const [notifications, setNotifications] = useState(MOCK_NOTIFICATIONS);
+  const [filter, setFilter] = useState<'all' | 'batch' | 'bulk' | 'ogs'>('all');
 
   const unreadCount = notifications.filter(n => !n.read).length;
+
+  const filteredNotifications = notifications.filter(n => {
+    if (filter === 'all') return true;
+    if (filter === 'batch') return n.type === 'batch_complete' || n.type === 'batch_failed';
+    if (filter === 'bulk') return n.type === 'bulk_resolve' || n.type === 'bulk_assign';
+    if (filter === 'ogs') return n.type === 'ogs_alert' || n.type === 'rescreen';
+    return true;
+  });
 
   const markAllRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
@@ -143,12 +152,33 @@ export function NotificationsDrawer() {
               )}
             </div>
           </SheetHeader>
-          <ScrollArea className="h-[calc(100vh-60px)]">
+          {/* Filter pills */}
+          <div className="flex gap-1 px-4 py-2 border-b">
+            {([
+              { key: 'all', label: 'All' },
+              { key: 'batch', label: 'Batch' },
+              { key: 'bulk', label: 'Bulk Actions' },
+              { key: 'ogs', label: 'OGS / Rescreen' },
+            ] as const).map(f => (
+              <button
+                key={f.key}
+                onClick={() => setFilter(f.key)}
+                className={`px-2.5 py-1 rounded-full text-[10px] font-medium transition-colors ${
+                  filter === f.key
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-muted text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <ScrollArea className="h-[calc(100vh-110px)]">
             <div className="divide-y">
-              {notifications.length === 0 ? (
+              {filteredNotifications.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-8 text-center">No notifications</p>
               ) : (
-                notifications.map(n => (
+                filteredNotifications.map(n => (
                   <div
                     key={n.id}
                     className={`px-4 py-3 flex gap-3 group transition-colors cursor-pointer hover:bg-muted/50 ${
