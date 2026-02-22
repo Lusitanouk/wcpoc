@@ -438,9 +438,14 @@ export default function CaseDetailPage() {
         <div className="flex items-center gap-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1 shrink-0">
-              <Download className="h-3.5 w-3.5" /> Export <ChevronDown className="h-3 w-3" />
-            </Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1 shrink-0">
+                  <Download className="h-3.5 w-3.5" /> <span className="hidden md:inline">Export</span> <ChevronDown className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="md:hidden text-xs">Export</TooltipContent>
+            </Tooltip>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuItem onClick={() => exportCasePdf(caseData, matches)}>
@@ -456,12 +461,24 @@ export default function CaseDetailPage() {
             )}
           </DropdownMenuContent>
         </DropdownMenu>
-        <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => setAuditDrawerOpen(true)}>
-          <Activity className="h-3.5 w-3.5" /> Audit / Notes
-        </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1 shrink-0" onClick={() => setAuditDrawerOpen(true)}>
+              <Activity className="h-3.5 w-3.5" /> <span className="hidden md:inline">Audit / Notes</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent side="bottom" className="md:hidden text-xs">Audit / Notes</TooltipContent>
+        </Tooltip>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="gap-1 shrink-0">Actions <ChevronDown className="h-3 w-3" /></Button>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-1 shrink-0">
+                  <span className="hidden md:inline">Actions</span> <ChevronDown className="h-3 w-3" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="md:hidden text-xs">Actions</TooltipContent>
+            </Tooltip>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
             <DropdownMenuItem onClick={() => { setActionComment(''); setEditDialog(true); }}><Edit className="h-3.5 w-3.5 mr-2" /> Edit Case</DropdownMenuItem>
