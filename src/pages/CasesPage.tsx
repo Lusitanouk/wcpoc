@@ -23,7 +23,7 @@ import type { CheckType, RiskLevel, EntityType } from '@/types';
 // Constants, types, helpers
 const riskLevels: RiskLevel[] = ['High', 'Medium', 'Low', 'None'];
 const entityTypes: EntityType[] = ['Individual', 'Organisation', 'Vessel', 'Unspecified'];
-const checkTypes: CheckType[] = ['World-Check', 'Media Check', 'Passport Check'];
+const checkTypes: CheckType[] = ['Watchlists', 'Adverse Media', 'Passport Check'];
 
 const formatDate = (date: string) => {
   const d = new Date(date);
@@ -37,13 +37,13 @@ const riskLevelColor: Record<RiskLevel, string> = {
   None: 'text-gray-500',
 };
 const checkTypeIcon: Record<CheckType, React.ReactNode> = {
-  'World-Check': <Shield className="h-3 w-3" />,
-  'Media Check': <Newspaper className="h-3 w-3" />,
+  'Watchlists': <Shield className="h-3 w-3" />,
+  'Adverse Media': <Newspaper className="h-3 w-3" />,
   'Passport Check': <CreditCard className="h-3 w-3" />,
 };
-const checkTypeAbbr: Record<CheckType, string> = { 'World-Check': 'WC', 'Media Check': 'MC', 'Passport Check': 'PC' };
+const checkTypeAbbr: Record<CheckType, string> = { 'Watchlists': 'WL', 'Adverse Media': 'AM', 'Passport Check': 'PC' };
 const analysts = ['John Smith', 'Jane Doe', 'Alex Turner', 'Maria Lopez', 'Sam Wilson', 'Unassigned'];
-const allCheckTypes: CheckType[] = ['World-Check', 'Media Check', 'Passport Check'];
+const allCheckTypes: CheckType[] = ['Watchlists', 'Adverse Media', 'Passport Check'];
 const allRatings: RiskLevel[] = ['High', 'Medium', 'Low', 'None'];
 const allEntityTypes: EntityType[] = ['Individual', 'Organisation', 'Vessel', 'Unspecified'];
 

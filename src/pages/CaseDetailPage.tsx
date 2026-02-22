@@ -29,8 +29,8 @@ import { exportCasePdf, exportMatchesToCsv } from '@/lib/export';
 
 // ─── Constants ───────────────────────────────────────────────
 const checkTypeIcons: Record<CheckType, React.ReactNode> = {
-  'World-Check': <Shield className="h-3.5 w-3.5" />,
-  'Media Check': <Newspaper className="h-3.5 w-3.5" />,
+  'Watchlists': <Shield className="h-3.5 w-3.5" />,
+  'Adverse Media': <Newspaper className="h-3.5 w-3.5" />,
   'Passport Check': <CreditCard className="h-3.5 w-3.5" />,
 };
 
@@ -272,15 +272,15 @@ export default function CaseDetailPage() {
     if (searchParams.has('tab')) return searchParams.get('tab') === 'summary' ? 'summary' : searchParams.get('tab') as CheckType;
     if (!caseData?.mandatoryAction) return 'summary';
     const wcAction = matches.some(m => m.reviewRequired || m.status === 'Unresolved');
-    if (wcAction && caseData.checkTypes.includes('World-Check')) return 'World-Check';
-    if (caseData.checkTypes.includes('Media Check')) return 'Media Check';
+    if (wcAction && caseData.checkTypes.includes('Watchlists')) return 'Watchlists';
+    if (caseData.checkTypes.includes('Adverse Media')) return 'Adverse Media';
     if (caseData.checkTypes.includes('Passport Check')) return 'Passport Check';
     return 'summary';
   }, [searchParams, caseData, matches]);
 
   const setActiveTab = (tab: CaseTab) => {
     const params: Record<string, string> = { tab };
-    if (tab !== 'summary' && tab !== 'Media Check' && tab !== 'Passport Check') {
+    if (tab !== 'summary' && tab !== 'Adverse Media' && tab !== 'Passport Check') {
       const bucket = searchParams.get('bucket');
       if (bucket) params.bucket = bucket;
     }
@@ -324,7 +324,7 @@ export default function CaseDetailPage() {
   };
 
   const mediaResult: MediaCheckResult | null = useMemo(() => {
-    if (!caseData || !caseData.checkTypes.includes('Media Check')) return null;
+    if (!caseData || !caseData.checkTypes.includes('Adverse Media')) return null;
     return generateMediaCheckResult(caseData.id, caseData.name);
   }, [caseData?.id]);
 
@@ -343,8 +343,8 @@ export default function CaseDetailPage() {
   const actionCheckTypes = useMemo(() => {
     if (!caseData) return [];
     const types: string[] = [];
-    if (matches.some(m => m.reviewRequired || m.status === 'Unresolved')) types.push('WC');
-    if (caseData.checkTypes.includes('Media Check')) types.push('MC');
+    if (matches.some(m => m.reviewRequired || m.status === 'Unresolved')) types.push('WL');
+    if (caseData.checkTypes.includes('Adverse Media')) types.push('AM');
     if (caseData.checkTypes.includes('Passport Check')) types.push('PC');
     return types;
   }, [matches, caseData]);
@@ -426,7 +426,7 @@ export default function CaseDetailPage() {
             <span className="hidden sm:inline">•</span>
             <span className="group/ogs inline-flex items-center gap-1 cursor-pointer hover:text-foreground" onClick={() => { setOgsWcLocal(caseData.ogsWorldCheck); setOgsMcLocal(caseData.ogsMediaCheck); setActionComment(''); setOgsDialog(true); }}>
               OGS: <span className={caseData.ogsWorldCheck || caseData.ogsMediaCheck ? 'text-foreground font-medium' : ''}>
-                {caseData.ogsWorldCheck && caseData.ogsMediaCheck ? 'WC + MC' : caseData.ogsWorldCheck ? 'WC' : caseData.ogsMediaCheck ? 'MC' : 'Off'}
+                {caseData.ogsWorldCheck && caseData.ogsMediaCheck ? 'WL + AM' : caseData.ogsWorldCheck ? 'WL' : caseData.ogsMediaCheck ? 'AM' : 'Off'}
               </span>
               <Edit className="h-2.5 w-2.5 opacity-0 group-hover/ogs:opacity-100 transition-opacity" />
             </span>
@@ -468,8 +468,8 @@ export default function CaseDetailPage() {
             <DropdownMenuItem onClick={() => { setActionComment(''); setMoveDialog(true); }}><ArrowRightLeft className="h-3.5 w-3.5 mr-2" /> Move Group</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => { setActionComment(''); setRescreenDialog(true); }}><RefreshCw className="h-3.5 w-3.5 mr-2" /> Rescreen</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => addAuditEvent('ogs_toggle', `OGS World-Check ${caseData.ogsWorldCheck ? 'disabled' : 'enabled'}`)}><ToggleRight className="h-3.5 w-3.5 mr-2" /> {caseData.ogsWorldCheck ? 'Disable' : 'Enable'} OGS WC</DropdownMenuItem>
-            <DropdownMenuItem onClick={() => addAuditEvent('ogs_toggle', `OGS Media Check ${caseData.ogsMediaCheck ? 'disabled' : 'enabled'}`)}><ToggleRight className="h-3.5 w-3.5 mr-2" /> {caseData.ogsMediaCheck ? 'Disable' : 'Enable'} OGS MC</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => addAuditEvent('ogs_toggle', `OGS Watchlists ${caseData.ogsWorldCheck ? 'disabled' : 'enabled'}`)}><ToggleRight className="h-3.5 w-3.5 mr-2" /> {caseData.ogsWorldCheck ? 'Disable' : 'Enable'} OGS WL</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => addAuditEvent('ogs_toggle', `OGS Adverse Media ${caseData.ogsMediaCheck ? 'disabled' : 'enabled'}`)}><ToggleRight className="h-3.5 w-3.5 mr-2" /> {caseData.ogsMediaCheck ? 'Disable' : 'Enable'} OGS AM</DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => { setActionComment(''); setArchiveDialog(true); }}><Archive className="h-3.5 w-3.5 mr-2" /> Archive</DropdownMenuItem>
             <DropdownMenuItem className="text-destructive" onClick={() => { setActionComment(''); setDeleteDialog(true); }}><Trash2 className="h-3.5 w-3.5 mr-2" /> Delete</DropdownMenuItem>
@@ -487,12 +487,12 @@ export default function CaseDetailPage() {
             : checkTypeIcons[tab as CheckType];
           const label = tab === 'summary' ? 'Summary' : tab;
           const shortLabel = tab === 'summary' ? 'Summary'
-            : tab === 'World-Check' ? 'WC'
-            : tab === 'Media Check' ? 'MC' : 'PC';
+            : tab === 'Watchlists' ? 'WL'
+            : tab === 'Adverse Media' ? 'AM' : 'PC';
           // Count of items requiring action
-          const actionCount = tab === 'World-Check'
+          const actionCount = tab === 'Watchlists'
             ? matches.filter(m => m.reviewRequired || m.status === 'Unresolved').length
-            : tab === 'Media Check'
+            : tab === 'Adverse Media'
             ? (mediaResult?.reviewRequired ?? 0)
             : tab === 'Passport Check'
             ? (passportResult?.verificationStatus === 'pending' ? 1 : 0)
@@ -545,8 +545,8 @@ export default function CaseDetailPage() {
               {/* Matches card - click through to World-Check */}
               <Card
                 className="p-2.5 text-center col-span-1 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => { setActiveTab('World-Check'); }}
-              >
+                  onClick={() => { setActiveTab('Watchlists'); }}
+                >
                 <span className="text-[10px] text-muted-foreground block">Matches</span>
                 <div className="text-base font-bold">{wcMatches}</div>
                 {highRiskMatches > 0 && <span className="text-[9px] text-destructive">{highRiskMatches} high</span>}
@@ -562,7 +562,7 @@ export default function CaseDetailPage() {
                 <Card
                   key={b.label}
                   className="p-2.5 text-center col-span-1 cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => setSearchParams({ tab: 'World-Check', bucket: b.bucket }, { replace: true })}
+                  onClick={() => setSearchParams({ tab: 'Watchlists', bucket: b.bucket }, { replace: true })}
                 >
                   <span className="text-[10px] text-muted-foreground block">{b.label}</span>
                   <div className={`text-base font-bold ${b.cls}`}>{b.count}</div>
@@ -608,8 +608,8 @@ export default function CaseDetailPage() {
                 <span>Created: {caseData.createdAt}</span>
                 <span>Screened: {caseData.lastScreenedAt}</span>
                 <span>Mode: {caseData.mode}</span>
-                <span>OGS WC: {caseData.ogsWorldCheck ? group?.ongoingFrequency : 'Off'}</span>
-                <span>OGS MC: {caseData.ogsMediaCheck ? group?.ongoingFrequency : 'Off'}</span>
+                <span>OGS WL: {caseData.ogsWorldCheck ? group?.ongoingFrequency : 'Off'}</span>
+                <span>OGS AM: {caseData.ogsMediaCheck ? group?.ongoingFrequency : 'Off'}</span>
               </div>
             </Card>
 
@@ -625,8 +625,8 @@ export default function CaseDetailPage() {
                     {checkTypeIcons[ct]}
                     <div>
                       <span className="text-sm font-medium">{ct}</span>
-                      {ct === 'World-Check' && <span className="text-[11px] text-muted-foreground block">{wcMatches} matches</span>}
-                      {ct === 'Media Check' && mediaResult && <span className="text-[11px] text-muted-foreground block">{mediaResult.totalArticles} articles</span>}
+                      {ct === 'Watchlists' && <span className="text-[11px] text-muted-foreground block">{wcMatches} matches</span>}
+                      {ct === 'Adverse Media' && mediaResult && <span className="text-[11px] text-muted-foreground block">{mediaResult.totalArticles} articles</span>}
                       {ct === 'Passport Check' && passportResult && (
                         <span className={`text-[11px] block ${passportResult.verificationStatus === 'verified' ? 'status-positive' : 'status-unresolved'}`}>
                           {passportResult.verificationStatus === 'verified' ? 'Verified' : 'Pending'}
@@ -644,10 +644,10 @@ export default function CaseDetailPage() {
       {/* ── CHECK TYPE TABS ── */}
       {effectiveTab !== 'summary' && (
         <div className="min-w-0">
-          {effectiveTab === 'World-Check' && (
-            <ResultsView matches={matches} caseName={caseData.name} caseId={caseData.id} checkTypes={['World-Check']} screeningData={caseData.screeningData} />
+          {effectiveTab === 'Watchlists' && (
+            <ResultsView matches={matches} caseName={caseData.name} caseId={caseData.id} checkTypes={['Watchlists']} screeningData={caseData.screeningData} />
           )}
-          {effectiveTab === 'Media Check' && mediaResult && (
+          {effectiveTab === 'Adverse Media' && mediaResult && (
             <MediaCheckResultsView result={mediaResult} caseName={caseData.name} caseId={caseData.id} />
           )}
           {effectiveTab === 'Passport Check' && passportResult && (
@@ -835,14 +835,14 @@ export default function CaseDetailPage() {
             <div className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-md border">
                 <div>
-                  <span className="text-sm font-medium">World-Check</span>
+                  <span className="text-sm font-medium">Watchlists</span>
                   <span className="text-[11px] text-muted-foreground block">Sanctions, PEP & watchlist monitoring</span>
                 </div>
                 <Switch checked={ogsWcLocal} onCheckedChange={setOgsWcLocal} />
               </div>
               <div className="flex items-center justify-between p-3 rounded-md border">
                 <div>
-                  <span className="text-sm font-medium">Media Check</span>
+                  <span className="text-sm font-medium">Adverse Media</span>
                   <span className="text-[11px] text-muted-foreground block">Adverse media monitoring</span>
                 </div>
                 <Switch checked={ogsMcLocal} onCheckedChange={setOgsMcLocal} />
@@ -860,8 +860,8 @@ export default function CaseDetailPage() {
             <Button variant="outline" size="sm" onClick={() => setOgsDialog(false)}>Cancel</Button>
             <Button size="sm" onClick={() => {
               const changes: string[] = [];
-              if (ogsWcLocal !== caseData.ogsWorldCheck) changes.push(`OGS World-Check ${ogsWcLocal ? 'enabled' : 'disabled'}`);
-              if (ogsMcLocal !== caseData.ogsMediaCheck) changes.push(`OGS Media Check ${ogsMcLocal ? 'enabled' : 'disabled'}`);
+              if (ogsWcLocal !== caseData.ogsWorldCheck) changes.push(`OGS Watchlists ${ogsWcLocal ? 'enabled' : 'disabled'}`);
+              if (ogsMcLocal !== caseData.ogsMediaCheck) changes.push(`OGS Adverse Media ${ogsMcLocal ? 'enabled' : 'disabled'}`);
               if (changes.length > 0) addAuditEvent('ogs_toggle', changes.join(', '), actionComment || undefined);
               setActionComment('');
               setOgsDialog(false);
