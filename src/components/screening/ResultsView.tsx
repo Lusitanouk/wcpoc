@@ -1,7 +1,7 @@
 import { useState, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Shield, AlertTriangle, Eye, Filter, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, Database, Flame, Settings2, GripVertical } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, Database, Flame, Settings2, GripVertical } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -88,7 +88,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [showFilters, setShowFilters] = useState(false);
+  
   const [filterDataset, setFilterDataset] = useState<string>('all');
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [visibleColumns, setVisibleColumns] = useState<MatchColumnKey[]>([...DEFAULT_MATCH_COLUMNS]);
@@ -257,7 +257,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
     return { byDataset, byPriority, reviewCount };
   }, [selectedMatches]);
 
-  const activeFilterCount = (filterDataset !== 'all' ? 1 : 0) + (filterPriority !== 'all' ? 1 : 0);
+  
 
   const matchFilterDefs: FilterDefinition[] = [
     {
@@ -401,17 +401,16 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           </div>
         )}
 
-        <div className="flex items-center gap-1.5 ml-auto shrink-0">
-          <Button
-            variant={showFilters ? 'secondary' : 'outline'}
-            size="sm"
-            className={`h-8 text-xs gap-1 ${showFilters ? 'ring-1 ring-primary/30' : ''}`}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-3.5 w-3.5" />
-            Filters
-            {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
-          </Button>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <FilterBar
+            filters={matchFilterDefs}
+            values={matchFilterValues}
+            onChange={handleMatchFilterChange}
+            onClearAll={clearAllMatchFilters}
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 shrink-0">
           <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" size="sm" className="h-8 text-xs gap-1">
@@ -471,17 +470,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             </PopoverContent>
           </Popover>
         </div>
-
-        {showFilters && (
-          <div className="w-full">
-            <FilterBar
-              filters={matchFilterDefs}
-              values={matchFilterValues}
-              onChange={handleMatchFilterChange}
-              onClearAll={clearAllMatchFilters}
-            />
-          </div>
-        )}
       </div>
 
       <Card>
