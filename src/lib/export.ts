@@ -41,9 +41,24 @@ export function exportMatchesToCsv(matches: Match[], caseName: string) {
 
 // ─── PDF Export (generates printable HTML) ───────────────────
 function openPrintWindow(html: string, title: string) {
-  const win = window.open('', '_blank');
-  if (!win) return;
-  win.document.write(`
+  // Use an iframe instead of window.open to avoid popup blockers
+  const iframe = document.createElement('iframe');
+  iframe.style.position = 'fixed';
+  iframe.style.right = '0';
+  iframe.style.bottom = '0';
+  iframe.style.width = '0';
+  iframe.style.height = '0';
+  iframe.style.border = 'none';
+  document.body.appendChild(iframe);
+
+  const doc = iframe.contentDocument || iframe.contentWindow?.document;
+  if (!doc) {
+    document.body.removeChild(iframe);
+    return;
+  }
+
+  doc.open();
+  doc.write(`
     <!DOCTYPE html>
     <html><head><title>${title}</title>
     <style>
@@ -63,8 +78,24 @@ function openPrintWindow(html: string, title: string) {
     </style>
     </head><body>${html}</body></html>
   `);
-  win.document.close();
-  setTimeout(() => win.print(), 300);
+  doc.close();
+
+  iframe.onload = () => {
+    setTimeout(() => {
+      iframe.contentWindow?.print();
+      setTimeout(() => document.body.removeChild(iframe), 1000);
+    }, 300);
+  };
+
+  // Fallback if onload doesn't fire (content already loaded via doc.write)
+  setTimeout(() => {
+    try {
+      iframe.contentWindow?.print();
+    } catch { /* already printed */ }
+    setTimeout(() => {
+      if (iframe.parentNode) document.body.removeChild(iframe);
+    }, 1000);
+  }, 500);
 }
 
 export function exportCasePdf(caseData: Case, matches: Match[]) {
