@@ -281,13 +281,13 @@ export default function CasesPage() {
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 animate-fade-in flex-wrap">
             <CheckSquare className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">{selectedIds.size} selected</span>
+            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Export started')}><Download className="h-3 w-3" /> Export</Button>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkAssignOpen(true)}><UserPlus className="h-3 w-3" /> Assign</Button>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkMoveOpen(true)}><ArrowRightLeft className="h-3 w-3" /> Move</Button>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Re-screen queued')}><RefreshCw className="h-3 w-3" /> Rescreen</Button>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('OGS toggled')}><ToggleRight className="h-3 w-3" /> OGS</Button>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Archived')}><Archive className="h-3 w-3" /> Archive</Button>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-destructive" onClick={() => setBulkDeleteOpen(true)}><Trash2 className="h-3 w-3" /> Delete</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Export started')}><Download className="h-3 w-3" /> Export</Button>
             <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
               <X className="h-3 w-3" />
             </Button>
