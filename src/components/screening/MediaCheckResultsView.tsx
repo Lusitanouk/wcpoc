@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { Search, Filter, X, Paperclip, ExternalLink, Eye, FileText, ToggleRight, Newspaper, AlertTriangle } from 'lucide-react';
+import { Search, Filter, X, Paperclip, ExternalLink, Eye, FileText, ToggleRight, Newspaper, AlertTriangle, Globe, Tag } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
+import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import type { MediaCheckResult, MediaArticle, MediaRiskLevel } from '@/types';
 
 interface MediaCheckResultsViewProps {
@@ -50,6 +51,62 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
     result.articles.forEach(a => a.countries.forEach(c => set.add(c)));
     return Array.from(set).sort();
   }, [result.articles]);
+
+  const mediaFilterDefs: FilterDefinition[] = useMemo(() => [
+    {
+      key: 'topic',
+      label: 'Topic',
+      icon: <Tag className="h-3.5 w-3.5" />,
+      options: [
+        { value: 'all', label: 'All Topics' },
+        ...allTopics.map(t => ({ value: t, label: t })),
+      ],
+      defaultValue: 'all',
+    },
+    {
+      key: 'country',
+      label: 'Country',
+      icon: <Globe className="h-3.5 w-3.5" />,
+      options: [
+        { value: 'all', label: 'All Countries' },
+        ...allCountries.map(c => ({ value: c, label: c })),
+      ],
+      defaultValue: 'all',
+    },
+    {
+      key: 'risk',
+      label: 'Risk Level',
+      icon: <AlertTriangle className="h-3.5 w-3.5" />,
+      options: [
+        { value: 'all', label: 'All Levels' },
+        { value: 'High', label: 'High' },
+        { value: 'Medium', label: 'Medium' },
+        { value: 'Low', label: 'Low' },
+        { value: 'No Risk', label: 'No Risk' },
+      ],
+      defaultValue: 'all',
+    },
+  ], [allTopics, allCountries]);
+
+  const mediaFilterValues: Record<string, string> = {
+    topic: topicFilter,
+    country: countryFilter,
+    risk: riskFilter,
+  };
+
+  const mediaActiveFilterCount = (topicFilter !== 'all' ? 1 : 0) + (countryFilter !== 'all' ? 1 : 0) + (riskFilter !== 'all' ? 1 : 0);
+
+  const handleMediaFilterChange = (key: string, value: string) => {
+    if (key === 'topic') setTopicFilter(value);
+    if (key === 'country') setCountryFilter(value);
+    if (key === 'risk') setRiskFilter(value);
+  };
+
+  const clearAllMediaFilters = () => {
+    setTopicFilter('all');
+    setCountryFilter('all');
+    setRiskFilter('all');
+  };
 
   const filteredArticles = useMemo(() => {
     return result.articles
@@ -132,74 +189,28 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground">Search in:</Label>
-          <Select value={dateRange} onValueChange={setDateRange}>
-            <SelectTrigger className="h-8 text-xs w-36"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="last2years">Last 2 years</SelectItem>
-              <SelectItem value="older">Older</SelectItem>
-              <SelectItem value="all">All time</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant={showFilters ? 'secondary' : 'outline'} size="sm" onClick={() => setShowFilters(!showFilters)} className="gap-1">
-            <Filter className="h-3.5 w-3.5" /> Filters
+          <Button
+            variant={showFilters ? 'secondary' : 'outline'}
+            size="sm"
+            className="h-8 text-xs gap-1"
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            Filters
+            {!showFilters && mediaActiveFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{mediaActiveFilterCount}</Badge>}
           </Button>
         </div>
       </div>
 
-      {/* Filters Panel */}
       {showFilters && (
-        <Card className="mb-4 animate-fade-in">
-          <CardContent className="pt-4 pb-4">
-            <div className="grid grid-cols-5 gap-4 items-end">
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Search within Articles</label>
-                <Input
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  placeholder="Keywords..."
-                  className="h-8 text-xs"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Article Topics</label>
-                <Select value={topicFilter} onValueChange={setTopicFilter}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Topics</SelectItem>
-                    {allTopics.map(t => <SelectItem key={t} value={t}>{t}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Country in Articles</label>
-                <Select value={countryFilter} onValueChange={setCountryFilter}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Countries</SelectItem>
-                    {allCountries.map(c => <SelectItem key={c} value={c}>{c}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-medium text-muted-foreground">Risk Level</label>
-                <Select value={riskFilter} onValueChange={setRiskFilter}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Levels</SelectItem>
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="Low">Low</SelectItem>
-                    <SelectItem value="No Risk">No Risk</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => { setSearchQuery(''); setTopicFilter('all'); setCountryFilter('all'); setRiskFilter('all'); }} className="gap-1">
-                <X className="h-3 w-3" /> Clear
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="mb-3">
+          <FilterBar
+            filters={mediaFilterDefs}
+            values={mediaFilterValues}
+            onChange={handleMediaFilterChange}
+            onClearAll={clearAllMediaFilters}
+          />
+        </div>
       )}
 
       <div className="grid grid-cols-[240px_1fr] gap-4">
