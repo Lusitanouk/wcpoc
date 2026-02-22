@@ -67,6 +67,7 @@ export default function ScreenPage() {
   const [data, setData] = useState<ScreeningData>(defaultData);
   const [passportData, setPassportData] = useState<PassportData>(defaultPassportData);
   const [showCustomFields, setShowCustomFields] = useState(false);
+  const [showOcrZone, setShowOcrZone] = useState(false);
   const [batchRecords, setBatchRecords] = useState<BatchRecord[]>([]);
   const [ocrProcessing, setOcrProcessing] = useState(false);
   const [ocrDragOver, setOcrDragOver] = useState(false);
@@ -344,47 +345,61 @@ export default function ScreenPage() {
                 </div>
               </div>
 
-              {/* OCR Drop Zone - Single mode only */}
+              {/* OCR Drop Zone - Single mode only, toggleable */}
               {!isBatch && (
-                <div
-                  onDragOver={e => { e.preventDefault(); setOcrDragOver(true); }}
-                  onDragLeave={() => setOcrDragOver(false)}
-                  onDrop={handleOcrDrop}
-                  onClick={() => fileInputRef.current?.click()}
-                  className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
-                    ocrDragOver
-                      ? 'border-primary bg-primary/5'
-                      : ocrProcessing
-                      ? 'border-muted bg-muted/30'
-                      : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'
-                  }`}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,.pdf"
-                    className="hidden"
-                    onChange={handleOcrFileSelect}
-                  />
-                  {ocrProcessing ? (
-                    <div className="flex items-center justify-center gap-2 py-1">
-                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
-                      <span className="text-xs text-muted-foreground">Extracting data from {ocrFileName}...</span>
-                    </div>
-                  ) : ocrFileName && !ocrProcessing ? (
-                    <div className="flex items-center justify-center gap-2 py-1">
-                      <FileText className="h-4 w-4 text-primary" />
-                      <span className="text-xs text-foreground font-medium">Extracted from {ocrFileName}</span>
-                      <span className="text-[10px] text-muted-foreground">— drop another to replace</span>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center gap-1 py-1">
-                      <Upload className="h-5 w-5 text-muted-foreground" />
-                      <span className="text-xs font-medium">Drop identity document to auto-fill</span>
-                      <span className="text-[10px] text-muted-foreground">Passport, ID card, or driving licence — image or PDF</span>
+                <>
+                  <button
+                    onClick={() => setShowOcrZone(v => !v)}
+                    className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    <FileText className="h-3.5 w-3.5" />
+                    <span>{showOcrZone ? 'Hide' : 'Auto-fill from identity document'}</span>
+                    {ocrFileName && !showOcrZone && (
+                      <Badge variant="secondary" className="text-[9px] ml-1">OCR applied</Badge>
+                    )}
+                  </button>
+                  {showOcrZone && (
+                    <div
+                      onDragOver={e => { e.preventDefault(); setOcrDragOver(true); }}
+                      onDragLeave={() => setOcrDragOver(false)}
+                      onDrop={handleOcrDrop}
+                      onClick={() => fileInputRef.current?.click()}
+                      className={`border-2 border-dashed rounded-lg p-4 text-center cursor-pointer transition-colors ${
+                        ocrDragOver
+                          ? 'border-primary bg-primary/5'
+                          : ocrProcessing
+                          ? 'border-muted bg-muted/30'
+                          : 'border-muted-foreground/25 hover:border-primary/50 hover:bg-muted/30'
+                      }`}
+                    >
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*,.pdf"
+                        className="hidden"
+                        onChange={handleOcrFileSelect}
+                      />
+                      {ocrProcessing ? (
+                        <div className="flex items-center justify-center gap-2 py-1">
+                          <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                          <span className="text-xs text-muted-foreground">Extracting data from {ocrFileName}...</span>
+                        </div>
+                      ) : ocrFileName ? (
+                        <div className="flex items-center justify-center gap-2 py-1">
+                          <FileText className="h-4 w-4 text-primary" />
+                          <span className="text-xs text-foreground font-medium">Extracted from {ocrFileName}</span>
+                          <span className="text-[10px] text-muted-foreground">— drop another to replace</span>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-1 py-1">
+                          <Upload className="h-5 w-5 text-muted-foreground" />
+                          <span className="text-xs font-medium">Drop identity document to auto-fill</span>
+                          <span className="text-[10px] text-muted-foreground">Passport, ID card, or driving licence — image or PDF</span>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
+                </>
               )}
 
               {/* Batch mode: file upload */}
