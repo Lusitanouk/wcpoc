@@ -342,7 +342,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
                         el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                       }}
                     >
-                      <ArrowDown className="h-3 w-3" /> Disposition
+                      <ArrowDown className="h-3 w-3" /> Resolve
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Jump to resolution &amp; review</TooltipContent>
