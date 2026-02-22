@@ -514,7 +514,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
       )}
 
       {selectedCount > 0 && (
-        <div className="flex items-center gap-2 px-3 py-1.5 mb-4 rounded-md bg-primary/10 border border-primary/20 animate-fade-in">
+        <div className="flex items-center gap-2 px-3 py-1.5 mb-4 rounded-md bg-primary/10 border border-primary/20 animate-fade-in sticky top-10 z-20">
           <CheckSquare className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">{selectedCount} selected</span>
           <div className="flex gap-1.5 ml-2">
