@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { SettingsDialog } from '@/components/SettingsDialog';
+import { NotificationsDrawer } from '@/components/NotificationsDrawer';
 import { getCaseById } from '@/data/mock-data';
 
 export function AppHeader() {
@@ -65,6 +66,9 @@ export function AppHeader() {
           />
         </div>
 
+
+        {/* Notifications */}
+        <NotificationsDrawer />
 
         {/* Settings */}
         <SettingsDialog />
