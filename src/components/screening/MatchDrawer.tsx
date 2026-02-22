@@ -110,7 +110,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
   const hasScreeningData = screeningData && (screeningData.dob || screeningData.gender || screeningData.nationality || screeningData.country || screeningData.idType || screeningData.customFields);
 
   const drawerContent = (
-    <div className={`${isFullscreen ? '' : 'overflow-y-auto h-full'}`}>
+    <div className={`${isFullscreen ? '' : ''}`}>
       {/* Header with match navigation */}
       <div className="p-6 pb-4 border-b">
         <div className="flex items-center justify-between gap-2">
@@ -636,11 +636,13 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
 
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
-      <SheetContent className="w-[560px] sm:max-w-[560px] overflow-y-auto p-0">
+      <SheetContent className="w-[560px] sm:max-w-[560px] p-0 flex flex-col h-full overflow-hidden">
         <SheetHeader className="sr-only">
           <SheetTitle>{match.matchedName}</SheetTitle>
         </SheetHeader>
-        {drawerContent}
+        <div className="flex-1 overflow-y-auto">
+          {drawerContent}
+        </div>
       </SheetContent>
     </Sheet>
   );
