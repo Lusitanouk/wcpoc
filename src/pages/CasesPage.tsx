@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search, Archive, Users, ArrowRightLeft, Download, ToggleRight, AlertTriangle,
   Filter, Settings2, Shield, Newspaper, CreditCard, Save, Trash2, RefreshCw,
-  UserPlus, X, Briefcase, Layers, User, Globe, GripVertical, Ship, HelpCircle, Building2
+  UserPlus, X, Briefcase, Layers, User, Globe, GripVertical, Ship, HelpCircle, Building2, CheckSquare
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -278,8 +278,9 @@ export default function CasesPage() {
         )}
 
         {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 animate-fade-in flex-wrap">
+            <CheckSquare className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{selectedIds.size} selected</span>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkAssignOpen(true)}><UserPlus className="h-3 w-3" /> Assign</Button>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkMoveOpen(true)}><ArrowRightLeft className="h-3 w-3" /> Move</Button>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Re-screen queued')}><RefreshCw className="h-3 w-3" /> Rescreen</Button>
