@@ -648,7 +648,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
 
   return (
     <Sheet open={open} onOpenChange={v => !v && onClose()}>
-      <SheetContent className="w-[560px] sm:max-w-[560px] p-0 flex flex-col h-full overflow-hidden">
+      <SheetContent className="w-[560px] sm:max-w-[560px] p-0 flex flex-col h-full overflow-hidden [&>button.absolute]:hidden">
         <SheetHeader className="sr-only">
           <SheetTitle>{match.matchedName}</SheetTitle>
         </SheetHeader>
