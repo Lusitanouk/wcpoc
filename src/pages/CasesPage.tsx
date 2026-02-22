@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   Search, Archive, Users, ArrowRightLeft, Download, ToggleRight, AlertTriangle,
   Filter, Settings2, Shield, Newspaper, CreditCard, Save, Trash2, RefreshCw,
-  UserPlus, X, Briefcase, Layers, User, Globe, GripVertical
+  UserPlus, X, Briefcase, Layers, User, Globe, GripVertical, Ship, HelpCircle, Building2
 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -35,6 +35,12 @@ const riskLevelColor: Record<RiskLevel, string> = {
   Medium: 'text-yellow-500',
   Low: 'text-green-500',
   None: 'text-gray-500',
+};
+const entityTypeIcon: Record<EntityType, React.ReactNode> = {
+  'Individual': <User className="h-3.5 w-3.5 text-muted-foreground shrink-0" />,
+  'Organisation': <Building2 className="h-3.5 w-3.5 text-muted-foreground shrink-0" />,
+  'Vessel': <Ship className="h-3.5 w-3.5 text-muted-foreground shrink-0" />,
+  'Unspecified': <HelpCircle className="h-3.5 w-3.5 text-muted-foreground shrink-0" />,
 };
 const checkTypeIcon: Record<CheckType, React.ReactNode> = {
   'Watchlists': <Shield className="h-3 w-3" />,
@@ -308,7 +314,7 @@ export default function CasesPage() {
                     <td className="px-4 py-3" onClick={e => e.stopPropagation()}><Checkbox checked={selectedIds.has(c.id)} onCheckedChange={() => toggleSelect(c.id)} /></td>
                     {visibleColumns.map(key => {
                       switch (key) {
-                        case 'name': return <td key={key} className="px-4 py-3"><div className="flex items-center gap-2"><span className="font-medium">{c.name}</span>{c.mandatoryAction && <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />}</div></td>;
+                        case 'name': return <td key={key} className="px-4 py-3"><div className="flex items-center gap-2">{entityTypeIcon[c.entityType]}<span className="font-medium">{c.name}</span>{c.mandatoryAction && <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />}</div></td>;
                         case 'id': return <td key={key} className="px-4 py-3 font-mono text-xs">{c.id}</td>;
                         case 'group': return <td key={key} className="px-4 py-3 text-xs">{getGroupById(c.groupId)?.name || '—'}</td>;
                         case 'assignee': return <td key={key} className="px-4 py-3 text-xs"><span className={c.assignee === 'Unassigned' ? 'text-muted-foreground italic' : ''}>{c.assignee}</span></td>;
