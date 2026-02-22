@@ -377,18 +377,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
         })()}
       </div>
 
-      <div className="flex items-center gap-2 mb-4">
-        {showFilters && (
-          <div className="flex-1 min-w-0">
-            <FilterBar
-              filters={matchFilterDefs}
-              values={matchFilterValues}
-              onChange={handleMatchFilterChange}
-              onClearAll={clearAllMatchFilters}
-            />
-          </div>
-        )}
-
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
         {selectedCount > 0 && (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 animate-fade-in">
             <CheckSquare className="h-4 w-4 text-primary" />
@@ -411,7 +400,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
           <Button
             variant={showFilters ? 'secondary' : 'outline'}
             size="sm"
-            className="h-8 text-xs gap-1"
+            className={`h-8 text-xs gap-1 ${showFilters ? 'ring-1 ring-primary/30' : ''}`}
             onClick={() => setShowFilters(!showFilters)}
           >
             <Filter className="h-3.5 w-3.5" />
@@ -477,6 +466,17 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             </PopoverContent>
           </Popover>
         </div>
+
+        {showFilters && (
+          <div className="w-full">
+            <FilterBar
+              filters={matchFilterDefs}
+              values={matchFilterValues}
+              onChange={handleMatchFilterChange}
+              onClearAll={clearAllMatchFilters}
+            />
+          </div>
+        )}
       </div>
 
       <Card>

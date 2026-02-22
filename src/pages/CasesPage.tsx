@@ -180,16 +180,6 @@ export default function CasesPage() {
 
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
-        {showFilters && (
-          <div className="min-w-0">
-            <FilterBar
-              filters={filterDefs}
-              values={filters as unknown as Record<string, string>}
-              onChange={(key, value) => setFilter(key as keyof CaseFilters, value)}
-              onClearAll={() => setFilters(EMPTY_FILTERS)}
-            />
-          </div>
-        )}
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search cases..." className="pl-9 h-8 text-sm" />
@@ -199,7 +189,7 @@ export default function CasesPage() {
           <Button
             variant={showFilters ? 'secondary' : 'outline'}
             size="sm"
-            className="h-8 text-xs gap-1"
+            className={`h-8 text-xs gap-1 ${showFilters ? 'ring-1 ring-primary/30' : ''}`}
             onClick={() => setShowFilters(!showFilters)}
           >
             <SlidersHorizontal className="h-3.5 w-3.5" />
@@ -270,6 +260,17 @@ export default function CasesPage() {
         </div>
 
         {/* Bulk Actions */}
+        {showFilters && (
+          <div className="w-full">
+            <FilterBar
+              filters={filterDefs}
+              values={filters as unknown as Record<string, string>}
+              onChange={(key, value) => setFilter(key as keyof CaseFilters, value)}
+              onClearAll={() => setFilters(EMPTY_FILTERS)}
+            />
+          </div>
+        )}
+
         {selectedIds.size > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
