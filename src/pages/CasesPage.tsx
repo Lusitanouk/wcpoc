@@ -175,132 +175,133 @@ export default function CasesPage() {
   };
 
   return (
-    <div>
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Case Manager</h1>
-        <div className="flex items-center gap-2">
-          <Badge variant="secondary" className="text-xs">{filtered.length} / {activeCases.length} cases</Badge>
-          {role === 'Supervisor' && <Badge variant="secondary" className="text-xs gap-1"><Users className="h-3 w-3" /> Team Queue</Badge>}
-        </div>
-      </div>
-
-      {/* ── Toolbar ── */}
-      <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search cases..." className="pl-9 h-8 text-sm" />
+    <div className="flex flex-col h-full -m-6">
+      {/* Frozen header area */}
+      <div className="shrink-0 px-6 pt-6">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-xl font-bold flex items-center gap-2"><Briefcase className="h-5 w-5 text-primary" /> Case Manager</h1>
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="text-xs">{filtered.length} / {activeCases.length} cases</Badge>
+            {role === 'Supervisor' && <Badge variant="secondary" className="text-xs gap-1"><Users className="h-3 w-3" /> Team Queue</Badge>}
+          </div>
         </div>
 
-        <div className="flex items-center gap-1.5 ml-auto shrink-0">
-          <Button
-            variant={showFilters ? 'secondary' : 'outline'}
-            size="sm"
-            className={`h-8 text-xs gap-1 ${showFilters ? 'ring-1 ring-primary/30' : ''}`}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter className="h-3.5 w-3.5" />
-            Filters
-            {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
-          </Button>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button variant="outline" size="sm" className="h-8 text-xs gap-1"><Settings2 className="h-3.5 w-3.5" /> Columns</Button>
-            </PopoverTrigger>
-            <PopoverContent align="end" className="w-64 p-3">
-              <p className="text-xs font-semibold mb-2">Show / Hide & Reorder</p>
-              <div className="space-y-0.5 mb-2">
-                {visibleColumns.map((key, index) => {
-                  const col = ALL_COLUMNS.find(c => c.key === key);
-                  if (!col) return null;
-                  return (
-                    <div
-                      key={col.key}
-                      draggable
-                      onDragStart={() => handleColDragStart(index)}
-                      onDragEnter={() => handleColDragEnter(index)}
-                      onDragEnd={handleColDragEnd}
-                      onDragOver={e => e.preventDefault()}
-                      className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50 cursor-grab active:cursor-grabbing group"
-                    >
-                      <GripVertical className="h-3 w-3 text-muted-foreground/50 group-hover:text-muted-foreground shrink-0" />
-                      <Checkbox checked={true} onCheckedChange={() => toggleColumn(key)} className="shrink-0" />
-                      <span className="truncate">{col.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
-              {ALL_COLUMNS.filter(c => !visibleColumns.includes(c.key)).length > 0 && (
-                <div className="border-t pt-2 space-y-0.5">
-                  <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Hidden</p>
-                  {ALL_COLUMNS.filter(c => !visibleColumns.includes(c.key)).map(col => (
-                    <div key={col.key} className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50">
-                      <div className="w-3" />
-                      <Checkbox checked={false} onCheckedChange={() => toggleColumn(col.key)} />
-                      <span className="truncate text-muted-foreground">{col.label}</span>
-                    </div>
-                  ))}
+        {/* ── Toolbar ── */}
+        <div className="flex items-center gap-2 mb-3 flex-wrap">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search cases..." className="pl-9 h-8 text-sm" />
+          </div>
+
+          <div className="flex items-center gap-1.5 ml-auto shrink-0">
+            <Button
+              variant={showFilters ? 'secondary' : 'outline'}
+              size="sm"
+              className={`h-8 text-xs gap-1 ${showFilters ? 'ring-1 ring-primary/30' : ''}`}
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              Filters
+              {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
+            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="h-8 text-xs gap-1"><Settings2 className="h-3.5 w-3.5" /> Columns</Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64 p-3">
+                {/* ... keep existing code (column popover content) */}
+                <p className="text-xs font-semibold mb-2">Show / Hide & Reorder</p>
+                <div className="space-y-0.5 mb-2">
+                  {visibleColumns.map((key, index) => {
+                    const col = ALL_COLUMNS.find(c => c.key === key);
+                    if (!col) return null;
+                    return (
+                      <div
+                        key={col.key}
+                        draggable
+                        onDragStart={() => handleColDragStart(index)}
+                        onDragEnter={() => handleColDragEnter(index)}
+                        onDragEnd={handleColDragEnd}
+                        onDragOver={e => e.preventDefault()}
+                        className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50 cursor-grab active:cursor-grabbing group"
+                      >
+                        <GripVertical className="h-3 w-3 text-muted-foreground/50 group-hover:text-muted-foreground shrink-0" />
+                        <Checkbox checked={true} onCheckedChange={() => toggleColumn(key)} className="shrink-0" />
+                        <span className="truncate">{col.label}</span>
+                      </div>
+                    );
+                  })}
                 </div>
-              )}
-              <div className="border-t pt-2 mt-2">
-                <p className="text-xs font-semibold mb-1.5">Column Sets</p>
-                {columnSets.length > 0 && (
-                  <div className="space-y-1 mb-2">
-                    {columnSets.map(set => (
-                      <div key={set.name} className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" className="h-6 text-[11px] flex-1 justify-start px-2" onClick={() => applyColumnSet(set)}>{set.name}</Button>
-                        <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => deleteColumnSet(set.name)}><Trash2 className="h-3 w-3 text-muted-foreground" /></Button>
+                {ALL_COLUMNS.filter(c => !visibleColumns.includes(c.key)).length > 0 && (
+                  <div className="border-t pt-2 space-y-0.5">
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide mb-1">Hidden</p>
+                    {ALL_COLUMNS.filter(c => !visibleColumns.includes(c.key)).map(col => (
+                      <div key={col.key} className="flex items-center gap-1.5 text-xs py-1 px-1 rounded-md hover:bg-muted/50">
+                        <div className="w-3" />
+                        <Checkbox checked={false} onCheckedChange={() => toggleColumn(col.key)} />
+                        <span className="truncate text-muted-foreground">{col.label}</span>
                       </div>
                     ))}
                   </div>
                 )}
-                <div className="flex gap-1">
-                  <Input value={newSetName} onChange={e => setNewSetName(e.target.value)} placeholder="Set name..." className="h-7 text-xs flex-1" onKeyDown={e => e.key === 'Enter' && saveCurrentAsSet()} />
-                  <Button variant="outline" size="sm" className="h-7 px-2" onClick={saveCurrentAsSet} disabled={!newSetName.trim()}><Save className="h-3 w-3" /></Button>
+                <div className="border-t pt-2 mt-2">
+                  <p className="text-xs font-semibold mb-1.5">Column Sets</p>
+                  {columnSets.length > 0 && (
+                    <div className="space-y-1 mb-2">
+                      {columnSets.map(set => (
+                        <div key={set.name} className="flex items-center gap-1">
+                          <Button variant="ghost" size="sm" className="h-6 text-[11px] flex-1 justify-start px-2" onClick={() => applyColumnSet(set)}>{set.name}</Button>
+                          <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={() => deleteColumnSet(set.name)}><Trash2 className="h-3 w-3 text-muted-foreground" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-1">
+                    <Input value={newSetName} onChange={e => setNewSetName(e.target.value)} placeholder="Set name..." className="h-7 text-xs flex-1" onKeyDown={e => e.key === 'Enter' && saveCurrentAsSet()} />
+                    <Button variant="outline" size="sm" className="h-7 px-2" onClick={saveCurrentAsSet} disabled={!newSetName.trim()}><Save className="h-3 w-3" /></Button>
+                  </div>
                 </div>
-              </div>
-              <div className="border-t pt-2 mt-2">
-                <Button variant="ghost" size="sm" className="h-6 text-[11px] w-full" onClick={() => { setVisibleColumns(DEFAULT_COLUMNS); persistActiveColumns(DEFAULT_COLUMNS); }}>Reset to defaults</Button>
-              </div>
-            </PopoverContent>
-          </Popover>
+                <div className="border-t pt-2 mt-2">
+                  <Button variant="ghost" size="sm" className="h-6 text-[11px] w-full" onClick={() => { setVisibleColumns(DEFAULT_COLUMNS); persistActiveColumns(DEFAULT_COLUMNS); }}>Reset to defaults</Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {showFilters && (
+            <div className="w-full">
+              <FilterBar
+                filters={filterDefs}
+                values={filters as unknown as Record<string, string>}
+                onChange={(key, value) => setFilter(key as keyof CaseFilters, value)}
+                onClearAll={() => setFilters(EMPTY_FILTERS)}
+              />
+            </div>
+          )}
+
+          {selectedIds.size > 0 && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border border-primary/20 animate-fade-in flex-wrap shadow-sm" style={{ backgroundColor: 'color-mix(in srgb, hsl(var(--primary)) 10%, hsl(var(--background)))' }}>
+              <CheckSquare className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium">{selectedIds.size} selected</span>
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Export started')}><Download className="h-3 w-3" /> Export</Button>
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkAssignOpen(true)}><UserPlus className="h-3 w-3" /> Assign</Button>
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkMoveOpen(true)}><ArrowRightLeft className="h-3 w-3" /> Move</Button>
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Re-screen queued')}><RefreshCw className="h-3 w-3" /> Rescreen</Button>
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('OGS toggled')}><ToggleRight className="h-3 w-3" /> OGS</Button>
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Archived')}><Archive className="h-3 w-3" /> Archive</Button>
+              <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-destructive" onClick={() => setBulkDeleteOpen(true)}><Trash2 className="h-3 w-3" /> Delete</Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Bulk Actions */}
-        {showFilters && (
-          <div className="w-full">
-            <FilterBar
-              filters={filterDefs}
-              values={filters as unknown as Record<string, string>}
-              onChange={(key, value) => setFilter(key as keyof CaseFilters, value)}
-              onClearAll={() => setFilters(EMPTY_FILTERS)}
-            />
-          </div>
-        )}
-
-        {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-primary/10 border border-primary/20 animate-fade-in flex-wrap">
-            <CheckSquare className="h-4 w-4 text-primary" />
-            <span className="text-sm font-medium">{selectedIds.size} selected</span>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Export started')}><Download className="h-3 w-3" /> Export</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkAssignOpen(true)}><UserPlus className="h-3 w-3" /> Assign</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkMoveOpen(true)}><ArrowRightLeft className="h-3 w-3" /> Move</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Re-screen queued')}><RefreshCw className="h-3 w-3" /> Rescreen</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('OGS toggled')}><ToggleRight className="h-3 w-3" /> OGS</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => handleBulkAction('Archived')}><Archive className="h-3 w-3" /> Archive</Button>
-            <Button variant="outline" size="sm" className="h-7 text-xs gap-1 text-destructive" onClick={() => setBulkDeleteOpen(true)}><Trash2 className="h-3 w-3" /> Delete</Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
-              <X className="h-3 w-3" />
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <Card className="overflow-visible">
-        {/* Table */}
-        <div>
+        {/* Frozen column headings */}
+        <div className="border-t border-x border-border rounded-t-lg bg-card">
           <table className="w-full text-sm">
-            <thead className="sticky top-0 z-10">
-              <tr className="border-b bg-card">
+            <thead>
+              <tr className="border-b">
                 <th className="px-4 py-3 w-10"><Checkbox checked={selectedIds.size === filtered.length && filtered.length > 0} onCheckedChange={toggleAll} /></th>
                 {visibleColumns.map(key => {
                   const col = ALL_COLUMNS.find(c => c.key === key);
@@ -308,6 +309,14 @@ export default function CasesPage() {
                 })}
               </tr>
             </thead>
+          </table>
+        </div>
+      </div>
+
+      {/* Scrollable table body */}
+      <div className="flex-1 overflow-auto px-6 pb-6">
+        <div className="border-x border-b border-border rounded-b-lg bg-card">
+          <table className="w-full text-sm">
             <tbody>
               {filtered.length === 0 ? (
                 <tr><td colSpan={visibleColCount} className="px-4 py-12 text-center text-muted-foreground">No cases match your filters.</td></tr>
@@ -337,7 +346,7 @@ export default function CasesPage() {
             </tbody>
           </table>
         </div>
-      </Card>
+      </div>
 
       {/* Bulk Dialogs */}
       <Dialog open={bulkAssignOpen} onOpenChange={v => { setBulkAssignOpen(v); if (!v) { setBulkAssignee(''); setBulkComment(''); } }}>
