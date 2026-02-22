@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Check, HelpCircle, XCircle, CircleOff, Clock, User, History, ChevronsUpDown, Maximize2, Minimize2, ExternalLink, FileText, Database, Download, ArrowDown } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, HelpCircle, XCircle, CircleOff, Clock, User, History, ChevronsUpDown, Maximize2, Minimize2, ExternalLink, FileText, Database, Download, ArrowDown, X } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -136,6 +136,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
             </TooltipProvider>
             {hasNavigation && (
               <>
+                <div className="w-px h-4 bg-border mx-1" />
                 <Button variant="ghost" size="sm" className="h-7 w-7 p-0" disabled={!hasPrev} onClick={() => onNavigate!('prev')}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -145,6 +146,17 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
                 </Button>
               </>
             )}
+            <div className="w-px h-4 bg-border mx-1" />
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={() => { if (isFullscreen) setIsFullscreen(false); onClose(); }}>
+                    <X className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Close</TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           </div>
         </div>
         <div className="flex items-center gap-2 mt-2 flex-wrap">
