@@ -545,9 +545,24 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                                       )}
                                     </div>
                                     {m.aliases.length > 0 && (
-                                      <p className="text-xs text-muted-foreground mt-0.5">
-                                        aka: {m.aliases.slice(0, 2).join(', ')}
-                                      </p>
+                                      <Popover>
+                                        <PopoverTrigger asChild>
+                                          <button className="text-xs text-muted-foreground mt-0.5 hover:text-foreground transition-colors text-left" onClick={e => e.stopPropagation()}>
+                                            aka: {m.aliases.slice(0, 2).join(', ')}{m.aliases.length > 2 ? ` +${m.aliases.length - 2} more` : ''}
+                                          </button>
+                                        </PopoverTrigger>
+                                        <PopoverContent side="bottom" align="start" className="w-64 p-3 bg-popover z-50" onClick={e => e.stopPropagation()}>
+                                          <p className="text-xs font-semibold mb-2">All Aliases ({m.aliases.length})</p>
+                                          <ul className="space-y-1">
+                                            {m.aliases.map((alias, ai) => (
+                                              <li key={ai} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                                <span className="h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
+                                                {alias}
+                                              </li>
+                                            ))}
+                                          </ul>
+                                        </PopoverContent>
+                                      </Popover>
                                     )}
                                     {m.status !== 'Unresolved' && m.resolutionHistory.length > 0 && (
                                       <p className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[300px]" title={m.resolutionHistory[0].reason}>
