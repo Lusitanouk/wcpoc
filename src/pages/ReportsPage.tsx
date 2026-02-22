@@ -208,18 +208,17 @@ export default function ReportsPage() {
 
         {/* ═══════ Standard Reports ═══════ */}
         <TabsContent value="standard">
-          {/* Toolbar */}
           <div className="flex items-center gap-2 mb-4">
-            <Button
-              variant={showFilters ? 'secondary' : 'outline'}
-              size="sm"
-              className="h-8 text-xs gap-1"
-              onClick={() => setShowFilters(!showFilters)}
-            >
-              <Filter className="h-3.5 w-3.5" />
-              Filters
-              {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
-            </Button>
+            {showFilters && (
+              <div className="min-w-0">
+                <FilterBar
+                  filters={reportFilterDefs}
+                  values={filterValues}
+                  onChange={(key, value) => setFilterValues(prev => ({ ...prev, [key]: value }))}
+                  onClearAll={() => setFilterValues({ category: 'all', format: 'all', scheduled: 'all' })}
+                />
+              </div>
+            )}
             <div className="relative flex-1 max-w-sm">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
               <Input
@@ -229,19 +228,17 @@ export default function ReportsPage() {
                 className="pl-8 h-8 text-xs"
               />
             </div>
+            <Button
+              variant={showFilters ? 'secondary' : 'outline'}
+              size="sm"
+              className="h-8 text-xs gap-1 ml-auto shrink-0"
+              onClick={() => setShowFilters(!showFilters)}
+            >
+              <Filter className="h-3.5 w-3.5" />
+              Filters
+              {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
+            </Button>
           </div>
-
-          {/* Filter Bar */}
-          {showFilters && (
-            <div className="mb-4">
-              <FilterBar
-                filters={reportFilterDefs}
-                values={filterValues}
-                onChange={(key, value) => setFilterValues(prev => ({ ...prev, [key]: value }))}
-                onClearAll={() => setFilterValues({ category: 'all', format: 'all', scheduled: 'all' })}
-              />
-            </div>
-          )}
 
           <Card>
             <div className="overflow-x-auto">

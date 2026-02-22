@@ -165,16 +165,16 @@ export default function CasesPage() {
 
       {/* ── Toolbar ── */}
       <div className="flex items-center gap-2 mb-3 flex-wrap">
-        <Button
-          variant={showFilters ? 'secondary' : 'outline'}
-          size="sm"
-          className="h-8 text-xs gap-1"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <SlidersHorizontal className="h-3.5 w-3.5" />
-          Filters
-          {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
-        </Button>
+        {showFilters && (
+          <div className="min-w-0">
+            <FilterBar
+              filters={filterDefs}
+              values={filters as unknown as Record<string, string>}
+              onChange={(key, value) => setFilter(key as keyof CaseFilters, value)}
+              onClearAll={() => setFilters(EMPTY_FILTERS)}
+            />
+          </div>
+        )}
         <div className="relative flex-1 max-w-sm">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input value={filters.search} onChange={e => setFilter('search', e.target.value)} placeholder="Search cases..." className="pl-9 h-8 text-sm" />
@@ -217,9 +217,20 @@ export default function CasesPage() {
           </PopoverContent>
         </Popover>
 
+        <Button
+          variant={showFilters ? 'secondary' : 'outline'}
+          size="sm"
+          className="h-8 text-xs gap-1 ml-auto shrink-0"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Filters
+          {!showFilters && activeFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{activeFilterCount}</Badge>}
+        </Button>
+
         {/* Bulk Actions */}
         {selectedIds.size > 0 && (
-          <div className="flex items-center gap-2 ml-auto flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs text-muted-foreground">{selectedIds.size} selected</span>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkAssignOpen(true)}><UserPlus className="h-3 w-3" /> Assign</Button>
             <Button variant="outline" size="sm" className="h-7 text-xs gap-1" onClick={() => setBulkMoveOpen(true)}><ArrowRightLeft className="h-3 w-3" /> Move</Button>
@@ -231,18 +242,6 @@ export default function CasesPage() {
           </div>
         )}
       </div>
-
-      {/* ── Filter Bar ── */}
-      {showFilters && (
-        <div className="mb-3">
-          <FilterBar
-            filters={filterDefs}
-            values={filters as unknown as Record<string, string>}
-            onChange={(key, value) => setFilter(key as keyof CaseFilters, value)}
-            onClearAll={() => setFilters(EMPTY_FILTERS)}
-          />
-        </div>
-      )}
 
       <Card>
         {/* Table */}
