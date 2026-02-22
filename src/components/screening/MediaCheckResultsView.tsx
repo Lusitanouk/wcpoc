@@ -1,5 +1,5 @@
 import { useState, useMemo, useRef, useEffect } from 'react';
-import { Search, Filter, X, Paperclip, ExternalLink, Eye, FileText, ToggleRight, Newspaper, AlertTriangle, Globe, Tag, Check, HelpCircle, CircleDot, XCircle, CircleOff } from 'lucide-react';
+import { Search, Filter, X, Paperclip, ExternalLink, Eye, FileText, ToggleRight, Newspaper, AlertTriangle, Globe, Tag, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,7 +7,10 @@ import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import type { MediaCheckResult, MediaArticle, MediaRiskLevel } from '@/types';
@@ -45,6 +48,12 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
   const [selectedArticle, setSelectedArticle] = useState<MediaArticle | null>(null);
   const [articleDrawerOpen, setArticleDrawerOpen] = useState(false);
   const [riskAssignment, setRiskAssignment] = useState<Record<string, MediaRiskLevel>>({});
+
+  // Bulk selection
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDialog, setBulkDialog] = useState<'attach' | 'detach' | null>(null);
+  const [bulkRisk, setBulkRisk] = useState<MediaRiskLevel>('Unknown');
+  const [bulkComment, setBulkComment] = useState('');
 
   const bucketRef = useRef<HTMLDivElement>(null);
   const filterRef = useRef<HTMLDivElement>(null);
@@ -179,6 +188,57 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
     setRiskAssignment(prev => ({ ...prev, [articleId]: risk }));
   };
 
+  // Selection helpers
+  const allSelected = filteredArticles.length > 0 && filteredArticles.every(a => selectedIds.has(a.id));
+  const someSelected = filteredArticles.some(a => selectedIds.has(a.id));
+  const toggleAll = () => {
+    if (allSelected) setSelectedIds(new Set());
+    else setSelectedIds(new Set(filteredArticles.map(a => a.id)));
+  };
+  const toggleOne = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+  const selectedCount = selectedIds.size;
+  const selectedArticles = filteredArticles.filter(a => selectedIds.has(a.id));
+
+  // Bulk summary
+  const bulkSummary = useMemo(() => {
+    const byRisk: Record<string, number> = {};
+    const byTopic: Record<string, number> = {};
+    let attachedCount = 0;
+    selectedArticles.forEach(a => {
+      const risk = riskAssignment[a.id] || a.riskLevel;
+      byRisk[risk] = (byRisk[risk] || 0) + 1;
+      a.topics.forEach(t => { byTopic[t] = (byTopic[t] || 0) + 1; });
+      if (a.attached) attachedCount++;
+    });
+    return { byRisk, byTopic, attachedCount };
+  }, [selectedArticles, riskAssignment]);
+
+  const handleBulkAttach = () => {
+    // In real app, would call API to attach articles
+    selectedIds.forEach(id => {
+      if (bulkRisk !== 'Unknown') {
+        setRiskAssignment(prev => ({ ...prev, [id]: bulkRisk }));
+      }
+    });
+    setBulkDialog(null);
+    setSelectedIds(new Set());
+    setBulkRisk('Unknown');
+    setBulkComment('');
+  };
+
+  const handleBulkDetach = () => {
+    // In real app, would call API to detach articles
+    setBulkDialog(null);
+    setSelectedIds(new Set());
+    setBulkComment('');
+  };
+
   const BUCKETS: MediaBucket[] = ['all', 'attached'];
   const bucketLabels: Record<MediaBucket, string> = { all: 'All Matched', attached: 'Attached' };
 
@@ -262,6 +322,25 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
         </div>
       </div>
 
+      {/* Bulk action bar */}
+      {selectedCount > 0 && (
+        <div className="flex items-center gap-2 px-3 py-1.5 mb-4 rounded-md bg-primary/10 border border-primary/20 animate-fade-in">
+          <CheckSquare className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium">{selectedCount} selected</span>
+          <div className="flex gap-1.5 ml-2">
+            <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => { setBulkRisk('Unknown'); setBulkComment(''); setBulkDialog('attach'); }}>
+              <Paperclip className="h-3 w-3" /> Attach {selectedCount === 1 ? 'Article' : 'Articles'}
+            </Button>
+            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => { setBulkComment(''); setBulkDialog('detach'); }}>
+              <X className="h-3 w-3" /> Detach
+            </Button>
+            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+              <X className="h-3 w-3" />
+            </Button>
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-cols-[240px_1fr] gap-4">
         {/* Matched Entities Sidebar */}
         <Card className="h-fit">
@@ -285,8 +364,18 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
           </CardContent>
         </Card>
 
-        {/* Articles List */}
+        {/* Articles List — with select-all header */}
         <Card>
+          <div className="px-4 py-2 border-b flex items-center gap-2">
+            <Checkbox
+              checked={allSelected}
+              onCheckedChange={toggleAll}
+              aria-label="Select all"
+              className="h-4 w-4"
+              {...(someSelected && !allSelected ? { 'data-state': 'indeterminate' } : {})}
+            />
+            <span className="text-xs text-muted-foreground">{filteredArticles.length} articles</span>
+          </div>
           <div className="divide-y">
             {filteredArticles.length === 0 ? (
               <div className="px-4 py-12 text-center text-muted-foreground text-sm">
@@ -297,9 +386,15 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
                 <div
                   key={article.id}
                   onClick={() => openArticle(article)}
-                  className={`px-4 py-3 cursor-pointer transition-colors hover:bg-muted/30 ${article.visited ? 'bg-primary/3' : ''}`}
+                  className={`px-4 py-3 cursor-pointer transition-colors hover:bg-muted/30 ${article.visited ? 'bg-primary/3' : ''} ${selectedIds.has(article.id) ? 'bg-primary/5' : ''}`}
                 >
-                  <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <Checkbox
+                      checked={selectedIds.has(article.id)}
+                      onCheckedChange={() => toggleOne(article.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-4 w-4 mt-0.5 shrink-0"
+                    />
                     <div className="flex-1 min-w-0">
                       <h4 className={`text-sm font-medium leading-snug ${article.visited ? 'text-muted-foreground' : ''}`}>
                         {article.headline}
@@ -333,7 +428,7 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
         </Card>
       </div>
 
-      {/* Media Resolution section */}
+
       <Card className="mt-4">
         <CardContent className="p-4">
           <h3 className="text-sm font-semibold mb-3">Media Resolution</h3>
@@ -359,7 +454,123 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
         </CardContent>
       </Card>
 
-      {/* Article Reader Drawer */}
+      {/* Bulk Attach Dialog */}
+      <Dialog open={bulkDialog === 'attach'} onOpenChange={v => !v && setBulkDialog(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Attach {selectedCount === 1 ? 'Article' : 'Articles'} — {selectedCount}</DialogTitle>
+            <DialogDescription>Attach selected articles to this case with a risk rating.</DialogDescription>
+          </DialogHeader>
+
+          {/* Selection summary */}
+          <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(bulkSummary.byRisk).map(([risk, count]) => (
+                <Badge key={risk} variant="secondary" className="text-[10px]">{risk}: {count}</Badge>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(bulkSummary.byTopic).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([topic, count]) => (
+                <Badge key={topic} variant="outline" className="text-[10px]">{topic}: {count}</Badge>
+              ))}
+            </div>
+            {bulkSummary.attachedCount > 0 && (
+              <div className="flex items-center gap-1 text-primary">
+                <Paperclip className="h-3 w-3" />
+                <span>{bulkSummary.attachedCount} already attached</span>
+              </div>
+            )}
+          </div>
+
+          {/* Articles being attached */}
+          <div className="max-h-40 overflow-y-auto border rounded-md">
+            <div className="divide-y">
+              {selectedArticles.map(a => (
+                <div key={a.id} className="px-3 py-1.5 text-xs flex items-center justify-between gap-2">
+                  <span className="font-medium truncate flex-1">{a.headline}</span>
+                  <Badge className={`text-[9px] shrink-0 ${riskColors[riskAssignment[a.id] || a.riskLevel]}`}>
+                    {riskAssignment[a.id] || a.riskLevel}
+                  </Badge>
+                  {a.attached && <Paperclip className="h-3 w-3 text-primary shrink-0" />}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Risk assignment + comment */}
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Risk Level (applied to all)</Label>
+              <div className="flex gap-1.5">
+                {(['High', 'Medium', 'Low', 'No Risk', 'Unknown'] as MediaRiskLevel[]).map(level => (
+                  <button
+                    key={level}
+                    onClick={() => setBulkRisk(level)}
+                    className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border ${
+                      bulkRisk === level
+                        ? 'bg-primary text-primary-foreground border-primary'
+                        : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    {level === 'Unknown' ? 'Keep Current' : level}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Comment (required)</Label>
+              <Textarea
+                value={bulkComment}
+                onChange={e => setBulkComment(e.target.value)}
+                placeholder="Reason for attaching these articles..."
+                className="min-h-[60px] text-xs resize-none"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
+            <Button size="sm" disabled={!bulkComment.trim()} onClick={handleBulkAttach} className="gap-1">
+              <Paperclip className="h-3 w-3" /> Attach {selectedCount === 1 ? 'Article' : 'Articles'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Detach Dialog */}
+      <Dialog open={bulkDialog === 'detach'} onOpenChange={v => !v && setBulkDialog(null)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Detach {selectedCount === 1 ? 'Article' : 'Articles'} — {selectedCount}</DialogTitle>
+            <DialogDescription>Remove selected articles from this case.</DialogDescription>
+          </DialogHeader>
+          <div className="max-h-40 overflow-y-auto border rounded-md">
+            <div className="divide-y">
+              {selectedArticles.map(a => (
+                <div key={a.id} className="px-3 py-1.5 text-xs flex items-center gap-2">
+                  <span className="font-medium truncate flex-1">{a.headline}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Comment (required)</Label>
+            <Textarea
+              value={bulkComment}
+              onChange={e => setBulkComment(e.target.value)}
+              placeholder="Reason for detaching..."
+              className="min-h-[60px] text-xs resize-none"
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
+            <Button size="sm" variant="destructive" disabled={!bulkComment.trim()} onClick={handleBulkDetach} className="gap-1">
+              <X className="h-3 w-3" /> Detach
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <Sheet open={articleDrawerOpen} onOpenChange={v => !v && setArticleDrawerOpen(false)}>
         <SheetContent className="w-[600px] sm:max-w-[600px] overflow-y-auto p-0">
           {selectedArticle && (
