@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef, useReducer } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useReducer, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Shield, AlertTriangle, Eye, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, Database, Flame, Settings2, GripVertical, ChevronDown, ChevronRight, User } from 'lucide-react';
@@ -87,6 +87,24 @@ type MatchColumnKey = typeof MATCH_COLUMNS[number]['key'];
 const DEFAULT_MATCH_COLUMNS: MatchColumnKey[] = ['name', 'priority', 'strength', 'dataset', 'identifiers'];
 
 export function ResultsView({ matches, caseName, caseId, screeningData, onMatchUpdated }: ResultsViewProps) {
+  const bucketRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const [stickyOffsets, setStickyOffsets] = useState({ filter: 0, thead: 0 });
+
+  useEffect(() => {
+    const measure = () => {
+      const bucketEl = bucketRef.current;
+      const filterEl = filterRef.current;
+      if (bucketEl) {
+        const bucketBottom = bucketEl.offsetHeight - 24; // -24 for the -top-6 sticky offset
+        const filterHeight = filterEl ? filterEl.offsetHeight + 16 : 0; // +16 for mb-4
+        setStickyOffsets({ filter: bucketBottom, thead: bucketBottom + filterHeight });
+      }
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [matches]);
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
@@ -328,7 +346,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
     <div>
 
       {/* Disposition Summary & Bucket Tabs */}
-      <div className="mb-4 rounded-lg border bg-card sticky -top-6 z-20 -mx-6 px-6 pt-6">
+      <div ref={bucketRef} className="mb-4 rounded-lg border bg-card sticky -top-6 z-20 -mx-6 px-6 pt-6">
         {/* Bucket tabs */}
         <div className="flex gap-1 p-1">
           {BUCKETS.map(bucket => (
@@ -405,7 +423,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
         })()}
       </div>
 
-      <div className="flex items-center gap-2 mb-4 flex-wrap">
+      <div ref={filterRef} className="flex items-center gap-2 mb-4 flex-wrap sticky z-20 bg-background py-2 -mx-6 px-6" style={{ top: `${stickyOffsets.filter}px` }}>
        <div className="flex items-center gap-2 flex-1 min-w-0">
           <FilterBar
             filters={matchFilterDefs}
@@ -493,13 +511,12 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
         </div>
       )}
 
-      <Card>
+      <Card className="overflow-visible">
 
           {/* Table */}
-          <div className="overflow-x-auto">
             <table className="w-full text-sm">
             <thead>
-              <tr className="border-b bg-muted/50 sticky top-0 z-30">
+              <tr className="border-b bg-muted/50 sticky z-30" style={{ top: `${stickyOffsets.thead}px` }}>
                 <th className="px-3 py-3 w-10 sticky left-0 z-20 bg-muted/50">
                   <Checkbox
                     checked={allSelected}
@@ -696,7 +713,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
               )}
             </tbody>
           </table>
-          </div>
       </Card>
 
       {/* Match Drawer */}
