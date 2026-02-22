@@ -486,7 +486,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
             <table className="w-full text-sm">
             <thead>
               <tr className="border-b bg-muted/50">
-                <th className="px-3 py-3 w-10">
+                <th className="px-3 py-3 w-10 sticky left-0 z-20 bg-muted/50">
                   <Checkbox
                     checked={allSelected}
                     onCheckedChange={toggleAll}
@@ -498,7 +498,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                 {visibleColumns.map(key => {
                   const col = MATCH_COLUMNS.find(c => c.key === key)!;
                   const widthClass = key === 'priority' ? 'w-20' : key === 'strength' ? 'w-32' : '';
-                  return <th key={key} className={`text-left px-4 py-3 font-medium text-muted-foreground ${widthClass}`}>{col.label}</th>;
+                  const stickyClass = key === 'name' ? 'sticky left-10 z-20 bg-muted/50 min-w-[250px] border-r' : '';
+                  return <th key={key} className={`text-left px-4 py-3 font-medium text-muted-foreground ${widthClass} ${stickyClass}`}>{col.label}</th>;
                 })}
                 <th className="text-left px-4 py-3 font-medium text-muted-foreground w-16"></th>
               </tr>
@@ -523,7 +524,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                       tabIndex={0}
                       onKeyDown={e => e.key === 'Enter' && openMatch(m)}
                     >
-                      <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
+                      <td className="px-3 py-3 sticky left-0 z-10 bg-card" onClick={e => e.stopPropagation()}>
                         <Checkbox
                           checked={isSelected}
                           onCheckedChange={() => toggleOne(m.id)}
@@ -532,10 +533,11 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                         />
                       </td>
                       {visibleColumns.map(key => {
+                        const stickyName = key === 'name' ? 'sticky left-10 z-10 bg-card border-r min-w-[250px]' : '';
                         switch (key) {
                           case 'name':
                             return (
-                              <td key={key} className="px-4 py-3">
+                              <td key={key} className={`px-4 py-3 ${stickyName}`}>
                                 <div className="flex items-center gap-2">
                                   <button
                                     className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
