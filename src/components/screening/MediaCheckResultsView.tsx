@@ -367,7 +367,7 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
 
       {/* Bulk action bar */}
       {selectedCount > 0 && (
-        <div className="flex items-center gap-2 px-3 py-1.5 mb-4 rounded-md bg-primary/10 border border-primary/20 animate-fade-in">
+        <div className="flex items-center gap-2 px-3 py-1.5 mb-4 rounded-md bg-primary/10 border border-primary/20 animate-fade-in sticky top-10 z-20">
           <CheckSquare className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium">{selectedCount} selected</span>
           <div className="flex gap-1.5 ml-2">
@@ -479,33 +479,6 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
         </Card>
       </div>
 
-      {/* Media Resolution — pinned to bottom */}
-      {!hasMore && filteredArticles.length > 0 && (
-        <Card className="mt-4">
-          <CardContent className="p-4">
-            <h3 className="text-sm font-semibold mb-3">Media Resolution</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-xs">Case Rating</Label>
-                <Select defaultValue="Unknown">
-                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="High">High</SelectItem>
-                    <SelectItem value="Medium">Medium</SelectItem>
-                    <SelectItem value="Low">Low</SelectItem>
-                    <SelectItem value="No Risk">No Risk</SelectItem>
-                    <SelectItem value="Unknown">Not Rated</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-xs">Reason</Label>
-                <Input placeholder="Enter reason..." className="h-8 text-xs" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Bulk Attach Dialog */}
       <Dialog open={bulkDialog === 'attach'} onOpenChange={v => !v && setBulkDialog(null)}>
