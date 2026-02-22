@@ -1,7 +1,7 @@
-import { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Shield, AlertTriangle, Eye, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, Database, Flame, Settings2, GripVertical } from 'lucide-react';
+import { Shield, AlertTriangle, Eye, X, Check, HelpCircle, CircleDot, XCircle, CircleOff, CheckSquare, Square, MinusSquare, Database, Flame, Settings2, GripVertical, ChevronDown, ChevronRight, User } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -122,6 +122,12 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
     setVisibleColumns(items);
   };
 
+  const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
+  const toggleExpand = (id: string) => setExpandedRows(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
   const isColVisible = (key: MatchColumnKey) => visibleColumns.includes(key);
   const visibleColCount = visibleColumns.length + 2; // +2 for checkbox and action columns
 
@@ -505,9 +511,10 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
               ) : (
                 filteredMatches.map(m => {
                   const isSelected = selectedIds.has(m.id);
+                  const isExpanded = expandedRows.has(m.id);
                   return (
+                    <React.Fragment key={m.id}>
                     <tr
-                      key={m.id}
                       className={`border-b cursor-pointer transition-colors hover:bg-muted/30 ${
                         m.reviewRequired ? 'bg-status-possible/5' : ''
                       } ${isSelected ? 'bg-primary/5' : ''}`}
@@ -526,9 +533,22 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                         switch (key) {
                           case 'name':
                             return (
-                              <td key={key} className="px-4 py-3" onClick={() => openMatch(m)}>
+                              <td key={key} className="px-4 py-3">
                                 <div className="flex items-center gap-2">
-                                  <span className="font-medium">{m.matchedName}</span>
+                                  <button
+                                    className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
+                                    onClick={e => { e.stopPropagation(); toggleExpand(m.id); }}
+                                    aria-label={isExpanded ? 'Collapse' : 'Expand'}
+                                  >
+                                    {isExpanded
+                                      ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                                      : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+                                    }
+                                  </button>
+                                  <span className="font-medium cursor-pointer" onClick={() => openMatch(m)}>{m.matchedName}</span>
+                                  {m.aliases.length > 0 && (
+                                    <span className="text-[10px] text-muted-foreground">+{m.aliases.length} aliases</span>
+                                  )}
                                   {m.updated && (
                                     <Badge variant="secondary" className="text-[10px] bg-status-possible/15 text-status-possible border-0">
                                       Updated
@@ -543,70 +563,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                                     </Badge>
                                   )}
                                 </div>
-                                {m.aliases.length > 0 && (
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <button className="text-xs text-muted-foreground mt-0.5 hover:text-foreground transition-colors text-left" onClick={e => e.stopPropagation()}>
-                                        aka: {m.aliases.slice(0, 2).join(', ')}{m.aliases.length > 2 ? ` +${m.aliases.length - 2} more` : ''}
-                                      </button>
-                                    </PopoverTrigger>
-                                    <PopoverContent side="bottom" align="start" className="w-64 p-3 bg-popover z-50" onClick={e => e.stopPropagation()}>
-                                      <p className="text-xs font-semibold mb-2">All Aliases ({m.aliases.length})</p>
-                                      <ul className="space-y-1">
-                                        {m.aliases.map((alias, ai) => (
-                                          <li key={ai} className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                            <span className="h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
-                                            {alias}
-                                          </li>
-                                        ))}
-                                      </ul>
-                                    </PopoverContent>
-                                  </Popover>
-                                )}
-                                <Popover>
-                                  <PopoverTrigger asChild>
-                                    <button className="text-xs text-muted-foreground mt-0.5 hover:text-foreground transition-colors text-left flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                                      <HelpCircle className="h-3 w-3 shrink-0" />
-                                      {m.whyMatched.filter(wf => wf.result === 'match').length}/{m.whyMatched.length} fields matched
-                                    </button>
-                                  </PopoverTrigger>
-                                  <PopoverContent side="bottom" align="start" className="w-80 p-3 bg-popover z-50" onClick={e => e.stopPropagation()}>
-                                    <p className="text-xs font-semibold mb-2">Why it matched</p>
-                                    <table className="w-full text-xs">
-                                      <thead>
-                                        <tr className="border-b">
-                                          <th className="text-left py-1 pr-2 w-5"></th>
-                                          <th className="text-left py-1 pr-2 font-medium text-muted-foreground">Field</th>
-                                          <th className="text-left py-1 pr-2 font-medium text-muted-foreground">Screened</th>
-                                          <th className="text-left py-1 font-medium text-muted-foreground">Matched</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {m.whyMatched.map((wf, i) => (
-                                          <tr key={i} className={`border-b last:border-b-0 ${wf.result === 'match' ? 'bg-status-positive/5' : wf.result === 'mismatch' ? 'bg-status-unresolved/5' : ''}`}>
-                                            <td className="py-1 pr-2">{fieldResultIcon(wf.result)}</td>
-                                            <td className="py-1 pr-2 font-medium">{wf.field}</td>
-                                            <td className="py-1 pr-2 text-muted-foreground">{wf.inputValue || '—'}</td>
-                                            <td className="py-1 text-muted-foreground">{wf.matchedValue || '—'}</td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                    <p className="text-[10px] text-muted-foreground italic mt-2">{m.matchStrengthExplanation}</p>
-                                    {m.reviewRequired && m.changeLog.length > 0 && (
-                                      <div className="mt-2 pt-2 border-t">
-                                        <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
-                                        {m.changeLog.slice(0, 2).map((cl, i) => (
-                                          <p key={i} className="text-[10px] text-muted-foreground">
-                                            {cl.field}: {cl.from} → {cl.to}
-                                          </p>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </PopoverContent>
-                                </Popover>
                                 {m.status !== 'Unresolved' && m.resolutionHistory.length > 0 && (
-                                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[300px]" title={m.resolutionHistory[0].reason}>
+                                  <p className="text-[11px] text-muted-foreground mt-0.5 truncate max-w-[300px] ml-6" title={m.resolutionHistory[0].reason}>
                                     {m.resolutionHistory[0].author}: {m.resolutionHistory[0].reason}
                                   </p>
                                 )}
@@ -658,6 +616,66 @@ export function ResultsView({ matches, caseName, caseId, screeningData }: Result
                         <Eye className="h-4 w-4 text-muted-foreground" />
                       </td>
                     </tr>
+                    {isExpanded && (
+                      <tr className="border-b bg-muted/20">
+                        <td colSpan={visibleColCount} className="px-4 py-3">
+                          <div className="flex gap-6 ml-6">
+                            {/* Why it matched */}
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-semibold mb-2">Why it matched</p>
+                              <table className="w-full text-xs">
+                                <thead>
+                                  <tr className="border-b">
+                                    <th className="text-left py-1 pr-2 w-5"></th>
+                                    <th className="text-left py-1 pr-2 font-medium text-muted-foreground">Field</th>
+                                    <th className="text-left py-1 pr-2 font-medium text-muted-foreground">Screened</th>
+                                    <th className="text-left py-1 font-medium text-muted-foreground">Matched</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {m.whyMatched.map((wf, i) => (
+                                    <tr key={i} className={`border-b last:border-b-0 ${wf.result === 'match' ? 'bg-status-positive/5' : wf.result === 'mismatch' ? 'bg-status-unresolved/5' : ''}`}>
+                                      <td className="py-1 pr-2">{fieldResultIcon(wf.result)}</td>
+                                      <td className="py-1 pr-2 font-medium">{wf.field}</td>
+                                      <td className="py-1 pr-2 text-muted-foreground">{wf.inputValue || '—'}</td>
+                                      <td className="py-1 text-muted-foreground">{wf.matchedValue || '—'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                              <p className="text-[10px] text-muted-foreground italic mt-1">{m.matchStrengthExplanation}</p>
+                              {m.reviewRequired && m.changeLog.length > 0 && (
+                                <div className="mt-2 pt-2 border-t">
+                                  <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
+                                  {m.changeLog.slice(0, 2).map((cl, i) => (
+                                    <p key={i} className="text-[10px] text-muted-foreground">
+                                      {cl.field}: {cl.from} → {cl.to}
+                                    </p>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                            {/* Aliases */}
+                            {m.aliases.length > 0 && (
+                              <div className="shrink-0 w-48">
+                                <p className="text-xs font-semibold mb-2 flex items-center gap-1">
+                                  <User className="h-3 w-3" /> Aliases ({m.aliases.length})
+                                </p>
+                                <ul className="space-y-0.5">
+                                  {m.aliases.map((alias, ai) => (
+                                    <li key={ai} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                                      <span className="h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
+                                      {alias}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })
               )}
