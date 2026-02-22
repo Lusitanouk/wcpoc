@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Search, Filter, X, Paperclip, ExternalLink, Eye, FileText, ToggleRight, Newspaper, AlertTriangle, Globe, Tag } from 'lucide-react';
+import { useState, useMemo, useRef, useEffect } from 'react';
+import { Search, Filter, X, Paperclip, ExternalLink, Eye, FileText, ToggleRight, Newspaper, AlertTriangle, Globe, Tag, Check, HelpCircle, CircleDot, XCircle, CircleOff } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Label } from '@/components/ui/label';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import type { MediaCheckResult, MediaArticle, MediaRiskLevel } from '@/types';
 
@@ -25,19 +26,42 @@ const riskColors: Record<MediaRiskLevel, string> = {
   Unknown: 'bg-status-unknown text-white',
 };
 
+type MediaBucket = 'all' | 'attached';
+
+const bucketIcons: Record<MediaBucket, React.ReactNode> = {
+  all: <Newspaper className="h-3.5 w-3.5" />,
+  attached: <Paperclip className="h-3.5 w-3.5" />,
+};
+
 export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckResultsViewProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [topicFilter, setTopicFilter] = useState<string>('all');
   const [countryFilter, setCountryFilter] = useState<string>('all');
   const [riskFilter, setRiskFilter] = useState<string>('all');
-  const [showFilters, setShowFilters] = useState(false);
   const [smartFilterOn, setSmartFilterOn] = useState(result.smartFilterEnabled);
   const [selectedEntity, setSelectedEntity] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'headlines' | 'attached'>('headlines');
+  const [activeBucket, setActiveBucket] = useState<MediaBucket>('all');
+  const [hoveredBucket, setHoveredBucket] = useState<MediaBucket | null>(null);
   const [selectedArticle, setSelectedArticle] = useState<MediaArticle | null>(null);
   const [articleDrawerOpen, setArticleDrawerOpen] = useState(false);
   const [riskAssignment, setRiskAssignment] = useState<Record<string, MediaRiskLevel>>({});
-  const [dateRange, setDateRange] = useState<string>('last2years');
+
+  const bucketRef = useRef<HTMLDivElement>(null);
+  const filterRef = useRef<HTMLDivElement>(null);
+  const [stickyOffsets, setStickyOffsets] = useState({ filter: 0 });
+
+  useEffect(() => {
+    const measure = () => {
+      const bucketEl = bucketRef.current;
+      if (bucketEl) {
+        const bucketBottom = bucketEl.offsetHeight - 24;
+        setStickyOffsets({ filter: bucketBottom });
+      }
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [result.articles]);
 
   // Collect all unique topics and countries
   const allTopics = useMemo(() => {
@@ -94,8 +118,6 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
     risk: riskFilter,
   };
 
-  const mediaActiveFilterCount = (topicFilter !== 'all' ? 1 : 0) + (countryFilter !== 'all' ? 1 : 0) + (riskFilter !== 'all' ? 1 : 0);
-
   const handleMediaFilterChange = (key: string, value: string) => {
     if (key === 'topic') setTopicFilter(value);
     if (key === 'country') setCountryFilter(value);
@@ -108,10 +130,35 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
     setRiskFilter('all');
   };
 
+  // Bucket counts
+  const allArticlesCount = result.articles.length;
+  const attachedArticles = useMemo(() => result.articles.filter(a => a.attached), [result.articles]);
+  const attachedCount = attachedArticles.length;
+
+  const bucketCounts: Record<MediaBucket, number> = {
+    all: allArticlesCount,
+    attached: attachedCount,
+  };
+
+  // Stats per bucket
+  const getBucketStats = (bucket: MediaBucket) => {
+    const articles = bucket === 'attached' ? attachedArticles : result.articles;
+    const riskCounts: Record<string, number> = {};
+    articles.forEach(a => {
+      const risk = riskAssignment[a.id] || a.riskLevel;
+      riskCounts[risk] = (riskCounts[risk] || 0) + 1;
+    });
+    const topicCounts: Record<string, number> = {};
+    articles.forEach(a => a.topics.forEach(t => { topicCounts[t] = (topicCounts[t] || 0) + 1; }));
+    const topTopics = Object.entries(topicCounts).sort((a, b) => b[1] - a[1]).slice(0, 3);
+    const reviewCount = articles.filter(a => a.smartFilterRelevant).length;
+    return { riskCounts, topTopics, reviewCount, total: articles.length };
+  };
+
   const filteredArticles = useMemo(() => {
     return result.articles
       .filter(a => {
-        if (viewMode === 'attached' && !a.attached) return false;
+        if (activeBucket === 'attached' && !a.attached) return false;
         if (smartFilterOn && !a.smartFilterRelevant) return false;
         if (searchQuery && !a.headline.toLowerCase().includes(searchQuery.toLowerCase()) && !a.snippet.toLowerCase().includes(searchQuery.toLowerCase())) return false;
         if (topicFilter !== 'all' && !a.topics.includes(topicFilter)) return false;
@@ -121,7 +168,7 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
         return true;
       })
       .sort((a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
-  }, [result.articles, viewMode, smartFilterOn, searchQuery, topicFilter, countryFilter, riskFilter, selectedEntity]);
+  }, [result.articles, activeBucket, smartFilterOn, searchQuery, topicFilter, countryFilter, riskFilter, selectedEntity]);
 
   const openArticle = (article: MediaArticle) => {
     setSelectedArticle(article);
@@ -132,84 +179,87 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
     setRiskAssignment(prev => ({ ...prev, [articleId]: risk }));
   };
 
+  const BUCKETS: MediaBucket[] = ['all', 'attached'];
+  const bucketLabels: Record<MediaBucket, string> = { all: 'All Matched', attached: 'Attached' };
+
   return (
     <div>
 
-      {/* Summary Row */}
-      <div className="grid grid-cols-5 gap-3 mb-6">
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Total Articles</p>
-            <p className="text-2xl font-bold mt-1">{result.totalArticles.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Review Required</p>
-            <p className="text-2xl font-bold mt-1 text-status-possible">{result.reviewRequired.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Attached</p>
-            <p className="text-2xl font-bold mt-1">{result.attachedCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Showing (filtered)</p>
-            <p className="text-2xl font-bold mt-1">{filteredArticles.length}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="p-4">
-            <p className="text-xs text-muted-foreground">Smart Filter</p>
-            <div className="flex items-center gap-2 mt-1">
-              <Switch checked={smartFilterOn} onCheckedChange={setSmartFilterOn} />
-              <span className="text-sm font-medium">{smartFilterOn ? 'On' : 'Off'}</span>
+      {/* Bucket Tabs */}
+      <div ref={bucketRef} className="mb-4 rounded-lg border bg-card sticky -top-6 z-20 group/buckets">
+        <div className="flex items-center gap-1 p-1">
+          {BUCKETS.map(bucket => (
+            <Tooltip key={bucket}>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={() => setActiveBucket(bucket)}
+                  onMouseEnter={() => setHoveredBucket(bucket)}
+                  onMouseLeave={() => setHoveredBucket(null)}
+                  className={`flex items-center justify-center gap-1.5 px-3 py-2 rounded-md text-xs font-medium transition-all border-b-2 ${
+                    activeBucket === bucket
+                      ? 'border-primary text-foreground'
+                      : 'border-transparent text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {bucketIcons[bucket]}
+                  <span className="hidden sm:inline">{bucketLabels[bucket]}</span>
+                  <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-[10px]">
+                    {bucketCounts[bucket]}
+                  </Badge>
+                </button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="sm:hidden text-xs">{bucketLabels[bucket]}</TooltipContent>
+            </Tooltip>
+          ))}
+          <div className="ml-auto flex items-center gap-2 pr-2">
+            <span className="text-[11px] text-muted-foreground">Smart Filter</span>
+            <Switch checked={smartFilterOn} onCheckedChange={setSmartFilterOn} className="scale-75" />
+          </div>
+        </div>
+        {/* Hover stats */}
+        {(() => {
+          const statsBucket = hoveredBucket || activeBucket;
+          const stats = getBucketStats(statsBucket);
+          return (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 border-t bg-muted/30 text-xs max-h-0 overflow-hidden opacity-0 group-hover/buckets:max-h-20 group-hover/buckets:opacity-100 group-hover/buckets:py-2 transition-all duration-200">
+              <span className="font-medium text-foreground">{stats.total} {bucketLabels[statsBucket].toLowerCase()}</span>
+              {Object.entries(stats.riskCounts).filter(([level]) => level !== 'Unknown').length > 0 && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">
+                    {Object.entries(stats.riskCounts).filter(([level]) => level !== 'Unknown').map(([level, count], i) => (
+                      <span key={level}>
+                        {i > 0 ? ', ' : ''}
+                        <span className={`font-medium ${level === 'High' ? 'text-destructive' : level === 'Medium' ? 'text-amber-600' : 'text-foreground'}`}>{count}</span>
+                        {' '}{level}
+                      </span>
+                    ))}
+                  </span>
+                </>
+              )}
+              {stats.reviewCount > 0 && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-status-possible font-medium flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> {stats.reviewCount} relevant
+                  </span>
+                </>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          );
+        })()}
       </div>
 
-      {/* View Toggle + Filters */}
-      <div className="flex items-center gap-2 mb-4">
-        <div className="flex gap-1 p-1 bg-muted rounded-lg shrink-0">
-          <button
-            onClick={() => setViewMode('headlines')}
-            className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${viewMode === 'headlines' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            All Matched Articles ({filteredArticles.length})
-          </button>
-          <button
-            onClick={() => setViewMode('attached')}
-            className={`px-4 py-1.5 rounded-md text-xs font-medium transition-all ${viewMode === 'attached' ? 'bg-background shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}
-          >
-            Attached Articles ({result.attachedCount})
-          </button>
+      {/* Filters */}
+      <div ref={filterRef} className="flex items-center gap-2 mb-4 flex-wrap sticky z-20 bg-background py-2" style={{ top: `${stickyOffsets.filter}px` }}>
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          <FilterBar
+            filters={mediaFilterDefs}
+            values={mediaFilterValues}
+            onChange={handleMediaFilterChange}
+            onClearAll={clearAllMediaFilters}
+          />
         </div>
-
-        {showFilters && (
-          <div className="flex-1 min-w-0">
-            <FilterBar
-              filters={mediaFilterDefs}
-              values={mediaFilterValues}
-              onChange={handleMediaFilterChange}
-              onClearAll={clearAllMediaFilters}
-            />
-          </div>
-        )}
-
-        <Button
-          variant={showFilters ? 'secondary' : 'outline'}
-          size="sm"
-          className="h-8 text-xs gap-1 ml-auto shrink-0"
-          onClick={() => setShowFilters(!showFilters)}
-        >
-          <Filter className="h-3.5 w-3.5" />
-          Filters
-          {!showFilters && mediaActiveFilterCount > 0 && <Badge className="h-4 w-4 p-0 text-[9px] flex items-center justify-center rounded-full">{mediaActiveFilterCount}</Badge>}
-        </Button>
       </div>
 
       <div className="grid grid-cols-[240px_1fr] gap-4">
