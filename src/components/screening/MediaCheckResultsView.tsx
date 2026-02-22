@@ -273,7 +273,7 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
     <div>
 
       {/* Bucket Tabs */}
-      <div ref={bucketRef} className="mb-4 rounded-lg border bg-card sticky -top-6 z-20 group/buckets">
+      <div ref={bucketRef} className="mb-4 rounded-lg border bg-card sticky -top-6 z-20">
         <div className="flex items-center gap-1 p-1">
           {BUCKETS.map(bucket => (
             <Tooltip key={bucket}>
@@ -322,7 +322,7 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
           const statsBucket = hoveredBucket || activeBucket;
           const stats = getBucketStats(statsBucket);
           return (
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 border-t bg-muted/30 text-xs max-h-0 overflow-hidden opacity-0 group-hover/buckets:max-h-20 group-hover/buckets:opacity-100 group-hover/buckets:py-2 transition-all duration-200">
+            <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 border-t bg-muted/30 text-xs transition-all duration-200 ${hoveredBucket ? 'max-h-20 opacity-100 py-2' : 'max-h-0 overflow-hidden opacity-0'}`}>
               <span className="font-medium text-foreground">{stats.total} {bucketLabels[statsBucket].toLowerCase()}</span>
               {Object.entries(stats.riskCounts).filter(([level]) => level !== 'Unknown').length > 0 && (
                 <>
