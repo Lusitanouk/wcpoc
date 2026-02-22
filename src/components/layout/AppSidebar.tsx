@@ -1,5 +1,5 @@
 import {
-  Search, Briefcase, AlertTriangle, FileText, Settings,
+  Home, Search, Briefcase, AlertTriangle, FileText, Settings,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from '@/components/NavLink';
@@ -20,6 +20,7 @@ export function AppSidebar() {
   const { t } = useTranslation();
 
   const navItems = [
+    { title: t('nav.home'), url: '/home', icon: Home },
     { title: t('nav.screen'), url: '/screen', icon: Search },
     { title: t('nav.cases'), url: '/cases', icon: Briefcase },
     { title: t('nav.alerts'), url: '/alerts', icon: AlertTriangle },

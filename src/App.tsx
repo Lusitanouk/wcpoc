@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
+import HomePage from "./pages/HomePage";
 import ScreenPage from "./pages/ScreenPage";
 import CasesPage from "./pages/CasesPage";
 import CaseDetailPage from "./pages/CaseDetailPage";
@@ -26,6 +27,7 @@ const App = () => (
           <Routes>
             <Route element={<AppLayout />}>
               <Route path="/" element={<Index />} />
+              <Route path="/home" element={<HomePage />} />
               <Route path="/screen" element={<ScreenPage />} />
               <Route path="/cases" element={<CasesPage />} />
               <Route path="/cases/:id" element={<CaseDetailPage />} />
