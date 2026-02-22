@@ -553,27 +553,31 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
                   ))}
                 </div>
               </div>
-              <div className="flex-1 min-w-0 space-y-1.5">
-                <Label className="text-xs">Match Outcome</Label>
-                <Select value={matchOutcome} onValueChange={setMatchOutcome}>
-                  <SelectTrigger className="h-8 text-xs">
-                    <SelectValue placeholder="Select outcome..." />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover z-50">
-                    <SelectItem value="Full Match" className="text-xs">Full Match</SelectItem>
-                    <SelectItem value="Partial Match" className="text-xs">Partial Match</SelectItem>
-                    <SelectItem value="No Match" className="text-xs">No Match</SelectItem>
-                    <SelectItem value="Unknown" className="text-xs">Unknown</SelectItem>
-                  </SelectContent>
-                </Select>
-                <Label className="text-xs">{t('match.reason')}</Label>
-                <Textarea
-                  value={reason}
-                  onChange={e => setReason(e.target.value)}
-                  rows={3}
-                  placeholder={t('match.resolutionReason')}
-                  className="text-xs resize-none"
-                />
+              <div className="flex-1 min-w-0 space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-xs">Match Outcome</Label>
+                  <Select value={matchOutcome} onValueChange={setMatchOutcome}>
+                    <SelectTrigger className="h-8 text-xs">
+                      <SelectValue placeholder="Select outcome..." />
+                    </SelectTrigger>
+                    <SelectContent className="bg-popover z-50">
+                      <SelectItem value="Full Match" className="text-xs">Full Match</SelectItem>
+                      <SelectItem value="Partial Match" className="text-xs">Partial Match</SelectItem>
+                      <SelectItem value="No Match" className="text-xs">No Match</SelectItem>
+                      <SelectItem value="Unknown" className="text-xs">Unknown</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs">{t('match.reason')}</Label>
+                  <Textarea
+                    value={reason}
+                    onChange={e => setReason(e.target.value)}
+                    rows={3}
+                    placeholder={t('match.resolutionReason')}
+                    className="text-xs resize-none"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -593,7 +597,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
             />
           </div>
 
-          <Button onClick={handleSave} className="w-full">{t('match.saveResolution')}</Button>
+          <Button onClick={handleSave} className="w-full">Save</Button>
         </div>
       </div>
     </div>
