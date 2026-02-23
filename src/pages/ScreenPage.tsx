@@ -572,6 +572,9 @@ export default function ScreenPage() {
                               <SelectItem value="Driving License">Driving License</SelectItem>
                               <SelectItem value="Tax ID">Tax ID</SelectItem>
                               <SelectItem value="Company Registration">Company Registration</SelectItem>
+                              {config.entityType === 'Vessel' && (
+                                <SelectItem value="IMO Number">IMO Number</SelectItem>
+                              )}
                               <SelectItem value="Other">Other</SelectItem>
                             </SelectContent>
                           </Select>
