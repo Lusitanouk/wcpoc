@@ -190,6 +190,7 @@ export interface ScreeningData {
   idType: string;
   idNumber: string;
   identificationDocuments: IdentificationDocument[];
+  imoNumber: string;
 }
 
 // --- Media Check Types ---

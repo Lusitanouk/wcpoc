@@ -46,6 +46,7 @@ const defaultData: ScreeningData = {
   idType: '',
   idNumber: '',
   identificationDocuments: [],
+  imoNumber: '',
 };
 
 const defaultPassportData: PassportData = {
@@ -512,6 +513,17 @@ export default function ScreenPage() {
                         />
                       </div>
                       )}
+                      {config.entityType === 'Vessel' && (
+                        <div className="space-y-1">
+                          <Label className="text-[10px]">IMO Number</Label>
+                          <Input
+                            value={data.imoNumber}
+                            onChange={e => setData(d => ({ ...d, imoNumber: e.target.value }))}
+                            placeholder="e.g. 9074729"
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                      )}
                       {hasMediaCheck && config.entityType !== 'Organisation' && config.entityType !== 'Vessel' && (
                         <div className="space-y-1">
                           <Label className="text-[10px]">Place of Birth <span className="text-muted-foreground">(up to 3)</span></Label>
@@ -527,6 +539,7 @@ export default function ScreenPage() {
                   </div>
 
                   {/* Identification Documents */}
+                  {config.entityType !== 'Vessel' && (
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
                       <h3 className="text-xs font-medium text-muted-foreground">Identification Documents</h3>
@@ -621,6 +634,7 @@ export default function ScreenPage() {
                       </div>
                     ))}
                   </div>
+                  )}
                 </>
               )}
 
