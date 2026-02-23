@@ -81,6 +81,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
   const [activeTab, setActiveTab] = useState('key-data');
   const [historyOpen, setHistoryOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(defaultFullscreen ?? false);
+  const [dispositionTab, setDispositionTab] = useState<'resolve' | 'review'>('resolve');
 
   useEffect(() => {
     if (match && open) {
@@ -109,87 +110,200 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
 
   const hasScreeningData = screeningData && (screeningData.dob || screeningData.gender || screeningData.nationality || screeningData.country || screeningData.idType || screeningData.customFields);
 
+
   const resolveReviewPanel = (
-    <div id="disposition-section" className={`p-6 space-y-6 ${isFullscreen ? 'overflow-y-auto' : 'border-b'}`}>
-      <div className="space-y-3">
-        <h4 className="text-sm font-semibold">Resolve Match</h4>
-        <div className="flex gap-4 items-start">
-          <div className="space-y-1.5 shrink-0">
-            <Label className="text-xs">{t('match.status')}</Label>
-            <div className="flex flex-col gap-1">
-              {(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]).map(s => (
-                <button
-                  key={s}
-                  onClick={() => setStatus(s)}
-                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
-                    status === s
-                      ? 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
-                  }`}
-                >
-                  {t(`match.${s.toLowerCase()}`)}
-                </button>
-              ))}
+    <div id="disposition-section" className={`p-6 ${isFullscreen ? 'overflow-y-auto space-y-6' : 'border-b'}`}>
+      {!isFullscreen ? (
+        <>
+          {/* Stacked tab switcher for side panel */}
+          <div className="flex gap-1 mb-3 p-0.5 rounded-md bg-muted/50 w-fit">
+            <button
+              onClick={() => setDispositionTab('resolve')}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                dispositionTab === 'resolve'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              Resolve Match
+            </button>
+            <button
+              onClick={() => setDispositionTab('review')}
+              className={`px-3 py-1.5 rounded text-xs font-medium transition-colors ${
+                dispositionTab === 'review'
+                  ? 'bg-background text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {t('match.reviewComment')}
+            </button>
+          </div>
+
+          {dispositionTab === 'resolve' ? (
+            <div className="space-y-3">
+              <div className="flex gap-4 items-start">
+                <div className="space-y-1.5 shrink-0">
+                  <Label className="text-xs">{t('match.status')}</Label>
+                  <div className="flex flex-col gap-1">
+                    {(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]).map(s => (
+                      <button
+                        key={s}
+                        onClick={() => setStatus(s)}
+                        className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                          status === s
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        {t(`match.${s.toLowerCase()}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-1.5 shrink-0">
+                  <Label className="text-xs">{t('match.riskLevel')}</Label>
+                  <div className="flex flex-col gap-1">
+                    {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
+                      <button
+                        key={r}
+                        onClick={() => setRisk(r)}
+                        className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                          risk === r
+                            ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
+                              : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
+                              : 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                        }`}
+                      >
+                        {t(`match.${r.toLowerCase()}`)}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Match Outcome</Label>
+                <Select value={matchOutcome} onValueChange={setMatchOutcome}>
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue placeholder="Select outcome..." />
+                  </SelectTrigger>
+                  <SelectContent className="bg-popover z-50">
+                    <SelectItem value="Full Match" className="text-xs">Full Match</SelectItem>
+                    <SelectItem value="Partial Match" className="text-xs">Partial Match</SelectItem>
+                    <SelectItem value="No Match" className="text-xs">No Match</SelectItem>
+                    <SelectItem value="Unknown" className="text-xs">Unknown</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t('match.reason')}</Label>
+                <Textarea
+                  value={reason}
+                  onChange={e => setReason(e.target.value)}
+                  rows={3}
+                  placeholder={t('match.resolutionReason')}
+                  className="text-xs resize-none"
+                />
+              </div>
+              <Button onClick={handleSave} className="w-full mt-3">Save</Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <Textarea
+                value={comment}
+                onChange={e => setComment(e.target.value)}
+                rows={3}
+                placeholder={t('match.optionalComment')}
+                className="text-xs resize-none"
+              />
+              <Button onClick={handleSave} className="w-full">Save</Button>
+            </div>
+          )}
+        </>
+      ) : (
+        /* Fullscreen: show both sections stacked as before */
+        <>
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">Resolve Match</h4>
+            <div className="flex gap-4 items-start">
+              <div className="space-y-1.5 shrink-0">
+                <Label className="text-xs">{t('match.status')}</Label>
+                <div className="flex flex-col gap-1">
+                  {(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]).map(s => (
+                    <button
+                      key={s}
+                      onClick={() => setStatus(s)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                        status === s
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {t(`match.${s.toLowerCase()}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-1.5 shrink-0">
+                <Label className="text-xs">{t('match.riskLevel')}</Label>
+                <div className="flex flex-col gap-1">
+                  {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
+                    <button
+                      key={r}
+                      onClick={() => setRisk(r)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                        risk === r
+                          ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
+                            : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
+                            : 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {t(`match.${r.toLowerCase()}`)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Match Outcome</Label>
+              <Select value={matchOutcome} onValueChange={setMatchOutcome}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue placeholder="Select outcome..." />
+                </SelectTrigger>
+                <SelectContent className="bg-popover z-50">
+                  <SelectItem value="Full Match" className="text-xs">Full Match</SelectItem>
+                  <SelectItem value="Partial Match" className="text-xs">Partial Match</SelectItem>
+                  <SelectItem value="No Match" className="text-xs">No Match</SelectItem>
+                  <SelectItem value="Unknown" className="text-xs">Unknown</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">{t('match.reason')}</Label>
+              <Textarea
+                value={reason}
+                onChange={e => setReason(e.target.value)}
+                rows={3}
+                placeholder={t('match.resolutionReason')}
+                className="text-xs resize-none"
+              />
             </div>
           </div>
-          <div className="space-y-1.5 shrink-0">
-            <Label className="text-xs">{t('match.riskLevel')}</Label>
-            <div className="flex flex-col gap-1">
-              {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
-                <button
-                  key={r}
-                  onClick={() => setRisk(r)}
-                  className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
-                    risk === r
-                      ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
-                        : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
-                        : 'bg-primary text-primary-foreground border-primary'
-                      : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
-                  }`}
-                >
-                  {t(`match.${r.toLowerCase()}`)}
-                </button>
-              ))}
-            </div>
+          <div className="border-t" />
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">{t('match.reviewComment')}</h4>
+            <Textarea
+              value={comment}
+              onChange={e => setComment(e.target.value)}
+              rows={2}
+              placeholder={t('match.optionalComment')}
+              className="text-xs resize-none"
+            />
           </div>
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">Match Outcome</Label>
-          <Select value={matchOutcome} onValueChange={setMatchOutcome}>
-            <SelectTrigger className="h-8 text-xs">
-              <SelectValue placeholder="Select outcome..." />
-            </SelectTrigger>
-            <SelectContent className="bg-popover z-50">
-              <SelectItem value="Full Match" className="text-xs">Full Match</SelectItem>
-              <SelectItem value="Partial Match" className="text-xs">Partial Match</SelectItem>
-              <SelectItem value="No Match" className="text-xs">No Match</SelectItem>
-              <SelectItem value="Unknown" className="text-xs">Unknown</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-1.5">
-          <Label className="text-xs">{t('match.reason')}</Label>
-          <Textarea
-            value={reason}
-            onChange={e => setReason(e.target.value)}
-            rows={3}
-            placeholder={t('match.resolutionReason')}
-            className="text-xs resize-none"
-          />
-        </div>
-      </div>
-      <div className="border-t" />
-      <div className="space-y-3">
-        <h4 className="text-sm font-semibold">{t('match.reviewComment')}</h4>
-        <Textarea
-          value={comment}
-          onChange={e => setComment(e.target.value)}
-          rows={2}
-          placeholder={t('match.optionalComment')}
-          className="text-xs resize-none"
-        />
-      </div>
-      <Button onClick={handleSave} className="w-full">Save</Button>
+          <Button onClick={handleSave} className="w-full">Save</Button>
+        </>
+      )}
     </div>
   );
 
