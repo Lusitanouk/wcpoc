@@ -194,9 +194,9 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
   );
 
   const drawerContent = (
-    <div className={`${isFullscreen ? '' : ''}`}>
-      {/* Header with match navigation */}
-      <div className="p-6 pb-4 border-b">
+    <div className={`flex flex-col ${isFullscreen ? '' : 'h-full'}`}>
+      {/* Header with match navigation — sticky */}
+      <div className="p-6 pb-4 border-b sticky top-0 z-10 bg-background">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-base font-semibold truncate">{match.matchedName}</h2>
           <div className="flex items-center gap-1 shrink-0">
@@ -279,7 +279,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
       </div>
 
       {/* Main content - use columns in fullscreen */}
-      <div className={isFullscreen ? 'grid grid-cols-[1fr_360px] gap-0 h-[calc(100vh-120px)]' : ''}>
+      <div className={isFullscreen ? 'grid grid-cols-[1fr_360px] gap-0 flex-1 overflow-hidden' : 'flex-1'}>
         <div className={isFullscreen ? 'overflow-y-auto border-r' : ''}>
           {/* ── Current Resolution (TOP) ── */}
           {match.status !== 'Unresolved' && currentResolution && (
