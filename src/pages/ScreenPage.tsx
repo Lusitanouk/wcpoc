@@ -472,13 +472,13 @@ export default function ScreenPage() {
                   <div className="space-y-3">
                     <h3 className="text-xs font-medium text-muted-foreground">Secondary Identifiers</h3>
                     <div className="grid grid-cols-2 gap-3">
-                      {config.entityType !== 'Organisation' && (
+                      {config.entityType !== 'Organisation' && config.entityType !== 'Vessel' && (
                         <div className="space-y-1">
                           <Label className="text-[10px]">Date of Birth</Label>
                           <Input type="date" value={data.dob} onChange={e => setData(d => ({ ...d, dob: e.target.value }))} className="h-8 text-xs" />
                         </div>
                       )}
-                      {config.entityType !== 'Organisation' && (
+                      {config.entityType !== 'Organisation' && config.entityType !== 'Vessel' && (
                         <div className="space-y-1">
                           <Label className="text-[10px]">Gender</Label>
                           <Select value={data.gender} onValueChange={v => setData(d => ({ ...d, gender: v }))}>
@@ -490,7 +490,7 @@ export default function ScreenPage() {
                           </Select>
                         </div>
                       )}
-                      {config.entityType !== 'Organisation' && (
+                      {config.entityType !== 'Organisation' && config.entityType !== 'Vessel' && (
                         <div className="space-y-1">
                           <Label className="text-[10px]">Citizenship <span className="text-muted-foreground">(up to 3)</span></Label>
                           <CountryMultiSelect
@@ -501,6 +501,7 @@ export default function ScreenPage() {
                           />
                         </div>
                       )}
+                      {config.entityType !== 'Vessel' && (
                       <div className="space-y-1">
                         <Label className="text-[10px]">{config.entityType === 'Organisation' ? 'Registered Country' : 'Country / Location'} <span className="text-muted-foreground">(up to 3)</span></Label>
                         <CountryMultiSelect
@@ -510,7 +511,8 @@ export default function ScreenPage() {
                           placeholder={config.entityType === 'Organisation' ? 'Select country...' : 'Select country/location...'}
                         />
                       </div>
-                      {hasMediaCheck && config.entityType !== 'Organisation' && (
+                      )}
+                      {hasMediaCheck && config.entityType !== 'Organisation' && config.entityType !== 'Vessel' && (
                         <div className="space-y-1">
                           <Label className="text-[10px]">Place of Birth <span className="text-muted-foreground">(up to 3)</span></Label>
                           <CountryMultiSelect
