@@ -186,35 +186,37 @@ export default function ScreenPage() {
 
   return (
     <div className="max-w-6xl mx-auto">
-      <h1 className="text-xl font-bold flex items-center gap-2 mb-6">
-        <Search className="h-5 w-5 text-primary" /> New Screening
-      </h1>
-      {/* Stepper */}
-      <div className="flex items-center gap-2 mb-8">
-        {steps.map((s, i) => (
-          <div key={s} className="flex items-center gap-2">
-            <button
-              onClick={() => i < step && setStep(i)}
-              className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                i === step
-                  ? 'bg-primary text-primary-foreground'
-                  : i < step
-                  ? 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20'
-                  : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              {i < step ? (
-                <Check className="h-4 w-4" />
-              ) : (
-                <span className="h-5 w-5 rounded-full border-2 flex items-center justify-center text-xs font-bold">
-                  {i + 1}
-                </span>
-              )}
-              {s}
-            </button>
-            {i < steps.length - 1 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-          </div>
-        ))}
+      <div className="flex items-center justify-between mb-8">
+        <h1 className="text-xl font-bold flex items-center gap-2">
+          <Search className="h-5 w-5 text-primary" /> New Screening
+        </h1>
+        {/* Stepper */}
+        <div className="flex items-center gap-2">
+          {steps.map((s, i) => (
+            <div key={s} className="flex items-center gap-2">
+              <button
+                onClick={() => i < step && setStep(i)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  i === step
+                    ? 'bg-primary text-primary-foreground'
+                    : i < step
+                    ? 'bg-primary/10 text-primary cursor-pointer hover:bg-primary/20'
+                    : 'bg-muted text-muted-foreground'
+                }`}
+              >
+                {i < step ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <span className="h-5 w-5 rounded-full border-2 flex items-center justify-center text-xs font-bold">
+                    {i + 1}
+                  </span>
+                )}
+                {s}
+              </button>
+              {i < steps.length - 1 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Step 0: Configure & Enter Data (merged) */}
