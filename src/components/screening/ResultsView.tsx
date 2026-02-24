@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
@@ -749,15 +749,14 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
         defaultFullscreen={openInFullscreen}
       />
 
-      {/* Bulk Resolve Dialog */}
-      <Dialog open={bulkDialog === 'resolve'} onOpenChange={v => !v && setBulkDialog(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Resolve {selectedCount === 1 ? 'Match' : 'Matches'} — {selectedCount}</DialogTitle>
-            <DialogDescription>Apply the same resolution status to all selected matches.</DialogDescription>
-          </DialogHeader>
+      {/* Bulk Resolve Sheet */}
+      <Sheet open={bulkDialog === 'resolve'} onOpenChange={v => !v && setBulkDialog(null)}>
+        <SheetContent side="right" className="sm:max-w-lg w-full flex flex-col overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Resolve {selectedCount === 1 ? 'Match' : 'Matches'} — {selectedCount}</SheetTitle>
+            <SheetDescription>Apply the same resolution status to all selected matches.</SheetDescription>
+          </SheetHeader>
 
-          {/* Selection summary */}
           <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5">
             <div className="flex flex-wrap gap-2">
               {Object.entries(selectionSummary.byDataset).map(([ds, count]) => (
@@ -777,7 +776,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
             )}
           </div>
 
-          {/* Matches being resolved */}
           <div className="max-h-40 overflow-y-auto border rounded-md">
             <table className="w-full text-xs">
               <thead>
@@ -801,7 +799,6 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
             </table>
           </div>
 
-          {/* Resolution controls — matches MatchDrawer disposition */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold">{t('match.resolution')}</h4>
             <div className="flex gap-4 items-start">
@@ -868,10 +865,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
             </div>
           </div>
 
-          {/* Divider */}
           <div className="border-t" />
 
-          {/* Review comment — matches MatchDrawer */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold">{t('match.reviewComment')}</h4>
             <Textarea
@@ -883,22 +878,22 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
             />
           </div>
 
-          <DialogFooter>
+          <SheetFooter className="mt-auto pt-4 border-t flex-row justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
             <Button size="sm" disabled={!bulkReason.trim()} onClick={handleBulkResolve}>
               Resolve {selectedCount} {selectedCount === 1 ? 'Match' : 'Matches'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-      {/* Bulk Review Dialog */}
-      <Dialog open={bulkDialog === 'review'} onOpenChange={v => !v && setBulkDialog(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Review {selectedCount === 1 ? 'Match' : 'Matches'} — {selectedCount}</DialogTitle>
-            <DialogDescription>Confirm that the selected matches have been reviewed. Their status will remain unchanged.</DialogDescription>
-          </DialogHeader>
+      {/* Bulk Review Sheet */}
+      <Sheet open={bulkDialog === 'review'} onOpenChange={v => !v && setBulkDialog(null)}>
+        <SheetContent side="right" className="sm:max-w-md w-full flex flex-col overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Review {selectedCount === 1 ? 'Match' : 'Matches'} — {selectedCount}</SheetTitle>
+            <SheetDescription>Confirm that the selected matches have been reviewed. Their status will remain unchanged.</SheetDescription>
+          </SheetHeader>
 
           <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5">
             <div className="flex flex-wrap gap-2">
@@ -946,14 +941,14 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
             />
           </div>
 
-          <DialogFooter>
+          <SheetFooter className="mt-auto pt-4 border-t flex-row justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
             <Button size="sm" onClick={handleBulkReview}>
               Review {selectedCount} {selectedCount === 1 ? 'Match' : 'Matches'}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
