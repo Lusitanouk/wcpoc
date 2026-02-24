@@ -10,7 +10,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cases, allMatches, getCaseById } from '@/data/mock-data';
@@ -425,13 +425,13 @@ export default function AlertsPage() {
         ))}
       </Tabs>
 
-      {/* Bulk Resolve Dialog */}
-      <Dialog open={bulkDialog === 'resolve'} onOpenChange={v => !v && setBulkDialog(null)}>
-        <DialogContent className="sm:max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Bulk Resolve — {selectedCount} Alerts</DialogTitle>
-            <DialogDescription>Apply a resolution to all selected alerts. A mandatory reason is required.</DialogDescription>
-          </DialogHeader>
+      {/* Bulk Resolve Sheet */}
+      <Sheet open={bulkDialog === 'resolve'} onOpenChange={v => !v && setBulkDialog(null)}>
+        <SheetContent side="right" className="sm:max-w-lg w-full flex flex-col overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Bulk Resolve — {selectedCount} Alerts</SheetTitle>
+            <SheetDescription>Apply a resolution to all selected alerts. A mandatory reason is required.</SheetDescription>
+          </SheetHeader>
 
           <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5">
             <div className="flex flex-wrap gap-2">
@@ -450,7 +450,6 @@ export default function AlertsPage() {
             )}
           </div>
 
-          {/* Selected alerts table */}
           <div className="max-h-40 overflow-y-auto border rounded-md">
             <table className="w-full text-xs">
               <thead>
@@ -477,7 +476,6 @@ export default function AlertsPage() {
             </table>
           </div>
 
-          {/* Resolution controls — matches ResultsView disposition */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold">{t('match.resolution')}</h4>
             <div className="flex gap-4 items-start">
@@ -545,22 +543,22 @@ export default function AlertsPage() {
             />
           </div>
 
-          <DialogFooter>
+          <SheetFooter className="mt-auto pt-4 border-t flex-row justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
             <Button size="sm" disabled={!bulkReason.trim()} onClick={handleBulkResolve}>
               Resolve {selectedCount} Alerts
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
 
-      {/* Bulk Review Dialog */}
-      <Dialog open={bulkDialog === 'review'} onOpenChange={v => !v && setBulkDialog(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Mark as Reviewed — {selectedCount} Alerts</DialogTitle>
-            <DialogDescription>Confirm that the selected alerts have been reviewed. Their status will remain unchanged.</DialogDescription>
-          </DialogHeader>
+      {/* Bulk Review Sheet */}
+      <Sheet open={bulkDialog === 'review'} onOpenChange={v => !v && setBulkDialog(null)}>
+        <SheetContent side="right" className="sm:max-w-md w-full flex flex-col overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle>Mark as Reviewed — {selectedCount} Alerts</SheetTitle>
+            <SheetDescription>Confirm that the selected alerts have been reviewed. Their status will remain unchanged.</SheetDescription>
+          </SheetHeader>
 
           <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5">
             <div className="flex flex-wrap gap-2">
@@ -613,14 +611,14 @@ export default function AlertsPage() {
             />
           </div>
 
-          <DialogFooter>
+          <SheetFooter className="mt-auto pt-4 border-t flex-row justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
             <Button size="sm" disabled={!bulkComment.trim()} onClick={handleBulkReview}>
               Confirm Reviewed
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
     </div>
   );
 }
