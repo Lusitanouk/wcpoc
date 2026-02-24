@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Clock, ChevronDown, ChevronRight, ArrowUpDown, Calendar, Layers, BarChart3, Filter, Settings2, GripVertical, Check, Eye, X, CheckSquare } from 'lucide-react';
+import { AlertTriangle, Clock, ChevronDown, ChevronRight, ArrowUpDown, Calendar, Layers, BarChart3, Filter, Settings2, GripVertical, Check, Eye, X, CheckSquare, HelpCircle, XCircle, CircleOff, User } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -13,10 +13,20 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from '@/components/ui/sheet';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { cases, allMatches, getCaseById } from '@/data/mock-data';
+import { cases, allMatches, getCaseById, updateMatch, recalcCaseCounts } from '@/data/mock-data';
 import { priorityColor } from '@/lib/priority';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
+import { MatchDrawer } from '@/components/screening/MatchDrawer';
 import type { Match, PriorityLevel, MatchStatus, RiskLevel } from '@/types';
+
+const fieldResultIcon = (result: string) => {
+  switch (result) {
+    case 'match': return <Check className="h-3 w-3 text-status-positive" />;
+    case 'partial': return <HelpCircle className="h-3 w-3 text-status-possible" />;
+    case 'mismatch': return <XCircle className="h-3 w-3 text-status-unresolved" />;
+    default: return <CircleOff className="h-3 w-3 text-muted-foreground" />;
+  }
+};
 
 function alertAgeDays(m: Match): number {
   const ref = m.reviewRequired && m.reviewRequiredAt ? m.reviewRequiredAt : m.alertDate;
@@ -80,6 +90,7 @@ export default function AlertsPage() {
   const [groupByCase, setGroupByCase] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
   const [expandedCases, setExpandedCases] = useState<Set<string>>(new Set());
+  const [expandedAlertRows, setExpandedAlertRows] = useState<Set<string>>(new Set());
   const [visibleAlertCols, setVisibleAlertCols] = useState<AlertColumnKey[]>([...DEFAULT_ALERT_COLUMNS]);
   const alertDragItem = useRef<number | null>(null);
   const alertDragOverItem = useRef<number | null>(null);
@@ -91,6 +102,14 @@ export default function AlertsPage() {
   const [bulkRisk, setBulkRisk] = useState<RiskLevel>('None');
   const [bulkReason, setBulkReason] = useState('');
   const [bulkComment, setBulkComment] = useState('');
+  const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const toggleAlertExpand = (id: string) => setExpandedAlertRows(prev => {
+    const next = new Set(prev);
+    next.has(id) ? next.delete(id) : next.add(id);
+    return next;
+  });
 
   const toggleAlertCol = (key: AlertColumnKey) => {
     const col = ALERT_COLUMNS.find(c => c.key === key);
@@ -404,18 +423,19 @@ export default function AlertsPage() {
                         const widthClass = key === 'priority' || key === 'age' ? 'w-20' : '';
                         return <th key={key} className={`text-left px-4 py-3 font-medium text-muted-foreground ${widthClass}`}>{col.label}</th>;
                       })}
+                      <th className="px-2 py-3 w-10"></th>
                       {tabKey === 'review' && <th className="text-left px-4 py-3 font-medium text-muted-foreground">What Changed</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {activeList.length === 0 ? (
-                      <tr><td colSpan={1 + (groupByCase ? 1 : 0) + visibleAlertCols.length + (tabKey === 'review' ? 1 : 0)} className="px-4 py-12 text-center text-muted-foreground">{tabKey === 'unresolved' ? 'All matches have been resolved. 🎉' : 'No reviews pending.'}</td></tr>
+                      <tr><td colSpan={2 + (groupByCase ? 1 : 0) + visibleAlertCols.length + (tabKey === 'review' ? 1 : 0)} className="px-4 py-12 text-center text-muted-foreground">{tabKey === 'unresolved' ? 'All matches have been resolved. 🎉' : 'No reviews pending.'}</td></tr>
                     ) : groupByCase ? (
                       caseGroups.map(group => (
-                        <GroupRows key={group.caseId} group={group} isExpanded={expandedCases.has(group.caseId)} onToggle={() => toggleExpanded(group.caseId)} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} visibleCols={visibleAlertCols} selectedIds={selectedIds} onToggleSelect={toggleOne} />
+                        <GroupRows key={group.caseId} group={group} isExpanded={expandedCases.has(group.caseId)} onToggle={() => toggleExpanded(group.caseId)} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} visibleCols={visibleAlertCols} selectedIds={selectedIds} onToggleSelect={toggleOne} onPreview={(match) => { setSelectedMatch(match); setDrawerOpen(true); }} expandedAlertRows={expandedAlertRows} onToggleAlertExpand={toggleAlertExpand} />
                       ))
                     ) : (
-                      activeList.map(m => <AlertRow key={m.id} m={m} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} showGroupCol={false} visibleCols={visibleAlertCols} selected={selectedIds.has(m.id)} onToggleSelect={() => toggleOne(m.id)} />)
+                      activeList.map(m => <AlertRow key={m.id} m={m} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} showGroupCol={false} visibleCols={visibleAlertCols} selected={selectedIds.has(m.id)} onToggleSelect={() => toggleOne(m.id)} onPreview={() => { setSelectedMatch(m); setDrawerOpen(true); }} isExpanded={expandedAlertRows.has(m.id)} onToggleExpand={() => toggleAlertExpand(m.id)} />)
                     )}
                   </tbody>
                 </table>
@@ -619,24 +639,49 @@ export default function AlertsPage() {
           </SheetFooter>
         </SheetContent>
       </Sheet>
+
+      {/* Match Preview Drawer */}
+      <MatchDrawer
+        match={selectedMatch}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        caseName={getCaseById(selectedMatch?.caseId || '')?.name || ''}
+        onUpdate={(updated) => {
+          updateMatch(updated.id, { status: updated.status, riskLevel: updated.riskLevel, reason: updated.reason });
+          if (updated.caseId) recalcCaseCounts(updated.caseId);
+          setSelectedMatch(updated);
+        }}
+        screeningData={getCaseById(selectedMatch?.caseId || '')?.screeningData}
+      />
     </div>
   );
 }
 
-function AlertRow({ m, onNavigate, showChanges, showGroupCol, visibleCols, selected, onToggleSelect }: { m: Match; onNavigate: (caseId: string) => void; showChanges: boolean; showGroupCol: boolean; visibleCols: AlertColumnKey[]; selected: boolean; onToggleSelect: () => void }) {
+function AlertRow({ m, onNavigate, showChanges, showGroupCol, visibleCols, selected, onToggleSelect, onPreview, isExpanded, onToggleExpand }: { m: Match; onNavigate: (caseId: string) => void; showChanges: boolean; showGroupCol: boolean; visibleCols: AlertColumnKey[]; selected: boolean; onToggleSelect: () => void; onPreview: () => void; isExpanded: boolean; onToggleExpand: () => void }) {
   const c = getCaseById(m.caseId);
   const days = alertAgeDays(m);
   const caseAlertCount = allMatches.filter(x => x.caseId === m.caseId && (x.status === 'Unresolved' || x.reviewRequired)).length;
+  const visibleColCount = 2 + (showGroupCol ? 1 : 0) + visibleCols.length + (showChanges ? 1 : 0);
 
   const renderCell = (key: AlertColumnKey) => {
     switch (key) {
       case 'case': return (
         <td key={key} className="px-4 py-3">
           <div className="flex items-center gap-2">
+            <button
+              className="shrink-0 p-0.5 rounded hover:bg-muted transition-colors"
+              onClick={e => { e.stopPropagation(); onToggleExpand(); }}
+              aria-label={isExpanded ? 'Collapse' : 'Expand'}
+            >
+              {isExpanded
+                ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />
+              }
+            </button>
             <span className="font-medium">{c?.name || m.caseId}</span>
             {caseAlertCount > 1 && <Badge variant="outline" className="text-[10px] gap-0.5"><Layers className="h-2.5 w-2.5" />{caseAlertCount}</Badge>}
           </div>
-          <span className="text-[10px] text-muted-foreground">{m.caseId}</span>
+          <span className="text-[10px] text-muted-foreground ml-6">{m.caseId}</span>
         </td>
       );
       case 'matchedName': return (
@@ -656,12 +701,16 @@ function AlertRow({ m, onNavigate, showChanges, showGroupCol, visibleCols, selec
   };
 
   return (
+    <>
     <tr className={`border-b cursor-pointer hover:bg-muted/30 transition-colors ${m.reviewRequired ? 'bg-status-possible/5' : ''} ${selected ? 'bg-primary/5' : ''}`} onClick={() => onNavigate(m.caseId)} tabIndex={0} onKeyDown={e => e.key === 'Enter' && onNavigate(m.caseId)}>
       <td className="px-3 py-3 w-10" onClick={e => e.stopPropagation()}>
         <Checkbox checked={selected} onCheckedChange={onToggleSelect} className="h-4 w-4" />
       </td>
       {showGroupCol && <td className="w-8 px-2" />}
       {visibleCols.map(renderCell)}
+      <td className="px-2 py-3 w-10" onClick={e => { e.stopPropagation(); onPreview(); }}>
+        <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
+      </td>
       {showChanges && (
         <td className="px-4 py-3">
           <Tooltip>
@@ -682,11 +731,71 @@ function AlertRow({ m, onNavigate, showChanges, showGroupCol, visibleCols, selec
         </td>
       )}
     </tr>
+    {isExpanded && (
+      <tr className="border-b bg-muted/20">
+        <td colSpan={visibleColCount} className="px-4 py-3">
+          <div className="flex gap-6 ml-6">
+            {/* Why it matched */}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-semibold mb-2">Why it matched</p>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b">
+                    <th className="text-left py-1 pr-2 w-5"></th>
+                    <th className="text-left py-1 pr-2 font-medium text-muted-foreground">Field</th>
+                    <th className="text-left py-1 pr-2 font-medium text-muted-foreground">Screened</th>
+                    <th className="text-left py-1 font-medium text-muted-foreground">Matched</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {m.whyMatched.map((wf, i) => (
+                    <tr key={i} className={`border-b last:border-b-0 ${wf.result === 'match' ? 'bg-status-positive/5' : wf.result === 'mismatch' ? 'bg-status-unresolved/5' : ''}`}>
+                      <td className="py-1 pr-2">{fieldResultIcon(wf.result)}</td>
+                      <td className="py-1 pr-2 font-medium">{wf.field}</td>
+                      <td className="py-1 pr-2 text-muted-foreground">{wf.inputValue || '—'}</td>
+                      <td className="py-1 text-muted-foreground">{wf.matchedValue || '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-[10px] text-muted-foreground italic mt-1">{m.matchStrengthExplanation}</p>
+              {m.changeLog.length > 0 && (
+                <div className="mt-2 pt-2 border-t">
+                  <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
+                  {m.changeLog.slice(0, 3).map((cl, i) => (
+                    <p key={i} className="text-[10px] text-muted-foreground">
+                      {cl.field}: {cl.from} → {cl.to}
+                    </p>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Aliases */}
+            {m.aliases.length > 0 && (
+              <div className="shrink-0 w-48">
+                <p className="text-xs font-semibold mb-2 flex items-center gap-1">
+                  <User className="h-3 w-3" /> Aliases ({m.aliases.length})
+                </p>
+                <ul className="space-y-0.5">
+                  {m.aliases.map((alias, ai) => (
+                    <li key={ai} className="text-xs text-muted-foreground flex items-center gap-1.5">
+                      <span className="h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
+                      {alias}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        </td>
+      </tr>
+    )}
+    </>
   );
 }
 
-function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges, visibleCols, selectedIds, onToggleSelect }: { group: CaseAlertGroup; isExpanded: boolean; onToggle: () => void; onNavigate: (caseId: string) => void; showChanges: boolean; visibleCols: AlertColumnKey[]; selectedIds: Set<string>; onToggleSelect: (id: string) => void }) {
-  const colSpan = 1 + visibleCols.length + (showChanges ? 1 : 0);
+function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges, visibleCols, selectedIds, onToggleSelect, onPreview, expandedAlertRows, onToggleAlertExpand }: { group: CaseAlertGroup; isExpanded: boolean; onToggle: () => void; onNavigate: (caseId: string) => void; showChanges: boolean; visibleCols: AlertColumnKey[]; selectedIds: Set<string>; onToggleSelect: (id: string) => void; onPreview: (m: Match) => void; expandedAlertRows: Set<string>; onToggleAlertExpand: (id: string) => void }) {
+  const colSpan = 2 + visibleCols.length + (showChanges ? 1 : 0);
   return (
     <>
       <tr className="border-b bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
@@ -701,7 +810,7 @@ function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges, visib
           </div>
         </td>
       </tr>
-      {isExpanded && group.alerts.map(m => <AlertRow key={m.id} m={m} onNavigate={onNavigate} showChanges={showChanges} showGroupCol={true} visibleCols={visibleCols} selected={selectedIds.has(m.id)} onToggleSelect={() => onToggleSelect(m.id)} />)}
+      {isExpanded && group.alerts.map(m => <AlertRow key={m.id} m={m} onNavigate={onNavigate} showChanges={showChanges} showGroupCol={true} visibleCols={visibleCols} selected={selectedIds.has(m.id)} onToggleSelect={() => onToggleSelect(m.id)} onPreview={() => onPreview(m)} isExpanded={expandedAlertRows.has(m.id)} onToggleExpand={() => onToggleAlertExpand(m.id)} />)}
     </>
   );
 }
