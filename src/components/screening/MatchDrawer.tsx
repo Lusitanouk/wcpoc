@@ -1,5 +1,5 @@
-import { useState, useEffect } from 'react';
-import { ChevronRight, ChevronLeft, Check, HelpCircle, XCircle, CircleOff, Clock, User, History, ChevronsUpDown, Maximize2, Minimize2, ExternalLink, FileText, Database, Download, ArrowDown, X } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { ChevronRight, ChevronLeft, Check, HelpCircle, XCircle, CircleOff, Clock, User, History, ChevronsUpDown, Maximize2, Minimize2, ExternalLink, FileText, Database, Download, ArrowDown, X, AlertTriangle, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { priorityColor } from '@/lib/priority';
-import type { Match, MatchStatus, RiskLevel, CaseScreeningData } from '@/types';
+import type { Match, MatchStatus, RiskLevel, CaseScreeningData, ChangeLogEntry } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { exportMatchPdf } from '@/lib/export';
 
@@ -27,7 +27,7 @@ const fieldResultIcon = (result: string) => {
   }
 };
 
-// ─── Source Citation Bubble (ChatGPT-style) ──────────────────
+// ─── Source Citation Bubble ──────────────────────────────────
 function SourceCitation({ sources, indices }: { sources: { name: string; url: string }[]; indices: number[] }) {
   const cited = indices.filter(i => i < sources.length).map(i => sources[i]);
   if (cited.length === 0) return null;
@@ -58,6 +58,145 @@ function SourceCitation({ sources, indices }: { sources: { name: string; url: st
   );
 }
 
+// ─── Change Chip — clickable, scrolls to the change row ─────
+function ChangeChip({ change, index, onClick }: { change: ChangeLogEntry; index: number; onClick: () => void }) {
+  return (
+    <button
+      onClick={onClick}
+      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-status-possible/15 text-status-possible border border-status-possible/25 hover:bg-status-possible/25 transition-colors cursor-pointer"
+    >
+      <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-status-possible/25 text-[9px] font-bold shrink-0">{index + 1}</span>
+      {change.field}
+    </button>
+  );
+}
+
+// ─── What Changed Section ────────────────────────────────────
+function WhatChangedSection({ changeLog, reviewRequiredReasons }: { changeLog: ChangeLogEntry[]; reviewRequiredReasons: string[] }) {
+  const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
+
+  const scrollToRow = useCallback((index: number) => {
+    const el = rowRefs.current[index];
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      // Highlight flash
+      el.classList.add('ring-2', 'ring-status-possible', 'ring-inset');
+      setTimeout(() => el.classList.remove('ring-2', 'ring-status-possible', 'ring-inset'), 1800);
+    }
+  }, []);
+
+  return (
+    <div id="what-changed-section" className="p-4 border-b">
+      {/* Section header */}
+      <div className="flex items-center gap-2 mb-3">
+        <AlertTriangle className="h-3.5 w-3.5 text-status-possible shrink-0" />
+        <h4 className="text-xs font-semibold text-status-possible">What Changed</h4>
+        <Badge className="text-[9px] px-1.5 py-0 h-4 bg-status-possible/15 text-status-possible border-0 ml-auto">
+          {changeLog.length} change{changeLog.length !== 1 ? 's' : ''}
+        </Badge>
+      </div>
+
+      {/* Reasons row */}
+      {reviewRequiredReasons.length > 0 && (
+        <p className="text-[10px] text-muted-foreground mb-2 leading-relaxed">
+          {reviewRequiredReasons.join(' · ')}
+        </p>
+      )}
+
+      {/* Quick-nav chips */}
+      <div className="flex flex-wrap gap-1.5 mb-3">
+        {changeLog.map((cl, i) => (
+          <ChangeChip key={i} change={cl} index={i} onClick={() => scrollToRow(i)} />
+        ))}
+      </div>
+
+      {/* Diff table */}
+      <div className="rounded-md border overflow-hidden">
+        <table className="w-full text-xs">
+          <thead>
+            <tr className="bg-status-possible/8 border-b">
+              <th className="text-left px-3 py-2 font-medium text-muted-foreground w-5">
+                <span className="sr-only">#</span>
+              </th>
+              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Field</th>
+              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Previous</th>
+              <th className="px-1 py-2 text-muted-foreground w-5">→</th>
+              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Updated</th>
+              <th className="text-left px-3 py-2 font-medium text-muted-foreground hidden sm:table-cell">Date</th>
+            </tr>
+          </thead>
+          <tbody>
+            {changeLog.map((cl, i) => (
+              <tr
+                key={i}
+                ref={el => { rowRefs.current[i] = el; }}
+                className="border-b last:border-b-0 transition-all duration-300"
+              >
+                <td className="px-3 py-2.5">
+                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-status-possible/20 text-status-possible text-[9px] font-bold">
+                    {i + 1}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 font-medium">{cl.field}</td>
+                <td className="px-3 py-2.5">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-destructive/10 text-destructive text-[11px] font-mono line-through">
+                    {cl.from}
+                  </span>
+                </td>
+                <td className="px-1 py-2.5 text-muted-foreground">
+                  <ArrowRight className="h-3 w-3" />
+                </td>
+                <td className="px-3 py-2.5">
+                  <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-status-positive/10 text-status-positive text-[11px] font-mono font-semibold">
+                    {cl.to}
+                  </span>
+                </td>
+                <td className="px-3 py-2.5 text-[11px] text-muted-foreground hidden sm:table-cell whitespace-nowrap">
+                  {cl.changedAt}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+// ─── Review Required Banner ───────────────────────────────────
+function ReviewRequiredBanner({
+  match,
+  changeCount,
+  onJumpToChanges,
+}: {
+  match: Match;
+  changeCount: number;
+  onJumpToChanges: () => void;
+}) {
+  return (
+    <div className="mx-4 mt-3 mb-1 rounded-md border border-status-possible/40 bg-status-possible/8 overflow-hidden">
+      <div className="flex items-start gap-2.5 px-3 py-2.5">
+        <AlertTriangle className="h-3.5 w-3.5 text-status-possible shrink-0 mt-0.5" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[11px] font-semibold text-status-possible leading-tight">Record updated — review required</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5 leading-relaxed">
+            {match.reviewRequiredReasons.join(' · ')}
+          </p>
+        </div>
+        {changeCount > 0 && (
+          <button
+            onClick={onJumpToChanges}
+            className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-status-possible/20 text-status-possible hover:bg-status-possible/30 transition-colors shrink-0 whitespace-nowrap"
+          >
+            <ArrowDown className="h-3 w-3" />
+            {changeCount} change{changeCount !== 1 ? 's' : ''}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
 interface MatchDrawerProps {
   match: Match | null;
   open: boolean;
@@ -82,6 +221,8 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
   const [historyOpen, setHistoryOpen] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(defaultFullscreen ?? false);
   const [dispositionTab, setDispositionTab] = useState<'resolve' | 'review'>('resolve');
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const whatChangedRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (match && open) {
@@ -95,6 +236,16 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
   }, [match?.id, defaultFullscreen, open]);
 
   if (!match) return null;
+
+  const jumpToChanges = () => {
+    const el = whatChangedRef.current;
+    if (!el) return;
+    // In fullscreen the scroll container is the content column; in panel it's the sheet scroll
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    // Pulse the section
+    el.classList.add('ring-2', 'ring-status-possible', 'ring-inset', 'rounded-md');
+    setTimeout(() => el.classList.remove('ring-2', 'ring-status-possible', 'ring-inset', 'rounded-md'), 1800);
+  };
 
   const handleSave = () => {
     onUpdate({ ...match, status, riskLevel: risk, reason });
@@ -110,9 +261,8 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
 
   const hasScreeningData = screeningData && (screeningData.dob || screeningData.gender || screeningData.nationality || screeningData.country || screeningData.idType || screeningData.customFields);
 
-
   const resolveReviewPanel = (
-    <div id="disposition-section" className={`p-6 ${isFullscreen ? 'overflow-y-auto space-y-6' : 'border-b'}`}>
+    <div id="disposition-section" className={`p-4 ${isFullscreen ? 'overflow-y-auto space-y-4' : 'border-b'}`}>
       {!isFullscreen ? (
         <>
           {/* Stacked tab switcher for side panel */}
@@ -221,7 +371,7 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
           )}
         </>
       ) : (
-        /* Fullscreen: show both sections stacked as before */
+        /* Fullscreen: show both sections stacked */
         <>
           <div className="space-y-3">
             <h4 className="text-sm font-semibold">Resolve Match</h4>
@@ -309,9 +459,9 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
 
   const drawerContent = (
     <div className={`flex flex-col ${isFullscreen ? '' : 'h-full'}`}>
-      {/* Header with match navigation — sticky */}
-      <div className="p-6 pb-4 border-b sticky top-0 z-10 bg-background">
-        <div className="flex items-center justify-between gap-2">
+      {/* ── Sticky header ── */}
+      <div className="pb-3 border-b sticky top-0 z-10 bg-background">
+        <div className="flex items-center justify-between gap-2 px-4 pt-4">
           <h2 className="text-base font-semibold truncate">{match.matchedName}</h2>
           <div className="flex items-center gap-1 shrink-0">
             <TooltipProvider>
@@ -357,7 +507,9 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
             </TooltipProvider>
           </div>
         </div>
-        <div className="flex items-center gap-2 mt-2 flex-wrap">
+
+        {/* Badges row */}
+        <div className="flex items-center gap-2 mt-2 flex-wrap px-4">
           <Badge variant="outline" className="text-[10px]">{match.dataset}</Badge>
           <Badge variant="outline" className="text-[10px]">{match.strength}% {t('screening.strength').toLowerCase()}</Badge>
           <Badge variant="outline" className={`text-[10px] ${priorityColor(match.priorityLevel)}`}>
@@ -366,7 +518,6 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
           {match.updated && (
             <Badge className="text-[10px] bg-status-possible/15 text-status-possible border-0">{t('match.updated')}</Badge>
           )}
-          {/* Quick provenance access */}
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -384,20 +535,24 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
             </Tooltip>
           </TooltipProvider>
         </div>
-        {match.reviewRequired && match.reviewRequiredReasons.length > 0 && (
-          <div className="mt-2 p-2 rounded bg-status-possible/10 text-xs">
-            <span className="font-medium text-status-possible">{t('match.reviewRequired')}:</span>{' '}
-            {match.reviewRequiredReasons.join(', ')}
-          </div>
+
+        {/* Review Required banner — now in sticky header for instant visibility */}
+        {match.reviewRequired && match.changeLog.length > 0 && (
+          <ReviewRequiredBanner
+            match={match}
+            changeCount={match.changeLog.length}
+            onJumpToChanges={jumpToChanges}
+          />
         )}
       </div>
 
-      {/* Main content - use columns in fullscreen */}
-      <div className={isFullscreen ? 'grid grid-cols-[1fr_360px] gap-0 flex-1 overflow-hidden' : 'flex-1'}>
-        <div className={isFullscreen ? 'overflow-y-auto border-r' : ''}>
-          {/* ── Current Resolution (TOP) ── */}
+      {/* ── Main content ── */}
+      <div className={isFullscreen ? 'grid grid-cols-[1fr_340px] gap-0 flex-1 overflow-hidden' : 'flex-1'}>
+        <div ref={scrollContainerRef} className={isFullscreen ? 'overflow-y-auto border-r' : ''}>
+
+          {/* ── Current Resolution ── */}
           {match.status !== 'Unresolved' && currentResolution && (
-            <div className="p-6 border-b">
+            <div className="p-4 border-b">
               <h4 className="text-xs font-semibold mb-2">{t('match.currentResolution')}</h4>
               <div className="p-3 rounded-md bg-muted/50 space-y-2 text-xs">
                 <div className="flex items-center gap-3">
@@ -472,9 +627,9 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
             </div>
           )}
 
-          {/* ── Screening Profile (for resolution context) ── */}
+          {/* ── Screening Profile ── */}
           {hasScreeningData && (
-            <div className="p-6 border-b">
+            <div className="p-4 border-b">
               <Collapsible>
                 <CollapsibleTrigger asChild>
                   <button className="flex items-center gap-1.5 text-xs font-semibold w-full group">
@@ -539,8 +694,8 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
             </div>
           )}
 
-          {/* Why it matched — enhanced comparison table */}
-          <div className="p-6 border-b">
+          {/* ── Why it matched ── */}
+          <div className="p-4 border-b">
             <div className="flex items-center justify-between mb-3">
               <h4 className="text-xs font-semibold">{t('match.whyMatched')}</h4>
             </div>
@@ -586,41 +741,21 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
             <p className="text-[10px] text-muted-foreground italic mt-2">{match.matchStrengthExplanation}</p>
           </div>
 
-          {/* What changed */}
+          {/* ── What Changed — rendered here with ref for scroll targeting ── */}
           {match.reviewRequired && match.changeLog.length > 0 && (
-            <div className="p-6 border-b">
-              <h4 className="text-xs font-semibold text-status-possible mb-2">{t('match.whatChanged')}</h4>
-              <div className="text-xs mb-2 text-muted-foreground">
-                {match.reviewRequiredReasons.join(' · ')}
-              </div>
-              <table className="w-full text-xs">
-                <thead>
-                  <tr className="border-b">
-                    <th className="text-left py-1.5 font-medium text-muted-foreground">Field</th>
-                    <th className="text-left py-1.5 font-medium text-muted-foreground">From</th>
-                    <th className="text-left py-1.5 font-medium text-muted-foreground">To</th>
-                    <th className="text-left py-1.5 font-medium text-muted-foreground">Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {match.changeLog.map((cl, i) => (
-                    <tr key={i} className={`border-b border-dashed ${i === 0 ? 'bg-status-possible/5' : ''}`}>
-                      <td className="py-1.5 font-medium">{cl.field}</td>
-                      <td className="py-1.5 text-muted-foreground">{cl.from}</td>
-                      <td className="py-1.5">{cl.to}</td>
-                      <td className="py-1.5 text-muted-foreground">{cl.changedAt}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div ref={whatChangedRef}>
+              <WhatChangedSection
+                changeLog={match.changeLog}
+                reviewRequiredReasons={match.reviewRequiredReasons}
+              />
             </div>
           )}
 
-          {/* Resolve & Review — placed after why matched / what changed in non-fullscreen */}
+          {/* ── Resolve & Review in side-panel mode ── */}
           {!isFullscreen && resolveReviewPanel}
 
-          {/* Record Tabs */}
-          <div className="p-6 border-b">
+          {/* ── Record Tabs ── */}
+          <div className="p-4 border-b">
             <Tabs value={activeTab} onValueChange={setActiveTab}>
               <TabsList className="w-full justify-start h-auto flex-wrap gap-1 p-1 mb-3">
                 <ResponsiveTabsTrigger value="key-data" icon={<FileText className="h-3 w-3" />} label={t('match.keyData')} />
@@ -714,17 +849,20 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
           </div>
         </div>
 
-        {/* Resolution & Review Controls — in fullscreen this is a right sidebar */}
-        {isFullscreen && resolveReviewPanel}
+        {/* ── Fullscreen right sidebar: disposition panel ── */}
+        {isFullscreen && (
+          <div className="overflow-y-auto flex flex-col">
+            {resolveReviewPanel}
+          </div>
+        )}
       </div>
     </div>
   );
 
-  // Fullscreen mode uses a Dialog instead of Sheet
+  // Fullscreen uses Dialog
   if (isFullscreen) {
     return (
       <>
-        {/* Keep the sheet technically open but hidden so state is preserved */}
         <Sheet open={open} onOpenChange={v => { if (!v) { setIsFullscreen(false); onClose(); } }}>
           <SheetContent className="w-0 p-0 border-0 overflow-hidden">
             <SheetHeader className="sr-only"><SheetTitle>{match.matchedName}</SheetTitle></SheetHeader>
