@@ -1061,8 +1061,8 @@ export function MatchDrawer({
         </div>
         {/* RIGHT: disposition + context */}
         <div className="overflow-y-auto flex flex-col">
-          {dispositionSection}
           {resolutionHistorySection}
+          {dispositionSection}
         </div>
       </div>
     </div>
