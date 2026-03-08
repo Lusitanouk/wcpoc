@@ -951,7 +951,7 @@ export function MatchDrawer({
 
   const screeningProfileSection = hasScreeningData ? (
     <div className="p-4 border-b">
-      <Collapsible defaultOpen>
+      <Collapsible open={sectionOpen.screeningProfile} onOpenChange={() => toggleSection('screeningProfile')}>
         <CollapsibleTrigger asChild>
           <button className="flex items-center gap-1.5 text-xs font-semibold w-full group mb-0">
             <FileText className="h-3.5 w-3.5 text-primary" />
