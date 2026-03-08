@@ -142,18 +142,11 @@ function WhatChangedSection({ changeLog, reviewRequiredReasons }: { changeLog: C
   }, []);
 
   return (
-    <div id="what-changed-section" className="p-4 border-b">
-      <div className="flex items-center gap-2 mb-2">
-        <AlertTriangle className="h-3.5 w-3.5 text-status-possible shrink-0" />
-        <h4 className="text-xs font-semibold text-status-possible">What Changed</h4>
-        <Badge className="text-[9px] px-1.5 py-0 h-4 bg-status-possible/15 text-status-possible border-0 ml-auto">
-          {changeLog.length} change{changeLog.length !== 1 ? 's' : ''}
-        </Badge>
-      </div>
+    <div className="space-y-2">
       {reviewRequiredReasons.length > 0 && (
-        <p className="text-[10px] text-muted-foreground mb-2 leading-relaxed">{reviewRequiredReasons.join(' · ')}</p>
+        <p className="text-[10px] text-muted-foreground leading-relaxed">{reviewRequiredReasons.join(' · ')}</p>
       )}
-      <div className="flex flex-wrap gap-1.5 mb-3">
+      <div className="flex flex-wrap gap-1.5">
         {changeLog.map((cl, i) => (
           <ChangeChip key={i} change={cl} index={i} onClick={() => scrollToRow(i)} />
         ))}
