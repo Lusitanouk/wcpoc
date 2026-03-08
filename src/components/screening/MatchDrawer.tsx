@@ -1009,13 +1009,17 @@ export function MatchDrawer({
       {whyMatchedSection}
       {resolutionHistorySection}
       {dispositionSection}
-...
+      {screeningProfileSection}
+      {recordDetailSection}
+    </div>
+  );
+
   // Left column (scrollable): identity evidence. Right column (scrollable): disposition + history + profile
 
   const fullscreenContent = (
     <div className="flex flex-col h-full">
       {stickyHeader}
-...
+      <div className="flex-1 overflow-hidden grid grid-cols-[1fr_360px]">
         {/* LEFT: evidence */}
         <div className="overflow-y-auto border-r">
           {whatChangedSection}
