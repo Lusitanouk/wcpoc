@@ -39,10 +39,16 @@ const themeIcons: Record<ThemeMode, React.ReactNode> = {
 
 export function SettingsDialog() {
   const { t } = useTranslation();
-  const { themeMode, setThemeMode, locale, setLocale, timezone, setTimezone } = useAppContext();
+  const { themeMode, setThemeMode, locale, setLocale, timezone, setTimezone, role, setRole } = useAppContext();
   const [open, setOpen] = useState(false);
 
   const systemTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+  const roleDescriptions: Record<UserRole, string> = {
+    Analyst: 'Resolve and review matches (Maker)',
+    Supervisor: 'Oversee analysts and manage cases',
+    Checker: 'Review and approve/reject analyst resolutions',
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -59,6 +65,29 @@ export function SettingsDialog() {
         </DialogHeader>
 
         <div className="space-y-5 py-2">
+          {/* Role (Prototype only) */}
+          <div className="space-y-2">
+            <Label className="text-xs font-medium flex items-center gap-1.5">
+              <UserCog className="h-3.5 w-3.5 text-muted-foreground" /> Role (Prototype)
+            </Label>
+            <div className="flex gap-1 p-1 bg-muted rounded-lg">
+              {(['Analyst', 'Supervisor', 'Checker'] as UserRole[]).map(r => (
+                <button
+                  key={r}
+                  onClick={() => setRole(r)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all ${
+                    role === r
+                      ? 'bg-background text-foreground shadow-sm'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  {r}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground">{roleDescriptions[role]}</p>
+          </div>
+
           {/* Theme */}
           <div className="space-y-2">
             <Label className="text-xs font-medium flex items-center gap-1.5">
