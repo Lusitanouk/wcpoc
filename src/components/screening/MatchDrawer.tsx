@@ -222,23 +222,15 @@ function CheckerPanel({
   );
 }
 
-// ─── Source Citation Bubble ──────────────────────────────────
+// ─── Field Result Icon ───────────────────────────────────────
+function fieldResultIcon(result: string) {
   switch (result) {
     case 'match': return <Check className="h-3 w-3 text-status-positive" />;
     case 'partial': return <HelpCircle className="h-3 w-3 text-status-possible" />;
     case 'mismatch': return <XCircle className="h-3 w-3 text-status-unresolved" />;
     default: return <CircleOff className="h-3 w-3 text-muted-foreground" />;
   }
-};
-
-
-  switch (result) {
-    case 'match': return <Check className="h-3 w-3 text-status-positive" />;
-    case 'partial': return <HelpCircle className="h-3 w-3 text-status-possible" />;
-    case 'mismatch': return <XCircle className="h-3 w-3 text-status-unresolved" />;
-    default: return <CircleOff className="h-3 w-3 text-muted-foreground" />;
-  }
-};
+}
 
 // ─── Source Citation Bubble ──────────────────────────────────
 function SourceCitation({ sources, indices }: { sources: { name: string; url: string }[]; indices: number[] }) {
