@@ -887,10 +887,6 @@ export function MatchDrawer({
         )}
       </div>
 
-      {/* Maker decision card (visible to all roles when pending) */}
-      {match.pendingCheckerReview && match.makerDecision && (
-        <MakerDecisionCard match={match} />
-      )}
     </div>
   );
 
