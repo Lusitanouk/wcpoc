@@ -991,8 +991,9 @@ export function MatchDrawer({
   // Checker: show CheckerPanel; Maker/Analyst: show ResolutionPanel
 
   const isCheckerView = (isChecker && match.pendingCheckerReview) || !!match.checkerReview;
+  const hasMakerDecision = !!match.makerDecision;
   const dispositionLabel = isCheckerView
-    ? 'Checker Decision'
+    ? 'Four-Eyes Review'
     : match.status === 'Unresolved' ? 'Resolve Match' : 'Update Resolution';
 
   const dispositionSection = (
@@ -1008,7 +1009,10 @@ export function MatchDrawer({
           </button>
         </CollapsibleTrigger>
         <CollapsibleContent>
-          <div className="mt-3">
+          <div className="mt-3 space-y-3">
+            {/* Maker decision — always shown first when present */}
+            {hasMakerDecision && <MakerDecisionCard match={match} compact />}
+            {/* Checker action or resolution panel below */}
             {isCheckerView ? (
               <CheckerPanel match={match} onSubmit={handleCheckerSubmit} compact />
             ) : (
