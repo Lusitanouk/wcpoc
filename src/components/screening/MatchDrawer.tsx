@@ -702,6 +702,21 @@ export function MatchDrawer({
   const [isFullscreen, setIsFullscreen] = useState(defaultFullscreen ?? false);
   const whatChangedRef = useRef<HTMLDivElement>(null);
 
+  // ─── Persisted section open/closed state ─────────────────────
+  const SECTIONS_KEY = 'match-drawer-sections';
+  const defaultSections = { whatChanged: true, whyMatched: true, screeningProfile: true, disposition: true };
+  const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>(() => {
+    try { return { ...defaultSections, ...JSON.parse(localStorage.getItem(SECTIONS_KEY) || '{}') }; }
+    catch { return defaultSections; }
+  });
+  const toggleSection = (key: string) => {
+    setSectionOpen(prev => {
+      const next = { ...prev, [key]: !prev[key] };
+      localStorage.setItem(SECTIONS_KEY, JSON.stringify(next));
+      return next;
+    });
+  };
+
   useEffect(() => {
     if (match && open) {
       setStatus(match.status);
