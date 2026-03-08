@@ -704,7 +704,7 @@ export function MatchDrawer({
 
   // ─── Persisted section open/closed state ─────────────────────
   const SECTIONS_KEY = 'match-drawer-sections';
-  const defaultSections = { whatChanged: true, whyMatched: true, screeningProfile: true, disposition: true };
+  const defaultSections = { whatChanged: true, whyMatched: true, screeningProfile: true, disposition: true, resolutionHistory: true };
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>(() => {
     try { return { ...defaultSections, ...JSON.parse(localStorage.getItem(SECTIONS_KEY) || '{}') }; }
     catch { return defaultSections; }
