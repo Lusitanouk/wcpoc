@@ -1007,9 +1007,9 @@ export function MatchDrawer({
       {stickyHeader}
       {whatChangedSection}
       {whyMatchedSection}
+      {screeningProfileSection}
       {resolutionHistorySection}
       {dispositionSection}
-      {screeningProfileSection}
       {recordDetailSection}
     </div>
   );
@@ -1024,13 +1024,13 @@ export function MatchDrawer({
         <div className="overflow-y-auto border-r">
           {whatChangedSection}
           {whyMatchedSection}
+          {screeningProfileSection}
           {recordDetailSection}
         </div>
         {/* RIGHT: disposition + context */}
         <div className="overflow-y-auto flex flex-col">
           {dispositionSection}
           {resolutionHistorySection}
-          {screeningProfileSection}
         </div>
       </div>
     </div>
