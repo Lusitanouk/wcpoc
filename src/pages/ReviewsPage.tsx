@@ -797,6 +797,23 @@ function AlertRow({ m, onNavigate, showChanges, showMakerDecision, showGroupCol,
           </Tooltip>
         </td>
       )}
+      {showMakerDecision && (
+        <td className="px-4 py-3">
+          {m.makerDecision ? (
+            <div className="flex items-center gap-1.5">
+              {m.makerDecision.makerType === 'Agentic'
+                ? <Bot className="h-3 w-3 text-primary shrink-0" />
+                : <User className="h-3 w-3 text-muted-foreground shrink-0" />
+              }
+              <span className="text-xs font-medium">{m.makerDecision.status}</span>
+              <span className="text-[10px] text-muted-foreground">/ {m.makerDecision.riskLevel}</span>
+              {m.makerDecision.makerType === 'Agentic' && (
+                <Badge className="text-[9px] px-1 py-0 h-3.5 bg-primary/10 text-primary border-0">Bot</Badge>
+              )}
+            </div>
+          ) : <span className="text-xs text-muted-foreground">—</span>}
+        </td>
+      )}
     </tr>
     {isExpanded && (
       <tr className="border-b bg-muted/20">
