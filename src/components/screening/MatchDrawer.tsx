@@ -19,7 +19,210 @@ import { useTranslation } from 'react-i18next';
 import { exportMatchPdf } from '@/lib/export';
 import { useAppContext } from '@/context/AppContext';
 
-const fieldResultIcon = (result: string) => {
+// ─── Maker Card ──────────────────────────────────────────────
+function MakerDecisionCard({ match }: { match: Match }) {
+  const md = match.makerDecision;
+  if (!md) return null;
+  const isAgentic = md.makerType === 'Agentic';
+  const statusColors: Record<string, string> = {
+    Positive: 'text-status-positive border-status-positive/30 bg-status-positive/8',
+    Possible: 'text-status-possible border-status-possible/30 bg-status-possible/8',
+    False: 'text-status-false border-status-false/30 bg-status-false/8',
+    Unknown: 'text-status-unknown border-status-unknown/30 bg-status-unknown/8',
+    Unresolved: 'text-status-unresolved border-status-unresolved/30 bg-status-unresolved/8',
+  };
+
+  return (
+    <div className="mx-4 mt-3 mb-1 rounded-md border border-primary/20 bg-primary/5 overflow-hidden">
+      <div className="flex items-center gap-2 px-3 py-2 border-b border-primary/15 bg-primary/8">
+        {isAgentic
+          ? <Bot className="h-3.5 w-3.5 text-primary shrink-0" />
+          : <User className="h-3.5 w-3.5 text-primary shrink-0" />
+        }
+        <span className="text-[11px] font-semibold text-primary">
+          {isAgentic ? 'Agentic Resolution' : 'Analyst Resolution'} — Pending Checker Review
+        </span>
+        <Badge className="ml-auto text-[9px] px-1.5 py-0 h-4 bg-primary/15 text-primary border-0">
+          {isAgentic ? 'Bot' : 'Maker'}
+        </Badge>
+      </div>
+      <div className="px-3 py-2.5 space-y-2">
+        <div className="flex items-center gap-3 flex-wrap">
+          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold border ${statusColors[md.status] || ''}`}>
+            {md.status}
+          </span>
+          <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${
+            md.riskLevel === 'High' ? 'text-destructive' : md.riskLevel === 'Medium' ? 'text-amber-600' : 'text-muted-foreground'
+          }`}>
+            Risk: {md.riskLevel}
+          </span>
+          <span className="text-[10px] text-muted-foreground ml-auto">{md.createdAt}</span>
+        </div>
+        <p className="text-[11px] text-foreground leading-relaxed">{md.reason}</p>
+        {md.comment && (
+          <p className="text-[11px] text-muted-foreground italic bg-background/50 rounded px-2 py-1 border border-border/40">"{md.comment}"</p>
+        )}
+        <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground">
+          {isAgentic ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
+          <span className="font-medium">{md.author}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Checker Decision Panel ───────────────────────────────────
+function CheckerPanel({
+  match,
+  onSubmit,
+}: {
+  match: Match;
+  onSubmit: (decision: CheckerDecision, amendedStatus?: MatchStatus, amendedRisk?: RiskLevel, reason?: string, comment?: string) => void;
+}) {
+  const [decision, setDecision] = useState<CheckerDecision | null>(null);
+  const [amendedStatus, setAmendedStatus] = useState<MatchStatus>('Possible');
+  const [amendedRisk, setAmendedRisk] = useState<RiskLevel>('Low');
+  const [reason, setReason] = useState('');
+  const [comment, setComment] = useState('');
+
+  const md = match.makerDecision;
+  const cr = match.checkerReview;
+
+  const decisionStyles: Record<CheckerDecision, string> = {
+    Accepted: 'border-status-positive/40 bg-status-positive/10 text-status-positive',
+    Amended: 'border-status-possible/40 bg-status-possible/10 text-status-possible',
+    Rejected: 'border-status-unresolved/40 bg-status-unresolved/10 text-status-unresolved',
+  };
+
+  if (cr) {
+    // Already decided — show read-only result
+    return (
+      <div className="p-4 border-b">
+        <div className="flex items-center gap-2 mb-3">
+          <ShieldCheck className="h-3.5 w-3.5 text-status-positive shrink-0" />
+          <h4 className="text-xs font-semibold">Checker Decision</h4>
+          <Badge className={`ml-auto text-[9px] px-1.5 py-0 h-4 border ${decisionStyles[cr.decision]}`}>
+            {cr.decision}
+          </Badge>
+        </div>
+        <div className="p-3 rounded-md bg-muted/40 space-y-1.5 text-xs border">
+          {cr.decision === 'Amended' && (
+            <div className="flex items-center gap-2 text-status-possible font-medium">
+              <Pencil className="h-3 w-3" />
+              Amended to: {cr.amendedStatus} / {cr.amendedRiskLevel}
+            </div>
+          )}
+          <p className="text-muted-foreground">{cr.reason}</p>
+          {cr.comment && <p className="italic text-muted-foreground">"{cr.comment}"</p>}
+          <div className="flex items-center gap-1.5 text-[10px] text-muted-foreground pt-1">
+            <User className="h-3 w-3" /><span>{cr.author}</span>
+            <Clock className="h-3 w-3 ml-1" /><span>{cr.createdAt}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div id="checker-panel" className="p-4 border-b">
+      <div className="flex items-center gap-2 mb-3">
+        <ShieldAlert className="h-3.5 w-3.5 text-primary shrink-0" />
+        <h4 className="text-xs font-semibold">Checker Decision</h4>
+        <Badge className="ml-auto text-[9px] px-1.5 py-0 h-4 bg-primary/10 text-primary border-primary/20">
+          Action Required
+        </Badge>
+      </div>
+
+      {/* Decision buttons */}
+      <div className="flex gap-2 mb-3">
+        {(['Accepted', 'Amended', 'Rejected'] as CheckerDecision[]).map(d => (
+          <button
+            key={d}
+            onClick={() => setDecision(d)}
+            className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-2 rounded-md text-xs font-medium transition-all border ${
+              decision === d
+                ? decisionStyles[d]
+                : 'border-border text-muted-foreground hover:bg-muted hover:text-foreground'
+            }`}
+          >
+            {d === 'Accepted' && <ThumbsUp className="h-3 w-3" />}
+            {d === 'Amended' && <Pencil className="h-3 w-3" />}
+            {d === 'Rejected' && <ThumbsDown className="h-3 w-3" />}
+            {d}
+          </button>
+        ))}
+      </div>
+
+      {/* Amended fields */}
+      {decision === 'Amended' && (
+        <div className="flex gap-3 mb-3 p-2.5 rounded-md border border-status-possible/25 bg-status-possible/5">
+          <div className="space-y-1 shrink-0">
+            <Label className="text-[10px] text-muted-foreground">Amended Status</Label>
+            <div className="flex flex-col gap-1">
+              {(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]).map(s => (
+                <button key={s} onClick={() => setAmendedStatus(s)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors border text-left ${
+                    amendedStatus === s ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
+                  }`}
+                >{s}</button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1 shrink-0">
+            <Label className="text-[10px] text-muted-foreground">Amended Risk</Label>
+            <div className="flex flex-col gap-1">
+              {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
+                <button key={r} onClick={() => setAmendedRisk(r)}
+                  className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors border text-left ${
+                    amendedRisk === r ? 'bg-primary text-primary-foreground border-primary' : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted'
+                  }`}
+                >{r}</button>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reason */}
+      <div className="space-y-1.5 mb-2">
+        <Label className="text-xs">Reason <span className="text-destructive">*</span></Label>
+        <Textarea
+          value={reason}
+          onChange={e => setReason(e.target.value)}
+          rows={2}
+          placeholder={decision === 'Rejected' ? 'Reason for rejection...' : decision === 'Amended' ? 'Why were amendments made...' : 'Reason for acceptance...'}
+          className="text-xs resize-none"
+        />
+      </div>
+      <div className="space-y-1.5 mb-3">
+        <Label className="text-xs">Comment (optional)</Label>
+        <Textarea
+          value={comment}
+          onChange={e => setComment(e.target.value)}
+          rows={2}
+          placeholder="Additional notes..."
+          className="text-xs resize-none"
+        />
+      </div>
+
+      <Button
+        className="w-full"
+        disabled={!decision || !reason.trim()}
+        onClick={() => onSubmit(
+          decision!,
+          decision === 'Amended' ? amendedStatus : undefined,
+          decision === 'Amended' ? amendedRisk : undefined,
+          reason,
+          comment || undefined,
+        )}
+      >
+        Submit {decision || 'Decision'}
+      </Button>
+    </div>
+  );
+}
+
+
   switch (result) {
     case 'match': return <Check className="h-3 w-3 text-status-positive" />;
     case 'partial': return <HelpCircle className="h-3 w-3 text-status-possible" />;
