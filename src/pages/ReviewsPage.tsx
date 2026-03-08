@@ -878,8 +878,8 @@ function AlertRow({ m, onNavigate, showChanges, showMakerDecision, showGroupCol,
   );
 }
 
-function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges, visibleCols, selectedIds, onToggleSelect, onPreview, expandedAlertRows, onToggleAlertExpand }: { group: CaseAlertGroup; isExpanded: boolean; onToggle: () => void; onNavigate: (caseId: string) => void; showChanges: boolean; visibleCols: AlertColumnKey[]; selectedIds: Set<string>; onToggleSelect: (id: string) => void; onPreview: (m: Match) => void; expandedAlertRows: Set<string>; onToggleAlertExpand: (id: string) => void }) {
-  const colSpan = 2 + visibleCols.length + (showChanges ? 1 : 0);
+function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges, showMakerDecision, visibleCols, selectedIds, onToggleSelect, onPreview, expandedAlertRows, onToggleAlertExpand }: { group: CaseAlertGroup; isExpanded: boolean; onToggle: () => void; onNavigate: (caseId: string) => void; showChanges: boolean; showMakerDecision?: boolean; visibleCols: AlertColumnKey[]; selectedIds: Set<string>; onToggleSelect: (id: string) => void; onPreview: (m: Match) => void; expandedAlertRows: Set<string>; onToggleAlertExpand: (id: string) => void }) {
+  const colSpan = 2 + visibleCols.length + (showChanges ? 1 : 0) + (showMakerDecision ? 1 : 0);
   return (
     <>
       <tr className="border-b bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors" onClick={onToggle}>
@@ -894,7 +894,7 @@ function GroupRows({ group, isExpanded, onToggle, onNavigate, showChanges, visib
           </div>
         </td>
       </tr>
-      {isExpanded && group.alerts.map(m => <AlertRow key={m.id} m={m} onNavigate={onNavigate} showChanges={showChanges} showGroupCol={true} visibleCols={visibleCols} selected={selectedIds.has(m.id)} onToggleSelect={() => onToggleSelect(m.id)} onPreview={() => onPreview(m)} isExpanded={expandedAlertRows.has(m.id)} onToggleExpand={() => onToggleAlertExpand(m.id)} />)}
+      {isExpanded && group.alerts.map(m => <AlertRow key={m.id} m={m} onNavigate={onNavigate} showChanges={showChanges} showMakerDecision={showMakerDecision} showGroupCol={true} visibleCols={visibleCols} selected={selectedIds.has(m.id)} onToggleSelect={() => onToggleSelect(m.id)} onPreview={() => onPreview(m)} isExpanded={expandedAlertRows.has(m.id)} onToggleExpand={() => onToggleAlertExpand(m.id)} />)}
     </>
   );
 }
