@@ -222,23 +222,15 @@ function CheckerPanel({
   );
 }
 
-// ─── Source Citation Bubble ──────────────────────────────────
+// ─── Field Result Icon ───────────────────────────────────────
+function fieldResultIcon(result: string) {
   switch (result) {
     case 'match': return <Check className="h-3 w-3 text-status-positive" />;
     case 'partial': return <HelpCircle className="h-3 w-3 text-status-possible" />;
     case 'mismatch': return <XCircle className="h-3 w-3 text-status-unresolved" />;
     default: return <CircleOff className="h-3 w-3 text-muted-foreground" />;
   }
-};
-
-
-  switch (result) {
-    case 'match': return <Check className="h-3 w-3 text-status-positive" />;
-    case 'partial': return <HelpCircle className="h-3 w-3 text-status-possible" />;
-    case 'mismatch': return <XCircle className="h-3 w-3 text-status-unresolved" />;
-    default: return <CircleOff className="h-3 w-3 text-muted-foreground" />;
-  }
-};
+}
 
 // ─── Source Citation Bubble ──────────────────────────────────
 function SourceCitation({ sources, indices }: { sources: { name: string; url: string }[]; indices: number[] }) {
@@ -503,7 +495,14 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
 
   const hasScreeningData = screeningData && (screeningData.dob || screeningData.gender || screeningData.nationality || screeningData.country || screeningData.idType || screeningData.customFields);
 
-  const resolveReviewPanel = (
+  // For Checker role with pending review — show CheckerPanel instead
+  const checkerDispositionPanel = (isChecker && match.pendingCheckerReview) ? (
+    <div id="disposition-section" className={`${isFullscreen ? 'overflow-y-auto' : 'border-b'}`}>
+      <CheckerPanel match={match} onSubmit={handleCheckerSubmit} />
+    </div>
+  ) : null;
+
+  const resolveReviewPanel = checkerDispositionPanel ?? (
     <div id="disposition-section" className={`p-4 ${isFullscreen ? 'overflow-y-auto space-y-4' : 'border-b'}`}>
       {!isFullscreen ? (
         <>

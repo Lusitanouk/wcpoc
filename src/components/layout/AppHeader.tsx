@@ -1,20 +1,35 @@
-import { Search, Shield, Sun, Moon } from 'lucide-react';
+import { Search, Shield, Sun, Moon, Bot, User } from 'lucide-react';
 import { useState } from 'react';
 import { useLocation, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { useAppContext } from '@/context/AppContext'; // isDark, toggleTheme still used
+import { useAppContext } from '@/context/AppContext';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { SidebarTrigger } from '@/components/ui/sidebar';
+import { Badge } from '@/components/ui/badge';
 import { SettingsDialog } from '@/components/SettingsDialog';
 import { NotificationsDrawer } from '@/components/NotificationsDrawer';
 import { getCaseById } from '@/data/mock-data';
+import { allMatches } from '@/data/mock-data';
+
+const roleConfig: Record<string, { label: string; color: string; icon: typeof User }> = {
+  Analyst:    { label: 'Analyst',    color: 'bg-primary/10 text-primary border-primary/20',                      icon: User },
+  Supervisor: { label: 'Supervisor', color: 'bg-status-possible/10 text-status-possible border-status-possible/20', icon: User },
+  Checker:    { label: 'Checker',    color: 'bg-status-positive/10 text-status-positive border-status-positive/20', icon: Bot  },
+};
 
 export function AppHeader() {
   const { t } = useTranslation();
-  const { isDark, toggleTheme } = useAppContext();
+  const { isDark, toggleTheme, role } = useAppContext();
   const location = useLocation();
   const [search, setSearch] = useState('');
+
+  const rc = roleConfig[role] ?? roleConfig['Analyst'];
+  const RoleIcon = rc.icon;
+
+  // Pending checker count badge
+  const pendingCount = role === 'Checker'
+    ? allMatches.filter(m => m.pendingCheckerReview && !m.checkerReview).length
+    : 0;
 
   const breadcrumbMap: Record<string, string> = {
     '/screen': t('header.newScreening'),
@@ -27,7 +42,6 @@ export function AppHeader() {
   const pathSegments = location.pathname.split('/').filter(Boolean);
   const breadcrumbs = pathSegments.map((seg, i) => {
     const path = '/' + pathSegments.slice(0, i + 1).join('/');
-    // Resolve case ID to case name for /cases/:id
     let label = breadcrumbMap[path];
     if (!label) {
       if (pathSegments[0] === 'cases' && i === 1) {
@@ -61,18 +75,29 @@ export function AppHeader() {
         })}
       </nav>
 
-      {/* Global Search */}
+      {/* Right section */}
       <div className="ml-auto flex items-center gap-2">
+        {/* Global Search */}
         <div className="relative">
           <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('header.searchPlaceholder')}
-            className="pl-9 w-64 h-8 text-sm bg-background"
+            className="pl-9 w-56 h-8 text-sm bg-background"
           />
         </div>
 
+        {/* Role badge */}
+        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium ${rc.color}`}>
+          <RoleIcon className="h-3 w-3 shrink-0" />
+          <span>{rc.label}</span>
+          {pendingCount > 0 && (
+            <span className="inline-flex items-center justify-center h-4 min-w-[16px] px-1 rounded-full bg-status-positive text-status-positive-foreground text-[10px] font-bold">
+              {pendingCount}
+            </span>
+          )}
+        </div>
 
         {/* Notifications */}
         <NotificationsDrawer />
