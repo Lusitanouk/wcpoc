@@ -222,6 +222,8 @@ function CheckerPanel({
   );
 }
 
+// ─── Source Citation Bubble ──────────────────────────────────
+
 const fieldResultIcon = (result: string) => {
   switch (result) {
     case 'match': return <Check className="h-3 w-3 text-status-positive" />;
