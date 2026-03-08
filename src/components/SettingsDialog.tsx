@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Settings, Sun, Moon, Monitor, Globe, Clock } from 'lucide-react';
+import { Settings, Sun, Moon, Monitor, Globe, Clock, UserCog } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAppContext, type ThemeMode } from '@/context/AppContext';
 import { SUPPORTED_LOCALES, type SupportedLocale } from '@/i18n';
+import type { UserRole } from '@/types';
 
 const COMMON_TIMEZONES = [
   'America/New_York',

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { ChevronRight, ChevronLeft, Check, HelpCircle, XCircle, CircleOff, Clock, User, History, ChevronsUpDown, Maximize2, Minimize2, ExternalLink, FileText, Database, Download, ArrowDown, X, AlertTriangle, ArrowRight, ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronRight, ChevronLeft, Check, HelpCircle, XCircle, CircleOff, Clock, User, History, ChevronsUpDown, Maximize2, Minimize2, ExternalLink, FileText, Database, Download, ArrowDown, X, AlertTriangle, ArrowRight, ChevronDown, ChevronUp, ShieldCheck, ShieldAlert, Bot, ThumbsUp, ThumbsDown, Pencil } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -14,9 +14,10 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { priorityColor } from '@/lib/priority';
-import type { Match, MatchStatus, RiskLevel, CaseScreeningData, ChangeLogEntry } from '@/types';
+import type { Match, MatchStatus, RiskLevel, CaseScreeningData, ChangeLogEntry, CheckerDecision } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { exportMatchPdf } from '@/lib/export';
+import { useAppContext } from '@/context/AppContext';
 
 const fieldResultIcon = (result: string) => {
   switch (result) {
