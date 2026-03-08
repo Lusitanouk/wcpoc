@@ -88,8 +88,16 @@ export function AppHeader() {
           />
         </div>
 
-        {/* Role badge */}
-        <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium ${rc.color}`}>
+        {/* Role badge — click to cycle roles */}
+        <button
+          onClick={() => {
+            const roles: UserRole[] = ['Analyst', 'Supervisor', 'Checker'];
+            const next = roles[(roles.indexOf(role) + 1) % roles.length];
+            setRole(next);
+          }}
+          title="Click to switch role"
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full border text-xs font-medium transition-opacity hover:opacity-80 cursor-pointer ${rc.color}`}
+        >
           <RoleIcon className="h-3 w-3 shrink-0" />
           <span>{rc.label}</span>
           {pendingCount > 0 && (
@@ -97,7 +105,7 @@ export function AppHeader() {
               {pendingCount}
             </span>
           )}
-        </div>
+        </button>
 
         {/* Notifications */}
         <NotificationsDrawer />
