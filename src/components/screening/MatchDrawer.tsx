@@ -1000,31 +1000,26 @@ export function MatchDrawer({
   );
 
   // ─── SIDE PANEL layout ────────────────────────────────────────
-  // Top-down scroll: header → why matched → what changed → disposition → record details
+  // Top-down scroll: header → what changed → why matched → disposition → record details
 
   const sidePanelContent = (
     <div className="flex flex-col">
       {stickyHeader}
-      {whyMatchedSection}
       {whatChangedSection}
+      {whyMatchedSection}
       {resolutionHistorySection}
       {dispositionSection}
-      {screeningProfileSection}
-      {recordDetailSection}
-    </div>
-  );
-
-  // ─── FULLSCREEN layout ────────────────────────────────────────
+...
   // Left column (scrollable): identity evidence. Right column (scrollable): disposition + history + profile
 
   const fullscreenContent = (
     <div className="flex flex-col h-full">
       {stickyHeader}
-      <div className="flex-1 overflow-hidden grid grid-cols-[1fr_360px]">
+...
         {/* LEFT: evidence */}
         <div className="overflow-y-auto border-r">
-          {whyMatchedSection}
           {whatChangedSection}
+          {whyMatchedSection}
           {recordDetailSection}
         </div>
         {/* RIGHT: disposition + context */}
