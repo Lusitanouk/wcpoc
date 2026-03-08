@@ -425,6 +425,8 @@ interface MatchDrawerProps {
 
 export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screeningData, currentIndex, totalMatches, onNavigate, defaultFullscreen }: MatchDrawerProps) {
   const { t } = useTranslation();
+  const { role } = useAppContext();
+  const isChecker = role === 'Checker';
   const [status, setStatus] = useState<MatchStatus>(match?.status || 'Unresolved');
   const [risk, setRisk] = useState<RiskLevel>(match?.riskLevel || 'None');
   const [reason, setReason] = useState(match?.reason || '');
