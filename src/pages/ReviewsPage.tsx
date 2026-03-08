@@ -173,7 +173,14 @@ export default function AlertsPage() {
     [priorityFilter, ageFilter, sortBy]
   );
 
-  const activeList = tab === 'unresolved' ? unresolvedMatches : reviewRequiredMatches;
+  const pendingApprovalMatches = useMemo(() =>
+    filterAndSort(allMatches.filter(m => m.pendingCheckerReview && !m.checkerReview)),
+    [priorityFilter, ageFilter, sortBy]
+  );
+
+  const activeList = tab === 'unresolved' ? unresolvedMatches
+    : tab === 'review' ? reviewRequiredMatches
+    : pendingApprovalMatches;
 
   const caseGroups = useMemo((): CaseAlertGroup[] => {
     const map = new Map<string, Match[]>();
@@ -236,11 +243,14 @@ export default function AlertsPage() {
   const selectedCount = selectedIds.size;
   const selectedMatches = activeList.filter(m => selectedIds.has(m.id));
 
-  const openBulkDialog = (type: 'resolve' | 'review') => {
+  const openBulkDialog = (type: 'resolve' | 'review' | 'checker') => {
     setBulkStatus('False');
     setBulkRisk('None');
     setBulkReason('');
     setBulkComment('');
+    setBulkCheckerDecision('Accepted');
+    setBulkAmendedStatus('Possible');
+    setBulkAmendedRisk('Low');
     setBulkDialog(type);
   };
 
@@ -250,6 +260,30 @@ export default function AlertsPage() {
   };
 
   const handleBulkReview = () => {
+    setBulkDialog(null);
+    setSelectedIds(new Set());
+  };
+
+  const handleBulkCheckerDecision = () => {
+    const now = new Date().toISOString().split('T')[0];
+    selectedMatches.forEach(m => {
+      const patch: Partial<Match> = {
+        pendingCheckerReview: false,
+        checkerReview: {
+          author: 'Current User (Checker)',
+          decision: bulkCheckerDecision,
+          amendedStatus: bulkCheckerDecision === 'Amended' ? bulkAmendedStatus : undefined,
+          amendedRiskLevel: bulkCheckerDecision === 'Amended' ? bulkAmendedRisk : undefined,
+          reason: bulkReason,
+          comment: bulkComment || undefined,
+          createdAt: now,
+        },
+        ...(bulkCheckerDecision === 'Amended' ? { status: bulkAmendedStatus, riskLevel: bulkAmendedRisk } : {}),
+        ...(bulkCheckerDecision === 'Rejected' ? { status: 'Unresolved' as MatchStatus } : {}),
+      };
+      updateMatch(m.id, patch);
+      recalcCaseCounts(m.caseId);
+    });
     setBulkDialog(null);
     setSelectedIds(new Set());
   };
