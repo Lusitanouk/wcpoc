@@ -704,7 +704,7 @@ export function MatchDrawer({
 
   // ─── Persisted section open/closed state ─────────────────────
   const SECTIONS_KEY = 'match-drawer-sections';
-  const defaultSections = { whatChanged: true, whyMatched: true, screeningProfile: true, disposition: true };
+  const defaultSections = { whatChanged: true, whyMatched: true, screeningProfile: true, disposition: true, resolutionHistory: true };
   const [sectionOpen, setSectionOpen] = useState<Record<string, boolean>>(() => {
     try { return { ...defaultSections, ...JSON.parse(localStorage.getItem(SECTIONS_KEY) || '{}') }; }
     catch { return defaultSections; }
@@ -982,8 +982,20 @@ export function MatchDrawer({
 
   const resolutionHistorySection = match.status !== 'Unresolved' && match.resolutionHistory.length > 0 ? (
     <div className="p-4 border-b">
-      <h4 className="text-xs font-semibold mb-2.5">{t('match.currentResolution')}</h4>
-      <ResolutionHistory match={match} />
+      <Collapsible open={sectionOpen.resolutionHistory} onOpenChange={() => toggleSection('resolutionHistory')}>
+        <CollapsibleTrigger asChild>
+          <button className="flex items-center gap-1.5 text-xs font-semibold w-full group mb-0">
+            <History className="h-3.5 w-3.5 text-primary" />
+            <span>{t('match.currentResolution')}</span>
+            <ChevronsUpDown className="h-3 w-3 ml-auto text-muted-foreground group-hover:text-foreground transition-colors" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-2.5">
+            <ResolutionHistory match={match} />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   ) : null;
 
