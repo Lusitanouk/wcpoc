@@ -724,11 +724,11 @@ export default function AlertsPage() {
   );
 }
 
-function AlertRow({ m, onNavigate, showChanges, showGroupCol, visibleCols, selected, onToggleSelect, onPreview, isExpanded, onToggleExpand }: { m: Match; onNavigate: (caseId: string) => void; showChanges: boolean; showGroupCol: boolean; visibleCols: AlertColumnKey[]; selected: boolean; onToggleSelect: () => void; onPreview: () => void; isExpanded: boolean; onToggleExpand: () => void }) {
+function AlertRow({ m, onNavigate, showChanges, showMakerDecision, showGroupCol, visibleCols, selected, onToggleSelect, onPreview, isExpanded, onToggleExpand }: { m: Match; onNavigate: (caseId: string) => void; showChanges: boolean; showMakerDecision?: boolean; showGroupCol: boolean; visibleCols: AlertColumnKey[]; selected: boolean; onToggleSelect: () => void; onPreview: () => void; isExpanded: boolean; onToggleExpand: () => void }) {
   const c = getCaseById(m.caseId);
   const days = alertAgeDays(m);
   const caseAlertCount = allMatches.filter(x => x.caseId === m.caseId && (x.status === 'Unresolved' || x.reviewRequired)).length;
-  const visibleColCount = 2 + (showGroupCol ? 1 : 0) + visibleCols.length + (showChanges ? 1 : 0);
+  const visibleColCount = 2 + (showGroupCol ? 1 : 0) + visibleCols.length + (showChanges ? 1 : 0) + (showMakerDecision ? 1 : 0);
 
   const renderCell = (key: AlertColumnKey) => {
     switch (key) {
