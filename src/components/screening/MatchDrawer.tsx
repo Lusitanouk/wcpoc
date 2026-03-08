@@ -786,6 +786,11 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
             onJumpToChanges={jumpToChanges}
           />
         )}
+
+        {/* Maker decision card — visible to all roles */}
+        {match.pendingCheckerReview && match.makerDecision && (
+          <MakerDecisionCard match={match} />
+        )}
       </div>
 
       {/* ── Main content ── */}
