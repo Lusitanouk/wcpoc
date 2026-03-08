@@ -1,4 +1,4 @@
-import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult, CaseNote, CaseAuditEvent, AuditEventType, AuditMatchDetail, AuditEventDetails, ResolutionHistoryEntry, PriorityLevel } from '@/types';
+import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult, CaseNote, CaseAuditEvent, AuditEventType, AuditMatchDetail, AuditEventDetails, ResolutionHistoryEntry, PriorityLevel, MakerDecision, MakerType } from '@/types';
 import { computePriorityScore, priorityLevel } from '@/lib/priority';
 
 // ─── Reference Data ──────────────────────────────────────────
@@ -688,6 +688,21 @@ export const cases: Case[] = caseDefs.map((def, i) => {
       ? generateResolutionHistory(mDef.status, mDef.riskLevel)
       : (Math.random() > 0.5 ? generateResolutionHistory(rand(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]), rand(['High', 'Medium', 'Low', 'None'] as RiskLevel[])) : []);
 
+    // ── Maker-Checker seeding ──────────────────────────────────
+    // Roughly 30% of resolved matches have a pending checker review
+    const isResolved = mDef.status !== 'Unresolved';
+    const pendingCheckerReview = isResolved && Math.random() < 0.3;
+    const makerTypes: MakerType[] = ['Human', 'Human', 'Human', 'Agentic']; // 25% agentic
+    const makerDecision: MakerDecision | undefined = pendingCheckerReview ? {
+      author: rand(analysts),
+      makerType: rand(makerTypes),
+      status: mDef.status,
+      riskLevel: mDef.riskLevel,
+      reason: rand(resolutionReasons),
+      comment: Math.random() > 0.5 ? rand(noteTexts) : undefined,
+      createdAt: randDate('2025-01-15', '2025-02-20'),
+    } : undefined;
+
     const partial: Omit<Match, 'priorityScore' | 'priorityLevel'> = {
       id: `${caseId}-m${mi + 1}`,
       caseId,
@@ -710,6 +725,9 @@ export const cases: Case[] = caseDefs.map((def, i) => {
       identifiers: mDef.identifiers,
       recordData: mDef.recordData,
       resolutionHistory,
+      pendingCheckerReview,
+      makerDecision,
+      checkerReview: undefined,
     };
     const score = computePriorityScore(partial);
     return { ...partial, priorityScore: score, priorityLevel: priorityLevel(score) } as Match;

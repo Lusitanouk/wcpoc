@@ -3,12 +3,51 @@ export type CheckType = 'Watchlists' | 'Adverse Media' | 'Passport Check';
 export type MatchStatus = 'Positive' | 'Possible' | 'False' | 'Unknown' | 'Unresolved';
 export type RiskLevel = 'High' | 'Medium' | 'Low' | 'None';
 export type Dataset = 'Sanctions' | 'PEP' | 'Law Enforcement' | 'Other';
-export type UserRole = 'Analyst' | 'Supervisor';
+export type UserRole = 'Analyst' | 'Supervisor' | 'Checker';
 export type ScreeningMode = 'Single' | 'Batch';
 export type PriorityLevel = 'High' | 'Medium' | 'Low';
 export type MatchFieldResult = 'match' | 'partial' | 'mismatch' | 'missing';
 export type DocumentType = 'Passport' | 'ID-Card Type 1' | 'ID-Card Type 2';
 export type MediaRiskLevel = 'High' | 'Medium' | 'Low' | 'No Risk' | 'Unknown';
+
+// ─── Maker-Checker Types ─────────────────────────────────────
+
+export type CheckerDecision = 'Accepted' | 'Amended' | 'Rejected';
+export type MakerType = 'Human' | 'Agentic';
+
+export interface MakerDecision {
+  /** Who made the resolution */
+  author: string;
+  /** Whether it was a human analyst or an agentic bot */
+  makerType: MakerType;
+  /** The resolved status the maker proposed */
+  status: MatchStatus;
+  /** The risk level the maker proposed */
+  riskLevel: RiskLevel;
+  /** The maker's reason / rationale */
+  reason: string;
+  /** Optional comment */
+  comment?: string;
+  /** When the maker submitted the resolution */
+  createdAt: string;
+}
+
+export interface CheckerReview {
+  /** Checker's user name */
+  author: string;
+  /** The checker's decision */
+  decision: CheckerDecision;
+  /** Amended status (only when decision === 'Amended') */
+  amendedStatus?: MatchStatus;
+  /** Amended risk level (only when decision === 'Amended') */
+  amendedRiskLevel?: RiskLevel;
+  /** Mandatory rationale for the checker decision */
+  reason: string;
+  /** Optional comment */
+  comment?: string;
+  /** When the checker submitted their review */
+  createdAt: string;
+}
 
 export interface Group {
   id: string;
@@ -35,7 +74,7 @@ export interface CaseScreeningData {
   customFields?: Record<string, string>;
 }
 
-export type AuditEventType = 'note' | 'assign' | 'move' | 'edit' | 'rescreen' | 'ogs_toggle' | 'archive' | 'status_change' | 'created';
+export type AuditEventType = 'note' | 'assign' | 'move' | 'edit' | 'rescreen' | 'ogs_toggle' | 'archive' | 'status_change' | 'created' | 'checker_decision';
 
 export interface AuditMatchDetail {
   matchId: string;
@@ -160,6 +199,10 @@ export interface Match {
   identifiers: MatchIdentifiers;
   recordData: MatchRecord;
   resolutionHistory: ResolutionHistoryEntry[];
+  // Maker-Checker workflow
+  makerDecision?: MakerDecision;
+  checkerReview?: CheckerReview;
+  pendingCheckerReview: boolean;
 }
 
 export interface ScreeningConfig {

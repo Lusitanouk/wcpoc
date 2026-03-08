@@ -2,10 +2,10 @@ import { useState, useMemo } from 'react';
 import { useParams, Link, useSearchParams, useNavigate } from 'react-router-dom';
 import {
   ArrowLeft, Shield, Newspaper, CreditCard, User, MapPin, Calendar, Hash,
-  Edit, UserPlus, ArrowRightLeft, Archive, Trash2, RefreshCw, ToggleRight,
-  ChevronDown, MessageSquare, Send, Clock, FileText, Activity, AlertTriangle,
+  MessageSquare, UserPlus, ArrowRightLeft, Edit, ArrowRight, RefreshCw, ToggleLeft, ToggleRight, Archive, CheckCircle,
+  Plus, X, Edit2, Pencil, Check, AlertTriangle, ChevronDown, Star, MoreHorizontal, Activity, Send, Trash2, FileText, Clock,
   ChevronUp, LayoutDashboard, ChevronRight, ChevronLeft, Eye, Info, Download, PanelRightOpen, PanelRightClose,
-  Building2, Ship, HelpCircle
+  Building2, Ship, HelpCircle, ShieldCheck
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -47,6 +47,7 @@ const analysts = ['John Smith', 'Jane Doe', 'Alex Turner', 'Maria Lopez', 'Sam W
 
 const auditTypeIcon: Record<AuditEventType, React.ReactNode> = {
   note: <MessageSquare className="h-3 w-3" />,
+  checker_decision: <ShieldCheck className="h-3 w-3" />,
   assign: <UserPlus className="h-3 w-3" />,
   move: <ArrowRightLeft className="h-3 w-3" />,
   edit: <Edit className="h-3 w-3" />,
@@ -60,7 +61,7 @@ const auditTypeIcon: Record<AuditEventType, React.ReactNode> = {
 const auditTypeLabel: Record<AuditEventType, string> = {
   note: 'Note', assign: 'Assignment', move: 'Group Move', edit: 'Edit',
   rescreen: 'Rescreen', ogs_toggle: 'OGS', archive: 'Archive',
-  status_change: 'Resolution', created: 'Created',
+  status_change: 'Resolution', created: 'Created', checker_decision: 'Checker Review',
 };
 
 type CaseTab = 'summary' | CheckType;
