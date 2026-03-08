@@ -1001,7 +1001,7 @@ export function MatchDrawer({
 
   const dispositionSection = (
     <div className="p-4 border-b">
-      <Collapsible defaultOpen>
+      <Collapsible open={sectionOpen.disposition} onOpenChange={() => toggleSection('disposition')}>
         <CollapsibleTrigger asChild>
           <button className="flex items-center gap-1.5 text-xs font-semibold w-full group mb-0">
             {isCheckerView
