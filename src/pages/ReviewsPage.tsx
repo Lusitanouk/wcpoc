@@ -510,6 +510,7 @@ export default function AlertsPage() {
             </Card>
           </TabsContent>
         ))}
+      </Tabs>
 
       {/* Bulk Resolve Sheet */}
       <Sheet open={bulkDialog === 'resolve'} onOpenChange={v => !v && setBulkDialog(null)}>
