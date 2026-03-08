@@ -47,6 +47,7 @@ const analysts = ['John Smith', 'Jane Doe', 'Alex Turner', 'Maria Lopez', 'Sam W
 
 const auditTypeIcon: Record<AuditEventType, React.ReactNode> = {
   note: <MessageSquare className="h-3 w-3" />,
+  checker_decision: <ShieldCheck className="h-3 w-3" />,
   assign: <UserPlus className="h-3 w-3" />,
   move: <ArrowRightLeft className="h-3 w-3" />,
   edit: <Edit className="h-3 w-3" />,
