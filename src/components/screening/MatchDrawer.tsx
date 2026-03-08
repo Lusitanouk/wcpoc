@@ -919,7 +919,7 @@ export function MatchDrawer({
 
   const whatChangedSection = match.reviewRequired && match.changeLog.length > 0 ? (
     <div className="p-4 border-b" ref={whatChangedRef}>
-      <Collapsible defaultOpen>
+      <Collapsible open={sectionOpen.whatChanged} onOpenChange={() => toggleSection('whatChanged')}>
         <CollapsibleTrigger asChild>
           <button className="flex items-center gap-1.5 text-xs font-semibold w-full group mb-0">
             <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />
