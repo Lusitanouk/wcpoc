@@ -87,6 +87,8 @@ const DEFAULT_ALERT_COLUMNS: AlertColumnKey[] = ['case', 'matchedName', 'priorit
 export default function AlertsPage() {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { role } = useAppContext();
+  const isChecker = role === 'Checker';
   const [tab, setTab] = useState('unresolved');
   const [filterValues, setFilterValues] = useState<Record<string, string>>({ priority: 'all', age: 'all', sort: 'priority' });
   const [groupByCase, setGroupByCase] = useState(false);
@@ -99,11 +101,14 @@ export default function AlertsPage() {
 
   // Bulk selection state
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-  const [bulkDialog, setBulkDialog] = useState<'resolve' | 'review' | null>(null);
+  const [bulkDialog, setBulkDialog] = useState<'resolve' | 'review' | 'checker' | null>(null);
   const [bulkStatus, setBulkStatus] = useState<MatchStatus>('False');
   const [bulkRisk, setBulkRisk] = useState<RiskLevel>('None');
   const [bulkReason, setBulkReason] = useState('');
   const [bulkComment, setBulkComment] = useState('');
+  const [bulkCheckerDecision, setBulkCheckerDecision] = useState<CheckerDecision>('Accepted');
+  const [bulkAmendedStatus, setBulkAmendedStatus] = useState<MatchStatus>('Possible');
+  const [bulkAmendedRisk, setBulkAmendedRisk] = useState<RiskLevel>('Low');
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
