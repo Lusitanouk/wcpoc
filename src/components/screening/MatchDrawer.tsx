@@ -979,23 +979,40 @@ export function MatchDrawer({
   // ─── Disposition panel ────────────────────────────────────────
   // Checker: show CheckerPanel; Maker/Analyst: show ResolutionPanel
 
-  const dispositionSection = (isChecker && match.pendingCheckerReview) || match.checkerReview ? (
+  const isCheckerView = (isChecker && match.pendingCheckerReview) || !!match.checkerReview;
+  const dispositionLabel = isCheckerView
+    ? 'Checker Decision'
+    : match.status === 'Unresolved' ? 'Resolve Match' : 'Update Resolution';
+
+  const dispositionSection = (
     <div className="p-4 border-b">
-      <CheckerPanel match={match} onSubmit={handleCheckerSubmit} />
-    </div>
-  ) : (
-    <div className="p-4 border-b">
-      <h4 className="text-xs font-semibold mb-3">
-        {match.status === 'Unresolved' ? 'Resolve Match' : 'Update Resolution'}
-      </h4>
-      <ResolutionPanel
-        status={status} setStatus={setStatus}
-        risk={risk} setRisk={setRisk}
-        matchOutcome={matchOutcome} setMatchOutcome={setMatchOutcome}
-        reason={reason} setReason={setReason}
-        comment={comment} setComment={setComment}
-        onSave={handleSave}
-      />
+      <Collapsible defaultOpen>
+        <CollapsibleTrigger asChild>
+          <button className="flex items-center gap-1.5 text-xs font-semibold w-full group mb-0">
+            {isCheckerView
+              ? <ShieldAlert className="h-3.5 w-3.5 text-primary" />
+              : <Check className="h-3.5 w-3.5 text-primary" />}
+            <span>{dispositionLabel}</span>
+            <ChevronsUpDown className="h-3 w-3 ml-auto text-muted-foreground group-hover:text-foreground transition-colors" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-3">
+            {isCheckerView ? (
+              <CheckerPanel match={match} onSubmit={handleCheckerSubmit} compact />
+            ) : (
+              <ResolutionPanel
+                status={status} setStatus={setStatus}
+                risk={risk} setRisk={setRisk}
+                matchOutcome={matchOutcome} setMatchOutcome={setMatchOutcome}
+                reason={reason} setReason={setReason}
+                comment={comment} setComment={setComment}
+                onSave={handleSave}
+              />
+            )}
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 
