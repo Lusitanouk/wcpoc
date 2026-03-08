@@ -61,7 +61,7 @@ const auditTypeIcon: Record<AuditEventType, React.ReactNode> = {
 const auditTypeLabel: Record<AuditEventType, string> = {
   note: 'Note', assign: 'Assignment', move: 'Group Move', edit: 'Edit',
   rescreen: 'Rescreen', ogs_toggle: 'OGS', archive: 'Archive',
-  status_change: 'Resolution', created: 'Created',
+  status_change: 'Resolution', created: 'Created', checker_decision: 'Checker Review',
 };
 
 type CaseTab = 'summary' | CheckType;
