@@ -1,7 +1,7 @@
 import { useState, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, Clock, ChevronDown, ChevronRight, ArrowUpDown, Calendar, Layers, BarChart3, Filter, Settings2, GripVertical, Check, Eye, X, CheckSquare, HelpCircle, XCircle, CircleOff, User } from 'lucide-react';
+import { AlertTriangle, Clock, ChevronDown, ChevronRight, ArrowUpDown, Calendar, Layers, BarChart3, Filter, Settings2, GripVertical, Check, Eye, X, CheckSquare, HelpCircle, XCircle, CircleOff, User, ShieldCheck, Bot, ThumbsUp, ThumbsDown, Pencil, ShieldAlert } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,13 +11,15 @@ import { Tabs, TabsContent, TabsList } from '@/components/ui/tabs';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetFooter, SheetDescription } from '@/components/ui/sheet';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { cases, allMatches, getCaseById, updateMatch, recalcCaseCounts } from '@/data/mock-data';
 import { priorityColor } from '@/lib/priority';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import { MatchDrawer } from '@/components/screening/MatchDrawer';
-import type { Match, PriorityLevel, MatchStatus, RiskLevel } from '@/types';
+import { useAppContext } from '@/context/AppContext';
+import type { Match, PriorityLevel, MatchStatus, RiskLevel, CheckerDecision } from '@/types';
 
 const fieldResultIcon = (result: string) => {
   switch (result) {
