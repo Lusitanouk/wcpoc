@@ -830,9 +830,24 @@ export function MatchDrawer({
             {match.riskLevel} risk
           </Badge>
         )}
-        {match.updated && (
+        {match.updated && match.changeLog.length > 0 ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  onClick={jumpToChanges}
+                  className="inline-flex items-center gap-1 text-[10px] h-5 px-2 rounded-full bg-status-possible/15 text-status-possible border-0 hover:bg-status-possible/25 transition-colors font-semibold"
+                >
+                  <AlertTriangle className="h-2.5 w-2.5" />
+                  Updated · {match.changeLog.length} change{match.changeLog.length !== 1 ? 's' : ''}
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>Jump to What Changed</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : match.updated ? (
           <Badge className="text-[10px] h-5 bg-status-possible/15 text-status-possible border-0">Updated</Badge>
-        )}
+        ) : null}
         {/* Sources button */}
         <TooltipProvider>
           <Tooltip>
@@ -856,25 +871,6 @@ export function MatchDrawer({
           <p className="text-[10px] text-muted-foreground mt-1 pl-[72px] italic">{match.matchStrengthExplanation}</p>
         )}
       </div>
-
-      {/* Review-required alert + change navigation */}
-      {match.reviewRequired && match.changeLog.length > 0 && (
-        <div className="mx-4 mb-2 rounded-md border border-status-possible/40 bg-status-possible/8 overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2">
-            <AlertTriangle className="h-3.5 w-3.5 text-status-possible shrink-0" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] font-semibold text-status-possible leading-tight">Record updated — review required</p>
-              <p className="text-[10px] text-muted-foreground leading-relaxed">{match.reviewRequiredReasons.join(' · ')}</p>
-            </div>
-            <button
-              onClick={jumpToChanges}
-              className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-status-possible/20 text-status-possible hover:bg-status-possible/30 transition-colors shrink-0 whitespace-nowrap"
-            >
-              <ArrowDown className="h-3 w-3" />{match.changeLog.length} change{match.changeLog.length !== 1 ? 's' : ''}
-            </button>
-          </div>
-        </div>
-      )}
 
       {/* Maker decision card (visible to all roles when pending) */}
       {match.pendingCheckerReview && match.makerDecision && (
@@ -1004,13 +1000,13 @@ export function MatchDrawer({
   );
 
   // ─── SIDE PANEL layout ────────────────────────────────────────
-  // Top-down scroll: header → why matched → what changed → disposition → record details
+  // Top-down scroll: header → what changed → why matched → disposition → record details
 
   const sidePanelContent = (
     <div className="flex flex-col">
       {stickyHeader}
-      {whyMatchedSection}
       {whatChangedSection}
+      {whyMatchedSection}
       {resolutionHistorySection}
       {dispositionSection}
       {screeningProfileSection}
@@ -1018,7 +1014,6 @@ export function MatchDrawer({
     </div>
   );
 
-  // ─── FULLSCREEN layout ────────────────────────────────────────
   // Left column (scrollable): identity evidence. Right column (scrollable): disposition + history + profile
 
   const fullscreenContent = (
@@ -1027,8 +1022,8 @@ export function MatchDrawer({
       <div className="flex-1 overflow-hidden grid grid-cols-[1fr_360px]">
         {/* LEFT: evidence */}
         <div className="overflow-y-auto border-r">
-          {whyMatchedSection}
           {whatChangedSection}
+          {whyMatchedSection}
           {recordDetailSection}
         </div>
         {/* RIGHT: disposition + context */}
