@@ -467,6 +467,33 @@ export function MatchDrawer({ match, open, onClose, caseName, onUpdate, screenin
     onClose();
   };
 
+  const handleCheckerSubmit = (
+    decision: import('@/types').CheckerDecision,
+    amendedStatus?: MatchStatus,
+    amendedRisk?: RiskLevel,
+    reason?: string,
+    comment?: string,
+  ) => {
+    const now = new Date().toISOString().split('T')[0];
+    const updatedMatch: Match = {
+      ...match,
+      pendingCheckerReview: false,
+      checkerReview: {
+        author: 'Current User (Checker)',
+        decision,
+        amendedStatus,
+        amendedRiskLevel: amendedRisk,
+        reason: reason || '',
+        comment,
+        createdAt: now,
+      },
+      ...(decision === 'Amended' && amendedStatus ? { status: amendedStatus, riskLevel: amendedRisk ?? match.riskLevel } : {}),
+      ...(decision === 'Rejected' ? { status: 'Unresolved' as MatchStatus, pendingCheckerReview: false } : {}),
+    };
+    onUpdate(updatedMatch);
+    onClose();
+  };
+
   const rd = match.recordData;
   const hasNavigation = onNavigate && totalMatches !== undefined && currentIndex !== undefined && totalMatches > 1;
   const hasPrev = hasNavigation && currentIndex > 0;
