@@ -199,6 +199,10 @@ export interface Match {
   identifiers: MatchIdentifiers;
   recordData: MatchRecord;
   resolutionHistory: ResolutionHistoryEntry[];
+  // Maker-Checker workflow
+  makerDecision?: MakerDecision;
+  checkerReview?: CheckerReview;
+  pendingCheckerReview: boolean;
 }
 
 export interface ScreeningConfig {
