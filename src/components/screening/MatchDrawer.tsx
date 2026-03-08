@@ -894,16 +894,44 @@ export function MatchDrawer({
 
   const whyMatchedSection = (
     <div className="p-4 border-b">
-      <h4 className="text-xs font-semibold mb-2.5">{t('match.whyMatched')}</h4>
-      <WhyMatchedSection match={match} />
+      <Collapsible defaultOpen>
+        <CollapsibleTrigger asChild>
+          <button className="flex items-center gap-1.5 text-xs font-semibold w-full group mb-0">
+            <HelpCircle className="h-3.5 w-3.5 text-primary" />
+            <span>{t('match.whyMatched')}</span>
+            <ChevronsUpDown className="h-3 w-3 ml-auto text-muted-foreground group-hover:text-foreground transition-colors" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-2.5">
+            <WhyMatchedSection match={match} />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   );
 
   // ─── Section: What changed ───────────────────────────────────
 
   const whatChangedSection = match.reviewRequired && match.changeLog.length > 0 ? (
-    <div ref={whatChangedRef}>
-      <WhatChangedSection changeLog={match.changeLog} reviewRequiredReasons={match.reviewRequiredReasons} />
+    <div className="p-4 border-b" ref={whatChangedRef}>
+      <Collapsible defaultOpen>
+        <CollapsibleTrigger asChild>
+          <button className="flex items-center gap-1.5 text-xs font-semibold w-full group mb-0">
+            <AlertTriangle className="h-3.5 w-3.5 text-status-possible" />
+            <span className="text-status-possible">What Changed</span>
+            <Badge className="text-[9px] px-1.5 py-0 h-4 bg-status-possible/15 text-status-possible border-0">
+              {match.changeLog.length} change{match.changeLog.length !== 1 ? 's' : ''}
+            </Badge>
+            <ChevronsUpDown className="h-3 w-3 ml-auto text-muted-foreground group-hover:text-foreground transition-colors" />
+          </button>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <div className="mt-2.5">
+            <WhatChangedSection changeLog={match.changeLog} reviewRequiredReasons={match.reviewRequiredReasons} />
+          </div>
+        </CollapsibleContent>
+      </Collapsible>
     </div>
   ) : null;
 
