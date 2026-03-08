@@ -1,4 +1,4 @@
-import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult, CaseNote, CaseAuditEvent, AuditEventType, AuditMatchDetail, AuditEventDetails, ResolutionHistoryEntry, PriorityLevel } from '@/types';
+import type { Group, Case, Match, Dataset, MatchStatus, RiskLevel, CheckType, EntityType, ChangeLogEntry, WhyMatchedField, MatchFieldResult, CaseNote, CaseAuditEvent, AuditEventType, AuditMatchDetail, AuditEventDetails, ResolutionHistoryEntry, PriorityLevel, MakerDecision, MakerType } from '@/types';
 import { computePriorityScore, priorityLevel } from '@/lib/priority';
 
 // ─── Reference Data ──────────────────────────────────────────
