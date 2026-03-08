@@ -400,8 +400,8 @@ export default function AlertsPage() {
       <div className="grid grid-cols-5 gap-3 mb-6">
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Unresolved</p><p className="text-2xl font-bold text-status-unresolved mt-1">{allMatches.filter(m => m.status === 'Unresolved').length}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Review Required</p><p className="text-2xl font-bold text-status-possible mt-1">{allMatches.filter(m => m.reviewRequired).length}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Pending Approval</p><p className="text-2xl font-bold text-primary mt-1">{pendingApprovalMatches.length}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">High Priority</p><p className="text-2xl font-bold text-status-unresolved mt-1">{highCount}</p></CardContent></Card>
-        <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Aged 30+ days</p><p className="text-2xl font-bold mt-1">{aged30}</p></CardContent></Card>
         <Card><CardContent className="p-4"><p className="text-xs text-muted-foreground">Multi-Alert Cases</p><p className="text-2xl font-bold mt-1">{multiAlertCaseCount}</p></CardContent></Card>
       </div>
 
@@ -421,6 +421,17 @@ export default function AlertsPage() {
             badge={<Badge variant="secondary" className="ml-1 text-[10px]">{reviewRequiredMatches.length}</Badge>}
             className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-md"
           />
+          <ResponsiveTabsTrigger
+            value="pending"
+            icon={<ShieldAlert className="h-3.5 w-3.5" />}
+            label="Pending Approval"
+            badge={
+              <Badge className="ml-1 text-[10px] bg-primary/15 text-primary border-0">
+                {pendingApprovalMatches.length}
+              </Badge>
+            }
+            className="px-3 sm:px-4 py-2 text-xs sm:text-sm rounded-md"
+          />
         </TabsList>
 
         {/* Bulk action bar */}
@@ -429,12 +440,22 @@ export default function AlertsPage() {
             <CheckSquare className="h-4 w-4 text-primary" />
             <span className="text-sm font-medium">{selectedCount} selected</span>
             <div className="flex gap-1.5 ml-2">
-              <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
-                <Check className="h-3 w-3" /> Bulk Resolve
-              </Button>
-              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
-                <Eye className="h-3 w-3" /> Mark Reviewed
-              </Button>
+              {tab === 'pending' && isChecker ? (
+                <>
+                  <Button size="sm" className="h-7 text-xs gap-1 bg-status-positive hover:bg-status-positive/90 text-status-positive-foreground" onClick={() => openBulkDialog('checker')}>
+                    <ShieldCheck className="h-3 w-3" /> Bulk Checker Decision
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
+                    <Check className="h-3 w-3" /> Bulk Resolve
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
+                    <Eye className="h-3 w-3" /> Mark Reviewed
+                  </Button>
+                </>
+              )}
               <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
                 <X className="h-3 w-3" />
               </Button>
@@ -442,7 +463,7 @@ export default function AlertsPage() {
           </div>
         )}
 
-        {['unresolved', 'review'].map(tabKey => (
+        {(['unresolved', 'review', 'pending'] as const).map(tabKey => (
           <TabsContent key={tabKey} value={tabKey}>
             <Card>
               <div className="overflow-x-auto">
@@ -466,17 +487,22 @@ export default function AlertsPage() {
                       })}
                       <th className="px-2 py-3 w-10"></th>
                       {tabKey === 'review' && <th className="text-left px-4 py-3 font-medium text-muted-foreground">What Changed</th>}
+                      {tabKey === 'pending' && <th className="text-left px-4 py-3 font-medium text-muted-foreground">Maker Decision</th>}
                     </tr>
                   </thead>
                   <tbody>
                     {activeList.length === 0 ? (
-                      <tr><td colSpan={2 + (groupByCase ? 1 : 0) + visibleAlertCols.length + (tabKey === 'review' ? 1 : 0)} className="px-4 py-12 text-center text-muted-foreground">{tabKey === 'unresolved' ? 'All matches have been resolved. 🎉' : 'No reviews pending.'}</td></tr>
+                      <tr><td colSpan={2 + (groupByCase ? 1 : 0) + visibleAlertCols.length + (tabKey !== 'unresolved' ? 1 : 0)} className="px-4 py-12 text-center text-muted-foreground">
+                        {tabKey === 'unresolved' ? 'All matches have been resolved. 🎉'
+                          : tabKey === 'review' ? 'No reviews pending.'
+                          : 'No matches pending checker approval.'}
+                      </td></tr>
                     ) : groupByCase ? (
                       caseGroups.map(group => (
-                        <GroupRows key={group.caseId} group={group} isExpanded={expandedCases.has(group.caseId)} onToggle={() => toggleExpanded(group.caseId)} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} visibleCols={visibleAlertCols} selectedIds={selectedIds} onToggleSelect={toggleOne} onPreview={(match) => { setSelectedMatch(match); setDrawerOpen(true); }} expandedAlertRows={expandedAlertRows} onToggleAlertExpand={toggleAlertExpand} />
+                        <GroupRows key={group.caseId} group={group} isExpanded={expandedCases.has(group.caseId)} onToggle={() => toggleExpanded(group.caseId)} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} showMakerDecision={tabKey === 'pending'} visibleCols={visibleAlertCols} selectedIds={selectedIds} onToggleSelect={toggleOne} onPreview={(match) => { setSelectedMatch(match); setDrawerOpen(true); }} expandedAlertRows={expandedAlertRows} onToggleAlertExpand={toggleAlertExpand} />
                       ))
                     ) : (
-                      activeList.map(m => <AlertRow key={m.id} m={m} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} showGroupCol={false} visibleCols={visibleAlertCols} selected={selectedIds.has(m.id)} onToggleSelect={() => toggleOne(m.id)} onPreview={() => { setSelectedMatch(m); setDrawerOpen(true); }} isExpanded={expandedAlertRows.has(m.id)} onToggleExpand={() => toggleAlertExpand(m.id)} />)
+                      activeList.map(m => <AlertRow key={m.id} m={m} onNavigate={(caseId) => navigate(`/cases/${caseId}?bucket=unresolved`)} showChanges={tabKey === 'review'} showMakerDecision={tabKey === 'pending'} showGroupCol={false} visibleCols={visibleAlertCols} selected={selectedIds.has(m.id)} onToggleSelect={() => toggleOne(m.id)} onPreview={() => { setSelectedMatch(m); setDrawerOpen(true); }} isExpanded={expandedAlertRows.has(m.id)} onToggleExpand={() => toggleAlertExpand(m.id)} />)
                     )}
                   </tbody>
                 </table>
@@ -484,7 +510,6 @@ export default function AlertsPage() {
             </Card>
           </TabsContent>
         ))}
-      </Tabs>
 
       {/* Bulk Resolve Sheet */}
       <Sheet open={bulkDialog === 'resolve'} onOpenChange={v => !v && setBulkDialog(null)}>
