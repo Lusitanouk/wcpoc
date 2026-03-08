@@ -707,6 +707,164 @@ export default function AlertsPage() {
         </SheetContent>
       </Sheet>
 
+      {/* Bulk Checker Decision Sheet */}
+      <Sheet open={bulkDialog === 'checker'} onOpenChange={v => !v && setBulkDialog(null)}>
+        <SheetContent side="right" className="sm:max-w-lg w-full flex flex-col overflow-y-auto">
+          <SheetHeader>
+            <SheetTitle className="flex items-center gap-2">
+              <ShieldCheck className="h-4 w-4 text-status-positive" />
+              Bulk Checker Decision — {selectedCount} Matches
+            </SheetTitle>
+            <SheetDescription>Apply a checker decision to all selected matches pending approval. A mandatory reason is required.</SheetDescription>
+          </SheetHeader>
+
+          {/* Maker decision summary */}
+          <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5 border">
+            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wide">Selected for review</p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(selectionSummary.byDataset).map(([ds, count]) => (
+                <Badge key={ds} variant="secondary" className="text-[10px]">{ds}: {count}</Badge>
+              ))}
+              {(() => {
+                const agenticCount = selectedMatches.filter(m => m.makerDecision?.makerType === 'Agentic').length;
+                const humanCount = selectedMatches.filter(m => m.makerDecision?.makerType === 'Human').length;
+                return (
+                  <>
+                    {agenticCount > 0 && <Badge className="text-[10px] bg-primary/10 text-primary border-primary/20"><Bot className="h-2.5 w-2.5 mr-1" />Bot maker: {agenticCount}</Badge>}
+                    {humanCount > 0 && <Badge variant="outline" className="text-[10px]"><User className="h-2.5 w-2.5 mr-1" />Human maker: {humanCount}</Badge>}
+                  </>
+                );
+              })()}
+            </div>
+          </div>
+
+          <div className="max-h-36 overflow-y-auto border rounded-md">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b bg-muted/50 sticky top-0">
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Case</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Maker Decision</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedMatches.map(m => {
+                  const c = getCaseById(m.caseId);
+                  return (
+                    <tr key={m.id} className="border-b">
+                      <td className="px-3 py-1.5 text-muted-foreground truncate max-w-[120px]">{c?.name || m.caseId}</td>
+                      <td className="px-3 py-1.5 font-medium">{m.matchedName}</td>
+                      <td className="px-3 py-1.5">
+                        {m.makerDecision ? (
+                          <div className="flex items-center gap-1">
+                            {m.makerDecision.makerType === 'Agentic' ? <Bot className="h-3 w-3 text-primary" /> : <User className="h-3 w-3 text-muted-foreground" />}
+                            <span className="font-medium">{m.makerDecision.status}</span>
+                          </div>
+                        ) : '—'}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Decision selector */}
+          <div className="space-y-3">
+            <Label className="text-xs font-semibold">Checker Decision</Label>
+            <div className="flex gap-2">
+              {(['Accepted', 'Amended', 'Rejected'] as CheckerDecision[]).map(d => {
+                const styles: Record<CheckerDecision, string> = {
+                  Accepted: 'border-status-positive/40 bg-status-positive/10 text-status-positive',
+                  Amended:  'border-status-possible/40 bg-status-possible/10 text-status-possible',
+                  Rejected: 'border-status-unresolved/40 bg-status-unresolved/10 text-status-unresolved',
+                };
+                const icons: Record<CheckerDecision, React.ReactNode> = {
+                  Accepted: <ThumbsUp className="h-3 w-3" />,
+                  Amended:  <Pencil className="h-3 w-3" />,
+                  Rejected: <ThumbsDown className="h-3 w-3" />,
+                };
+                return (
+                  <button
+                    key={d}
+                    onClick={() => setBulkCheckerDecision(d)}
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-md text-xs font-medium transition-all border ${
+                      bulkCheckerDecision === d ? styles[d] : 'border-border text-muted-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {icons[d]}{d}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Amended fields */}
+          {bulkCheckerDecision === 'Amended' && (
+            <div className="flex gap-3 p-2.5 rounded-md border border-status-possible/25 bg-status-possible/5">
+              <div className="space-y-1 shrink-0">
+                <Label className="text-[10px] text-muted-foreground">Amend Status to</Label>
+                <Select value={bulkAmendedStatus} onValueChange={v => setBulkAmendedStatus(v as MatchStatus)}>
+                  <SelectTrigger className="h-7 text-xs w-28"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]).map(s => (
+                      <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1 shrink-0">
+                <Label className="text-[10px] text-muted-foreground">Amend Risk to</Label>
+                <Select value={bulkAmendedRisk} onValueChange={v => setBulkAmendedRisk(v as RiskLevel)}>
+                  <SelectTrigger className="h-7 text-xs w-24"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
+                      <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Reason <span className="text-destructive">*</span></Label>
+            <Textarea
+              value={bulkReason}
+              onChange={e => setBulkReason(e.target.value)}
+              rows={2}
+              placeholder={bulkCheckerDecision === 'Rejected' ? 'Reason for rejection...' : bulkCheckerDecision === 'Amended' ? 'Why amendments were required...' : 'Reason for acceptance...'}
+              className="text-xs resize-none"
+            />
+          </div>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Comment (optional)</Label>
+            <Textarea
+              value={bulkComment}
+              onChange={e => setBulkComment(e.target.value)}
+              rows={2}
+              placeholder="Additional notes..."
+              className="text-xs resize-none"
+            />
+          </div>
+
+          <SheetFooter className="mt-auto pt-4 border-t flex-row justify-end gap-2">
+            <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
+            <Button
+              size="sm"
+              disabled={!bulkReason.trim()}
+              onClick={handleBulkCheckerDecision}
+              className={bulkCheckerDecision === 'Accepted' ? 'bg-status-positive hover:bg-status-positive/90 text-status-positive-foreground' : bulkCheckerDecision === 'Rejected' ? 'bg-destructive hover:bg-destructive/90 text-destructive-foreground' : ''}
+            >
+              {bulkCheckerDecision === 'Accepted' && <ThumbsUp className="h-3.5 w-3.5 mr-1" />}
+              {bulkCheckerDecision === 'Amended' && <Pencil className="h-3.5 w-3.5 mr-1" />}
+              {bulkCheckerDecision === 'Rejected' && <ThumbsDown className="h-3.5 w-3.5 mr-1" />}
+              {bulkCheckerDecision} {selectedCount} Matches
+            </Button>
+          </SheetFooter>
+        </SheetContent>
+      </Sheet>
+
       {/* Match Preview Drawer */}
       <MatchDrawer
         match={selectedMatch}
