@@ -74,7 +74,7 @@ export interface CaseScreeningData {
   customFields?: Record<string, string>;
 }
 
-export type AuditEventType = 'note' | 'assign' | 'move' | 'edit' | 'rescreen' | 'ogs_toggle' | 'archive' | 'status_change' | 'created';
+export type AuditEventType = 'note' | 'assign' | 'move' | 'edit' | 'rescreen' | 'ogs_toggle' | 'archive' | 'status_change' | 'created' | 'checker_decision';
 
 export interface AuditMatchDetail {
   matchId: string;
