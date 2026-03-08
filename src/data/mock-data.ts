@@ -725,6 +725,9 @@ export const cases: Case[] = caseDefs.map((def, i) => {
       identifiers: mDef.identifiers,
       recordData: mDef.recordData,
       resolutionHistory,
+      pendingCheckerReview,
+      makerDecision,
+      checkerReview: undefined,
     };
     const score = computePriorityScore(partial);
     return { ...partial, priorityScore: score, priorityLevel: priorityLevel(score) } as Match;
