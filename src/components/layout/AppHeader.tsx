@@ -20,7 +20,7 @@ const roleConfig: Record<string, { label: string; color: string; icon: typeof Us
 
 export function AppHeader() {
   const { t } = useTranslation();
-  const { isDark, toggleTheme, role } = useAppContext();
+  const { isDark, toggleTheme, role, setRole } = useAppContext();
   const location = useLocation();
   const [search, setSearch] = useState('');
 
