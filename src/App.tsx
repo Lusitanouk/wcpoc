@@ -23,7 +23,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        <BrowserRouter>
+        <BrowserRouter basename="/wcpoc">
           <Routes>
             <Route element={<AppLayout />}>
               <Route path="/" element={<Index />} />
