@@ -20,6 +20,30 @@
   <meta name="twitter:title" content="Screening &amp; Case Management">
   <meta property="og:description" content="Screening &amp; Case Management UX Prototype">
   <meta name="twitter:description" content="Screening &amp; Case Management UX Prototype">
+
+    <script>
+      // Single Page Apps for GitHub Pages
+      // https://github.com/rafgraph/spa-github-pages
+      //
+      // Checks whether the 404.html redirect placed an encoded path in the
+      // query string and, if so, restores the correct URL in browser history
+      // before React Router initialises – so the router sees the real path.
+      (function (l) {
+        if (l.search[1] === '/') {
+          var decoded = l.search.slice(1).split('&').map(function (s) {
+            return s.replace(/~and~/g, '&');
+          });
+          window.history.replaceState(
+            null,
+            null,
+            l.pathname.slice(0, -1) +
+              decoded.shift() +
+              (decoded.length ? '?' + decoded.join('&') : '') +
+              l.hash
+          );
+        }
+      })(window.location);
+    </script>
 </head>
 
   <body>
