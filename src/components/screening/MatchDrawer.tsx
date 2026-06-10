@@ -470,6 +470,52 @@ function ResolutionPanel({
   );
 }
 
+// ─── AI Recommend Button ────────────────────────────────────────────────────
+
+function AiRecommendButton({ match, onApply }: { match: Match; onApply: (rec: MlRecommendation, narrative: string) => void }) {
+  const [loading, setLoading] = useState(false);
+  const [applied, setApplied] = useState(false);
+
+  const handleClick = () => {
+    setLoading(true);
+    // Simulate a brief inference delay so the action feels deliberate
+    setTimeout(() => {
+      const rec = computeMlRecommendation(match);
+      const narrative = buildRecommendationNarrative(match, rec);
+      onApply(rec, narrative);
+      setLoading(false);
+      setApplied(true);
+      setTimeout(() => setApplied(false), 2000);
+    }, 350);
+  };
+
+  const rec = computeMlRecommendation(match);
+
+  return (
+    <div className="rounded-md border border-primary/30 bg-gradient-to-br from-primary/[0.06] to-primary/[0.02] p-2.5 flex items-center gap-2.5">
+      <div className="h-7 w-7 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+        <Sparkles className="h-3.5 w-3.5 text-primary" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[11px] font-semibold leading-tight">AI Recommendation</div>
+        <div className="text-[10px] text-muted-foreground leading-snug truncate">
+          {rec.headline} · score {rec.compositeScore}/100
+        </div>
+      </div>
+      <Button
+        type="button"
+        size="sm"
+        variant={applied ? 'secondary' : 'default'}
+        onClick={handleClick}
+        disabled={loading}
+        className="h-7 text-[11px] gap-1 shrink-0"
+      >
+        {applied ? <><Check className="h-3 w-3" /> Applied</> : loading ? 'Analyzing…' : <><Sparkles className="h-3 w-3" /> Apply</>}
+      </Button>
+    </div>
+  );
+}
+
 // ─── ML Combinational Score Panel ───────────────────────────────────────────
 
 function contributionStyle(c: MlFactor['contribution']) {
