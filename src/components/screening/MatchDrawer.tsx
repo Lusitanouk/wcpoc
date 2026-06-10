@@ -656,13 +656,6 @@ function WhyMatchedSection({ match }: { match: Match }) {
             </tr>
           )}
         </tbody>
-        <tfoot>
-          <tr className="bg-muted/30 border-t">
-            <td className="px-2 py-1.5"></td>
-            <td className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold" colSpan={3}>Weighted total</td>
-            <td className={`px-2 py-1.5 text-right tabular-nums text-xs font-bold ${scoreColor}`}>{rec.compositeScore}/100</td>
-          </tr>
-        </tfoot>
       </table>
     </div>
   );
