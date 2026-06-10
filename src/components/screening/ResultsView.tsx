@@ -514,22 +514,31 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
       )}
 
       {selectedCount > 0 && (
-        <div className="flex items-center gap-2 px-3 py-1.5 mb-4 rounded-md border border-primary/20 animate-fade-in sticky top-10 z-20 shadow-sm" style={{ backgroundColor: 'color-mix(in srgb, hsl(var(--primary)) 10%, hsl(var(--background)))' }}>
-          <CheckSquare className="h-4 w-4 text-primary" />
-          <span className="text-sm font-medium">{selectedCount} selected</span>
-          <div className="flex gap-1.5 ml-2">
-            <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
-              <Check className="h-3 w-3" /> Resolve {selectedCount === 1 ? 'Match' : 'Matches'}
-            </Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
-              <Eye className="h-3 w-3" /> Review {selectedCount === 1 ? 'Match' : 'Matches'}
-            </Button>
-            <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
-              <X className="h-3 w-3" />
-            </Button>
+        <div
+          className="sticky z-40 h-0 overflow-visible"
+          style={{ top: `${stickyOffsets.thead}px` }}
+        >
+          <div
+            className="absolute inset-x-0 top-0 flex items-center gap-2 px-3 h-12 rounded-md border border-primary/20 animate-fade-in shadow-sm"
+            style={{ backgroundColor: 'color-mix(in srgb, hsl(var(--primary)) 10%, hsl(var(--background)))' }}
+          >
+            <CheckSquare className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{selectedCount} selected</span>
+            <div className="flex gap-1.5 ml-2">
+              <Button size="sm" variant="default" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('resolve')}>
+                <Check className="h-3 w-3" /> Resolve {selectedCount === 1 ? 'Match' : 'Matches'}
+              </Button>
+              <Button size="sm" variant="outline" className="h-7 text-xs gap-1" onClick={() => openBulkDialog('review')}>
+                <Eye className="h-3 w-3" /> Review {selectedCount === 1 ? 'Match' : 'Matches'}
+              </Button>
+              <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setSelectedIds(new Set())}>
+                <X className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
         </div>
       )}
+
 
       <Card className="overflow-visible">
 
