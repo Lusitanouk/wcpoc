@@ -671,59 +671,23 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                     {isExpanded && (
                       <tr className="border-b bg-muted/20">
                         <td colSpan={visibleColCount} className="px-4 py-3">
-                          <div className="flex gap-6 ml-6">
-                            {/* Why it matched */}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-xs font-semibold mb-2">Why it matched</p>
-                              <table className="w-full text-xs">
-                                <thead>
-                                  <tr className="border-b">
-                                    <th className="text-left py-1 pr-2 w-5"></th>
-                                    <th className="text-left py-1 pr-2 font-medium text-muted-foreground">Field</th>
-                                    <th className="text-left py-1 pr-2 font-medium text-muted-foreground">Screened</th>
-                                    <th className="text-left py-1 font-medium text-muted-foreground">Matched</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {m.whyMatched.map((wf, i) => (
-                                    <tr key={i} className={`border-b last:border-b-0 ${wf.result === 'match' ? 'bg-status-positive/5' : wf.result === 'mismatch' ? 'bg-status-unresolved/5' : ''}`}>
-                                      <td className="py-1 pr-2">{fieldResultIcon(wf.result)}</td>
-                                      <td className="py-1 pr-2 font-medium">{wf.field}</td>
-                                      <td className="py-1 pr-2 text-muted-foreground">{wf.inputValue || '—'}</td>
-                                      <td className="py-1 text-muted-foreground">{wf.matchedValue || '—'}</td>
-                                    </tr>
-                                  ))}
-                                </tbody>
-                              </table>
-                              <p className="text-[10px] text-muted-foreground italic mt-1">{m.matchStrengthExplanation}</p>
-                              {m.reviewRequired && m.changeLog.length > 0 && (
-                                <div className="mt-2 pt-2 border-t">
-                                  <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
-                                  {m.changeLog.slice(0, 2).map((cl, i) => (
-                                    <p key={i} className="text-[10px] text-muted-foreground">
-                                      {cl.field}: {cl.from} → {cl.to}
-                                    </p>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                            {/* Aliases */}
-                            {m.aliases.length > 0 && (
-                              <div className="shrink-0 w-48">
-                                <p className="text-xs font-semibold mb-2 flex items-center gap-1">
-                                  <User className="h-3 w-3" /> Aliases ({m.aliases.length})
-                                </p>
-                                <ul className="space-y-0.5">
-                                  {m.aliases.map((alias, ai) => (
-                                    <li key={ai} className="text-xs text-muted-foreground flex items-center gap-1.5">
-                                      <span className="h-1 w-1 rounded-full bg-muted-foreground/50 shrink-0" />
-                                      {alias}
-                                    </li>
-                                  ))}
-                                </ul>
+                          <div className="ml-6">
+                            {/* Why it matched — unified panel (same as record view) */}
+                            <p className="text-xs font-semibold mb-2">Why it matched</p>
+                            <WhyMatchedSection match={m} />
+                            <p className="text-[10px] text-muted-foreground italic mt-1">{m.matchStrengthExplanation}</p>
+                            {m.reviewRequired && m.changeLog.length > 0 && (
+                              <div className="mt-2 pt-2 border-t">
+                                <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
+                                {m.changeLog.slice(0, 2).map((cl, i) => (
+                                  <p key={i} className="text-[10px] text-muted-foreground">
+                                    {cl.field}: {cl.from} → {cl.to}
+                                  </p>
+                                ))}
                               </div>
                             )}
                           </div>
+
                         </td>
                       </tr>
                     )}
