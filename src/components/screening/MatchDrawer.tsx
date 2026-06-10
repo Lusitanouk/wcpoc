@@ -599,9 +599,7 @@ function WhyMatchedSection({ match }: { match: Match }) {
             <th className="text-left px-3 py-2 font-medium text-muted-foreground">Field / Factor</th>
             <th className="text-left px-3 py-2 font-medium text-muted-foreground">Screened</th>
             <th className="text-left px-3 py-2 font-medium text-muted-foreground">Matched Record</th>
-            <th className="text-left px-2 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-[22%]">Contribution</th>
-            <th className="text-right px-2 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-12">Score</th>
-            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-12">Weight</th>
+            <th className="text-left px-2 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-[28%]">Contribution</th>
           </tr>
         </thead>
         <tbody>
