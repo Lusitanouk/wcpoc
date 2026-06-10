@@ -537,7 +537,7 @@ function factorMatchesField(factorLabel: string, fieldName: string) {
 
 // ─── Why It Matched — unified ML + field-comparison table ────────────────────
 
-function WhyMatchedSection({ match }: { match: Match }) {
+export function WhyMatchedSection({ match }: { match: Match }) {
   const rec = computeMlRecommendation(match);
   const scoreColor =
     rec.compositeScore >= 78 ? 'text-status-unresolved'
