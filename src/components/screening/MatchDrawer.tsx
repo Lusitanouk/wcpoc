@@ -1021,16 +1021,6 @@ export function MatchDrawer({
         </TooltipProvider>
       </div>
 
-      {/* Strength meter bar */}
-      <div className="px-4 pb-2.5">
-        <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground shrink-0 w-16">Strength</span>
-          <StrengthMeter value={match.strength} />
-        </div>
-        {match.matchStrengthExplanation && (
-          <p className="text-[10px] text-muted-foreground mt-1 pl-[72px] italic">{match.matchStrengthExplanation}</p>
-        )}
-      </div>
 
     </div>
   );
