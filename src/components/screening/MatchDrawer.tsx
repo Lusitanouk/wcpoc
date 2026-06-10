@@ -618,7 +618,7 @@ function WhyMatchedSection({ match }: { match: Match }) {
                 </td>
                 <td className="px-3 py-2 font-medium whitespace-nowrap">
                   <div className="leading-tight">{row.label}</div>
-                  {f && (
+                  {f && !row.result && (
                     <div className="text-[10px] text-muted-foreground leading-snug mt-0.5 font-normal whitespace-normal max-w-[200px]">
                       {f.detail}
                     </div>
