@@ -519,7 +519,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
           style={{ top: `${stickyOffsets.thead}px` }}
         >
           <div
-            className="absolute inset-x-0 top-0 flex items-center gap-2 px-3 h-12 rounded-md border border-primary/20 animate-fade-in shadow-sm"
+            className="absolute left-12 right-2 top-1 flex items-center gap-2 px-3 h-10 rounded-md border border-primary/20 animate-fade-in shadow-sm"
             style={{ backgroundColor: 'color-mix(in srgb, hsl(var(--primary)) 10%, hsl(var(--background)))' }}
           >
             <CheckSquare className="h-4 w-4 text-primary" />
