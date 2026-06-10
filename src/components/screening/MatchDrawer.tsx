@@ -20,7 +20,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { priorityColor } from '@/lib/priority';
-import type { Match, MatchStatus, RiskLevel, CaseScreeningData, ChangeLogEntry, CheckerDecision } from '@/types';
+import type { Match, MatchStatus, RiskLevel, CaseScreeningData, ChangeLogEntry, CheckerDecision, MatchFieldResult } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { exportMatchPdf } from '@/lib/export';
 import { useAppContext } from '@/context/AppContext';
