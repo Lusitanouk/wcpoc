@@ -20,7 +20,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { priorityColor } from '@/lib/priority';
-import type { Match, MatchStatus, RiskLevel, CaseScreeningData, ChangeLogEntry, CheckerDecision } from '@/types';
+import type { Match, MatchStatus, RiskLevel, CaseScreeningData, ChangeLogEntry, CheckerDecision, MatchFieldResult } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { exportMatchPdf } from '@/lib/export';
 import { useAppContext } from '@/context/AppContext';
@@ -524,14 +524,55 @@ function contributionStyle(c: MlFactor['contribution']) {
   return { bar: 'bg-muted-foreground/60', text: 'text-muted-foreground', sign: '·' };
 }
 
-function MlScorePanel({ rec }: { rec: MlRecommendation }) {
+// Heuristic mapping between an ML factor and a whyMatched field
+function factorMatchesField(factorLabel: string, fieldName: string) {
+  const f = factorLabel.toLowerCase();
+  const n = fieldName.toLowerCase();
+  if (f.includes('name match')) return n.includes('name');
+  if (f.includes('date of birth')) return n.includes('dob') || n.includes('birth');
+  if (f.includes('id document')) return n.includes('id') || n.includes('passport') || n.includes('document');
+  if (f.includes('nationality')) return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
+  return false;
+}
+
+// ─── Why It Matched — unified ML + field-comparison table ────────────────────
+
+function WhyMatchedSection({ match }: { match: Match }) {
+  const rec = computeMlRecommendation(match);
   const scoreColor =
     rec.compositeScore >= 78 ? 'text-status-unresolved'
     : rec.compositeScore >= 55 ? 'text-status-possible'
     : 'text-status-positive';
 
+  // Build unified row list: every whyMatched field + any ML factor that has no field equivalent (e.g. Name rarity)
+  type Row = {
+    key: string;
+    label: string;
+    inputValue?: string;
+    matchedValue?: string;
+    result?: MatchFieldResult;
+    factor?: MlFactor;
+  };
+  const usedFactors = new Set<MlFactor>();
+  const fieldRows: Row[] = match.whyMatched.map((wf, i) => {
+    const factor = rec.factors.find(f => !usedFactors.has(f) && factorMatchesField(f.label, wf.field));
+    if (factor) usedFactors.add(factor);
+    return {
+      key: `f-${i}`,
+      label: wf.field,
+      inputValue: wf.inputValue,
+      matchedValue: wf.matchedValue,
+      result: wf.result,
+      factor,
+    };
+  });
+  const extraRows: Row[] = rec.factors
+    .filter(f => !usedFactors.has(f))
+    .map((f, i) => ({ key: `x-${i}`, label: f.label, factor: f }));
+  const rows = [...fieldRows, ...extraRows];
+
   return (
-    <div className="rounded-md border bg-primary/[0.03] overflow-hidden mb-2.5">
+    <div className="rounded-md border bg-primary/[0.02] overflow-hidden">
       {/* Header: composite score + recommendation */}
       <div className="flex items-center gap-3 px-3 py-2.5 border-b bg-primary/5">
         <div className="flex items-center gap-1.5 shrink-0">
@@ -551,102 +592,84 @@ function MlScorePanel({ rec }: { rec: MlRecommendation }) {
         </div>
       </div>
 
-      {/* Factors table — analyst-friendly */}
       <table className="w-full text-xs">
         <thead>
-          <tr className="bg-muted/40 border-b">
-            <th className="text-left px-3 py-1.5 font-medium text-muted-foreground text-[10px] uppercase tracking-wide">Factor</th>
-            <th className="text-left px-2 py-1.5 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-[42%]">Contribution</th>
-            <th className="text-right px-2 py-1.5 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-14">Score</th>
-            <th className="text-right px-3 py-1.5 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-14">Weight</th>
+          <tr className="bg-muted/50 border-b">
+            <th className="w-8 px-2 py-2"></th>
+            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Field / Factor</th>
+            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Screened</th>
+            <th className="text-left px-3 py-2 font-medium text-muted-foreground">Matched Record</th>
+            <th className="text-left px-2 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-[22%]">Contribution</th>
+            <th className="text-right px-2 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-12">Score</th>
+            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-12">Weight</th>
           </tr>
         </thead>
         <tbody>
-          {rec.factors.map((f, i) => {
-            const s = contributionStyle(f.contribution);
-            const impact = Math.round(f.score * f.weight); // weighted points contributed
+          {rows.map(row => {
+            const rowBg =
+              row.result === 'match' ? 'bg-status-positive/5'
+              : row.result === 'mismatch' ? 'bg-status-unresolved/5'
+              : '';
+            const f = row.factor;
+            const s = f ? contributionStyle(f.contribution) : null;
+            const impact = f ? Math.round(f.score * f.weight) : null;
             return (
-              <tr key={i} className="border-b last:border-b-0 align-top">
-                <td className="px-3 py-2">
-                  <div className="font-medium leading-tight">{f.label}</div>
-                  <div className="text-[10px] text-muted-foreground leading-snug mt-0.5">{f.detail}</div>
+              <tr key={row.key} className={`border-b last:border-b-0 align-top ${rowBg}`}>
+                <td className="px-2 py-2 text-center">
+                  {row.result ? fieldResultIcon(row.result) : <Sparkles className="h-3.5 w-3.5 text-primary/60 mx-auto" />}
                 </td>
-                <td className="px-2 py-2">
-                  <div className="flex items-center gap-1.5">
-                    <span className={`text-[10px] font-bold w-3 ${s.text}`}>{s.sign}</span>
-                    <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                      <div className={`h-full ${s.bar} transition-all`} style={{ width: `${f.score}%` }} />
+                <td className="px-3 py-2 font-medium whitespace-nowrap">
+                  <div className="leading-tight">{row.label}</div>
+                  {f && (
+                    <div className="text-[10px] text-muted-foreground leading-snug mt-0.5 font-normal whitespace-normal max-w-[200px]">
+                      {f.detail}
                     </div>
-                    <span className={`text-[10px] font-semibold tabular-nums w-6 text-right ${s.text}`}>+{impact}</span>
-                  </div>
+                  )}
                 </td>
-                <td className="px-2 py-2 text-right tabular-nums text-[11px] font-medium">{f.score}</td>
-                <td className="px-3 py-2 text-right tabular-nums text-[11px] text-muted-foreground">{(f.weight * 100).toFixed(0)}%</td>
+                <td className="px-3 py-2 text-muted-foreground">{row.inputValue || (f && !row.result ? '—' : row.inputValue || '—')}</td>
+                <td className="px-3 py-2 font-medium">{row.matchedValue || '—'}</td>
+                <td className="px-2 py-2">
+                  {f && s ? (
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[10px] font-bold w-3 ${s.text}`}>{s.sign}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className={`h-full ${s.bar} transition-all`} style={{ width: `${f.score}%` }} />
+                      </div>
+                      <span className={`text-[10px] font-semibold tabular-nums w-6 text-right ${s.text}`}>+{impact}</span>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-muted-foreground">{row.result ? fieldResultLabel(row.result) : '—'}</span>
+                  )}
+                </td>
+                <td className="px-2 py-2 text-right tabular-nums text-[11px] font-medium">{f ? f.score : '—'}</td>
+                <td className="px-3 py-2 text-right tabular-nums text-[11px] text-muted-foreground">{f ? `${(f.weight * 100).toFixed(0)}%` : '—'}</td>
               </tr>
             );
           })}
+          {match.aliases.length > 0 && (
+            <tr className="border-b last:border-b-0 bg-muted/20">
+              <td className="px-2 py-2 text-center"><User className="h-3.5 w-3.5 text-muted-foreground mx-auto" /></td>
+              <td className="px-3 py-2 font-medium align-top">Aliases</td>
+              <td className="px-3 py-2 text-muted-foreground" colSpan={5}>
+                <div className="flex flex-wrap gap-1">
+                  {match.aliases.map((alias, ai) => (
+                    <Badge key={ai} variant="secondary" className="text-[10px]">{alias}</Badge>
+                  ))}
+                </div>
+              </td>
+            </tr>
+          )}
         </tbody>
         <tfoot>
-          <tr className="bg-muted/30">
-            <td className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold">Weighted total</td>
+          <tr className="bg-muted/30 border-t">
+            <td className="px-2 py-1.5"></td>
+            <td className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold" colSpan={3}>Weighted total</td>
             <td className="px-2 py-1.5"></td>
             <td className={`px-2 py-1.5 text-right tabular-nums text-xs font-bold ${scoreColor}`}>{rec.compositeScore}</td>
             <td className="px-3 py-1.5 text-right tabular-nums text-[10px] text-muted-foreground">100%</td>
           </tr>
         </tfoot>
       </table>
-    </div>
-  );
-}
-
-// ─── Why It Matched — inline, no tab ─────────────────────────────────────────
-
-function WhyMatchedSection({ match }: { match: Match }) {
-  const rec = computeMlRecommendation(match);
-  return (
-    <div className="space-y-0">
-      <MlScorePanel rec={rec} />
-      <div className="rounded-md border overflow-hidden">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="bg-muted/50 border-b">
-              <th className="w-8 px-2 py-2"></th>
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Field</th>
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Screened</th>
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Matched Record</th>
-              <th className="w-16 px-2 py-2 text-right font-medium text-muted-foreground">Result</th>
-            </tr>
-          </thead>
-          <tbody>
-            {match.whyMatched.map((wf, i) => (
-              <tr key={i} className={`border-b last:border-b-0 ${
-                wf.result === 'match' ? 'bg-status-positive/5'
-                : wf.result === 'mismatch' ? 'bg-status-unresolved/5'
-                : ''
-              }`}>
-                <td className="px-2 py-2 text-center">{fieldResultIcon(wf.result)}</td>
-                <td className="px-3 py-2 font-medium whitespace-nowrap">{wf.field}</td>
-                <td className="px-3 py-2 text-muted-foreground">{wf.inputValue || '—'}</td>
-                <td className="px-3 py-2 font-medium">{wf.matchedValue || '—'}</td>
-                <td className="px-2 py-2 text-right">{fieldResultLabel(wf.result)}</td>
-              </tr>
-            ))}
-            {match.aliases.length > 0 && (
-              <tr className="border-b last:border-b-0 bg-muted/20">
-                <td className="px-2 py-2 text-center"><User className="h-3.5 w-3.5 text-muted-foreground mx-auto" /></td>
-                <td className="px-3 py-2 font-medium align-top">Aliases</td>
-                <td className="px-3 py-2 text-muted-foreground" colSpan={3}>
-                  <div className="flex flex-wrap gap-1">
-                    {match.aliases.map((alias, ai) => (
-                      <Badge key={ai} variant="secondary" className="text-[10px]">{alias}</Badge>
-                    ))}
-                  </div>
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
     </div>
   );
 }
