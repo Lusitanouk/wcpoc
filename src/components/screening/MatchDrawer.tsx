@@ -599,9 +599,7 @@ function WhyMatchedSection({ match }: { match: Match }) {
             <th className="text-left px-3 py-2 font-medium text-muted-foreground">Field / Factor</th>
             <th className="text-left px-3 py-2 font-medium text-muted-foreground">Screened</th>
             <th className="text-left px-3 py-2 font-medium text-muted-foreground">Matched Record</th>
-            <th className="text-left px-2 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-[22%]">Contribution</th>
-            <th className="text-right px-2 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-12">Score</th>
-            <th className="text-right px-3 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-12">Weight</th>
+            <th className="text-left px-2 py-2 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-[28%]">Contribution</th>
           </tr>
         </thead>
         <tbody>
@@ -641,8 +639,6 @@ function WhyMatchedSection({ match }: { match: Match }) {
                     <span className="text-[10px] text-muted-foreground">{row.result ? fieldResultLabel(row.result) : '—'}</span>
                   )}
                 </td>
-                <td className="px-2 py-2 text-right tabular-nums text-[11px] font-medium">{f ? f.score : '—'}</td>
-                <td className="px-3 py-2 text-right tabular-nums text-[11px] text-muted-foreground">{f ? `${(f.weight * 100).toFixed(0)}%` : '—'}</td>
               </tr>
             );
           })}
@@ -650,7 +646,7 @@ function WhyMatchedSection({ match }: { match: Match }) {
             <tr className="border-b last:border-b-0 bg-muted/20">
               <td className="px-2 py-2 text-center"><User className="h-3.5 w-3.5 text-muted-foreground mx-auto" /></td>
               <td className="px-3 py-2 font-medium align-top">Aliases</td>
-              <td className="px-3 py-2 text-muted-foreground" colSpan={5}>
+              <td className="px-3 py-2 text-muted-foreground" colSpan={3}>
                 <div className="flex flex-wrap gap-1">
                   {match.aliases.map((alias, ai) => (
                     <Badge key={ai} variant="secondary" className="text-[10px]">{alias}</Badge>
@@ -664,9 +660,7 @@ function WhyMatchedSection({ match }: { match: Match }) {
           <tr className="bg-muted/30 border-t">
             <td className="px-2 py-1.5"></td>
             <td className="px-3 py-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-semibold" colSpan={3}>Weighted total</td>
-            <td className="px-2 py-1.5"></td>
-            <td className={`px-2 py-1.5 text-right tabular-nums text-xs font-bold ${scoreColor}`}>{rec.compositeScore}</td>
-            <td className="px-3 py-1.5 text-right tabular-nums text-[10px] text-muted-foreground">100%</td>
+            <td className={`px-2 py-1.5 text-right tabular-nums text-xs font-bold ${scoreColor}`}>{rec.compositeScore}/100</td>
           </tr>
         </tfoot>
       </table>
