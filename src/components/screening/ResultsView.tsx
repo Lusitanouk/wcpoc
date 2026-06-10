@@ -14,7 +14,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
-import { MatchDrawer } from './MatchDrawer';
+import { MatchDrawer, WhyMatchedSection } from './MatchDrawer';
 import { priorityColor } from '@/lib/priority';
 import { updateMatch, recalcCaseCounts } from '@/data/mock-data';
 import type { Match, CheckType, MatchStatus, Dataset, RiskLevel, CaseScreeningData } from '@/types';
