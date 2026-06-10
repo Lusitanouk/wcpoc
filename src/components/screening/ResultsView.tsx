@@ -519,15 +519,15 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
           style={{ top: `${stickyOffsets.thead}px` }}
         >
           <div
-            className="absolute top-0 left-10 right-0 flex items-center gap-3 px-4 h-12 border-b bg-card/95 backdrop-blur-sm shadow-sm animate-fade-in"
+            className="absolute top-0 left-10 right-0 flex items-center gap-3 px-4 h-12 border-b border-primary/30 bg-primary text-primary-foreground shadow-[0_1px_0_0_hsl(var(--primary))] animate-fade-in"
           >
-            <CheckSquare className="h-4 w-4 text-muted-foreground" />
-            <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{selectedCount} selected</span>
+            <CheckSquare className="h-4 w-4" />
+            <span className="text-xs font-semibold uppercase tracking-wide">{selectedCount} selected</span>
             <div className="flex gap-1.5 ml-auto">
               <Button
                 size="sm"
                 variant="secondary"
-                className="h-7 text-xs gap-1"
+                className="h-7 text-xs gap-1 bg-primary-foreground text-primary hover:bg-primary-foreground/90"
                 onClick={() => openBulkDialog('resolve')}
               >
                 <Check className="h-3 w-3" /> Resolve {selectedCount === 1 ? 'Match' : 'Matches'}
@@ -535,7 +535,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-xs gap-1"
+                className="h-7 text-xs gap-1 border-primary-foreground/40 bg-transparent text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
                 onClick={() => openBulkDialog('review')}
               >
                 <Eye className="h-3 w-3" /> Review {selectedCount === 1 ? 'Match' : 'Matches'}
@@ -543,7 +543,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
               <Button
                 size="sm"
                 variant="ghost"
-                className="h-7 w-7 p-0"
+                className="h-7 w-7 p-0 text-primary-foreground hover:bg-primary-foreground/10 hover:text-primary-foreground"
                 onClick={() => setSelectedIds(new Set())}
                 aria-label="Clear selection"
               >
