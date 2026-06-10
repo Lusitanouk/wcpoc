@@ -577,17 +577,17 @@ function WhyMatchedSection({ match }: { match: Match }) {
       <div className="flex items-center gap-3 px-3 py-2.5 border-b bg-primary/5">
         <div className="flex items-center gap-1.5 shrink-0">
           <Sparkles className="h-3.5 w-3.5 text-primary" />
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">ML Combinational Score</span>
+          <span className="text-[10px] font-semibold uppercase tracking-wide text-primary">AI Recommendation</span>
         </div>
         <div className="ml-auto flex items-center gap-3">
-          <div className="text-right">
-            <div className={`text-lg font-bold tabular-nums leading-none ${scoreColor}`}>{rec.compositeScore}</div>
-            <div className="text-[9px] text-muted-foreground uppercase tracking-wide mt-0.5">/ 100</div>
-          </div>
-          <div className="w-px h-8 bg-border" />
           <div>
             <div className="text-[11px] font-semibold">{rec.headline}</div>
             <div className="text-[9px] text-muted-foreground">Confidence {rec.confidence}%</div>
+          </div>
+          <div className="w-px h-8 bg-border" />
+          <div className="text-right">
+            <div className={`text-lg font-bold tabular-nums leading-none ${scoreColor}`}>{rec.compositeScore}</div>
+            <div className="text-[9px] text-muted-foreground uppercase tracking-wide mt-0.5">/ 100</div>
           </div>
         </div>
       </div>
