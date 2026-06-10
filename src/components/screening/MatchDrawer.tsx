@@ -24,6 +24,8 @@ import type { Match, MatchStatus, RiskLevel, CaseScreeningData, ChangeLogEntry, 
 import { useTranslation } from 'react-i18next';
 import { exportMatchPdf } from '@/lib/export';
 import { useAppContext } from '@/context/AppContext';
+import { computeMlRecommendation, buildRecommendationNarrative, type MlRecommendation, type MlFactor } from '@/lib/ml-recommendation';
+import { Sparkles } from 'lucide-react';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
