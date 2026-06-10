@@ -1117,14 +1117,25 @@ export function MatchDrawer({
             {isCheckerView ? (
               <CheckerPanel match={match} onSubmit={handleCheckerSubmit} compact />
             ) : (
-              <ResolutionPanel
-                status={status} setStatus={setStatus}
-                risk={risk} setRisk={setRisk}
-                matchOutcome={matchOutcome} setMatchOutcome={setMatchOutcome}
-                reason={reason} setReason={setReason}
-                comment={comment} setComment={setComment}
-                onSave={handleSave}
-              />
+              <>
+                <AiRecommendButton
+                  match={match}
+                  onApply={(rec, narrative) => {
+                    setStatus(rec.recommendedStatus);
+                    setRisk(rec.recommendedRisk);
+                    setMatchOutcome(rec.recommendedOutcome);
+                    setReason(narrative);
+                  }}
+                />
+                <ResolutionPanel
+                  status={status} setStatus={setStatus}
+                  risk={risk} setRisk={setRisk}
+                  matchOutcome={matchOutcome} setMatchOutcome={setMatchOutcome}
+                  reason={reason} setReason={setReason}
+                  comment={comment} setComment={setComment}
+                  onSave={handleSave}
+                />
+              </>
             )}
           </div>
         </CollapsibleContent>
