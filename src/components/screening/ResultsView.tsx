@@ -114,6 +114,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<MatchColumnKey[]>([...DEFAULT_MATCH_COLUMNS]);
+  const [sortColumn, setSortColumn] = useState<'priority' | 'strength' | null>('priority');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
 
@@ -206,8 +208,14 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
         if (filterPriority === 'sanctions-pep' && m.dataset !== 'Sanctions' && m.dataset !== 'PEP') return false;
         return true;
       })
-      .sort((a, b) => b.priorityScore - a.priorityScore);
-  }, [matches, activeBucket, filterDataset, filterPriority]);
+      .sort((a, b) => {
+        const dir = sortDirection === 'asc' ? 1 : -1;
+        if (sortColumn === 'strength') {
+          return dir * (a.strength - b.strength);
+        }
+        return dir * (a.priorityScore - b.priorityScore);
+      });
+  }, [matches, activeBucket, filterDataset, filterPriority, sortColumn, sortDirection]);
 
   const total = matches.length;
   const unresolved = bucketCounts.Unresolved;
@@ -342,6 +350,20 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
   const clearAllMatchFilters = () => {
     setFilterDataset('all');
     setFilterPriority('all');
+  };
+
+  const handleSort = (column: 'priority' | 'strength') => {
+    if (sortColumn === column) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const sortIndicator = (column: 'priority' | 'strength') => {
+    if (sortColumn !== column) return <ChevronDown className="h-3 w-3 text-muted-foreground/40" />;
+    return <ChevronDown className={`h-3 w-3 text-primary transition-transform ${sortDirection === 'asc' ? 'rotate-180' : ''}`} />;
   };
 
   return (
@@ -557,11 +579,20 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                 </th>
                 {visibleColumns.map(key => {
                   const col = MATCH_COLUMNS.find(c => c.key === key)!;
-                  const widthClass = key === 'priority' ? 'w-20' : key === 'strength' ? 'w-32' : '';
+                  const widthClass = key === 'priority' ? 'w-24' : key === 'strength' ? 'w-36' : '';
                   const stickyClass = key === 'name' ? 'sticky left-10 z-20 bg-card min-w-[250px]' : '';
+                  const isSortable = key === 'priority' || key === 'strength';
                   return (
                     <React.Fragment key={key}>
-                      <th className={`text-left px-4 py-3 font-medium text-muted-foreground ${widthClass} ${stickyClass}`}>{col.label}</th>
+                      <th
+                        className={`text-left px-4 py-3 font-medium text-muted-foreground ${widthClass} ${stickyClass} ${isSortable ? 'cursor-pointer hover:text-foreground select-none' : ''}`}
+                        onClick={isSortable ? () => handleSort(key as 'priority' | 'strength') : undefined}
+                      >
+                        <div className="flex items-center gap-1">
+                          {col.label}
+                          {isSortable && sortIndicator(key as 'priority' | 'strength')}
+                        </div>
+                      </th>
                       {key === 'name' && <th className="px-2 py-3 w-10 sticky left-[290px] z-20 bg-muted/50 border-r"></th>}
                     </React.Fragment>
                   );
