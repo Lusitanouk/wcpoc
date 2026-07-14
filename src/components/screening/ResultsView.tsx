@@ -208,8 +208,14 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
         if (filterPriority === 'sanctions-pep' && m.dataset !== 'Sanctions' && m.dataset !== 'PEP') return false;
         return true;
       })
-      .sort((a, b) => b.priorityScore - a.priorityScore);
-  }, [matches, activeBucket, filterDataset, filterPriority]);
+      .sort((a, b) => {
+        const dir = sortDirection === 'asc' ? 1 : -1;
+        if (sortColumn === 'strength') {
+          return dir * (a.strength - b.strength);
+        }
+        return dir * (a.priorityScore - b.priorityScore);
+      });
+  }, [matches, activeBucket, filterDataset, filterPriority, sortColumn, sortDirection]);
 
   const total = matches.length;
   const unresolved = bucketCounts.Unresolved;
