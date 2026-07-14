@@ -529,189 +529,20 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
         </table>
       </Card>
 
-      {/* Match Drawer */}
-      <Sheet open={drawerOpen} onOpenChange={v => !v && setDrawerOpen(false)}>
-        <SheetContent className="w-full sm:max-w-2xl overflow-y-auto p-0">
-          {selectedMatch && (
-            <>
-              <SheetHeader className="p-6 pb-4 border-b space-y-2">
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <SheetTitle className="text-lg truncate">{selectedMatch.matchedName}</SheetTitle>
-                    <Badge variant="outline" className={`text-[10px] shrink-0 ${priorityColor(selectedMatch.priorityLevel)}`}>
-                      {selectedMatch.priorityLevel} priority
-                    </Badge>
-                    {selectedMatch.reviewRequired && (
-                      <Badge variant="secondary" className="text-[10px] shrink-0 bg-status-possible/15 text-status-possible border-0 gap-1">
-                        <AlertTriangle className="h-3 w-3" /> Review required
-                      </Badge>
-                    )}
-                  </div>
-                  {selectedMatchIndex >= 0 && filteredMatches.length > 1 && (
-                    <div className="flex items-center gap-1 shrink-0">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={() => navigateMatch('prev')}
-                        disabled={selectedMatchIndex === 0}
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                      </Button>
-                      <span className="text-[11px] text-muted-foreground tabular-nums px-1">
-                        {selectedMatchIndex + 1} / {filteredMatches.length}
-                      </span>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        onClick={() => navigateMatch('next')}
-                        disabled={selectedMatchIndex === filteredMatches.length - 1}
-                      >
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </Button>
-                    </div>
-                  )}
-                </div>
-                <SheetDescription className="text-xs">
-                  {selectedArticles.length} adverse media {selectedArticles.length === 1 ? 'article' : 'articles'} for case {caseName}
-                </SheetDescription>
-              </SheetHeader>
+      {/* Match Drawer — side panel + fullscreen (mirrors watchlist) */}
+      <MediaMatchDrawer
+        match={selectedMatch}
+        articles={result.articles}
+        open={drawerOpen}
+        onClose={() => setDrawerOpen(false)}
+        caseName={caseName}
+        onUpdate={applyMatchUpdate}
+        currentIndex={selectedMatchIndex >= 0 ? selectedMatchIndex : undefined}
+        totalMatches={filteredMatches.length}
+        onNavigate={navigateMatch}
+        defaultFullscreen={openInFullscreen}
+      />
 
-              {/* Why it matched — primary name, aliases, secondary IDs */}
-              <div className="p-6 border-b space-y-4 bg-muted/20">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Why it matched</p>
-
-                <div>
-                  <p className="text-[11px] font-medium text-muted-foreground mb-1">Primary Name</p>
-                  <p className="text-sm font-medium flex items-center gap-2">
-                    <Check className="h-3.5 w-3.5 text-status-positive" />
-                    {selectedMatch.matchedName}
-                  </p>
-                </div>
-
-                {selectedMatch.aliases.length > 0 && (
-                  <div>
-                    <p className="text-[11px] font-medium text-muted-foreground mb-1">Aliases</p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {selectedMatch.aliases.map(a => (
-                        <Badge key={a} variant="secondary" className="text-[10px]">{a}</Badge>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <p className="text-[11px] font-medium text-muted-foreground mb-1.5">Secondary Identifiers</p>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1.5">
-                    {selectedMatch.secondaryIds.map(sid => (
-                      <div key={sid.label} className="flex items-center gap-2 text-xs">
-                        {fieldResultIcon(sid.result)}
-                        <span className="text-muted-foreground">{sid.label}:</span>
-                        <span className="font-medium truncate">{sid.value}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {/* Headlines list */}
-              <div className="p-6 border-b">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
-                  Headlines ({selectedArticles.length})
-                </p>
-                <div className="space-y-3">
-                  {selectedArticles.map(a => (
-                    <div key={a.id} className="p-3 rounded-md border bg-card hover:border-primary/30 transition-colors">
-                      <div className="flex items-start justify-between gap-2 mb-1">
-                        <h4 className="text-sm font-medium leading-snug flex-1">{a.headline}</h4>
-                        <div className="flex flex-col items-end gap-1 shrink-0">
-                          <Badge variant="outline" className={`text-[10px] gap-1 ${prePostColors[a.prePost]}`}>
-                            {prePostIcons[a.prePost]} {a.prePost}
-                          </Badge>
-                          <Badge variant="outline" className={`text-[10px] ${mediaRiskColors[a.riskLevel]}`}>
-                            {a.riskLevel} risk
-                          </Badge>
-                        </div>
-                      </div>
-                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{a.snippet}</p>
-                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <span className="font-medium text-foreground">{a.publication}</span>
-                        <span>·</span>
-                        <span>{a.publishedDate}{a.publishedTime ? ` ${a.publishedTime}` : ''}</span>
-                        <span>·</span>
-                        <span>{a.sourceType}</span>
-                        <Button variant="ghost" size="sm" className="h-6 ml-auto gap-1 text-[10px]">
-                          <ExternalLink className="h-3 w-3" /> Read
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Resolution — aligned to watchlist button pickers */}
-              <div className="p-6 space-y-3">
-                <h4 className="text-sm font-semibold">{t('match.resolution', 'Resolution')}</h4>
-                <div className="flex gap-4 items-start">
-                  <div className="space-y-1.5 shrink-0">
-                    <Label className="text-xs">{t('match.status', 'Status')}</Label>
-                    <div className="flex flex-col gap-1">
-                      {(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]).map(s => (
-                        <button
-                          key={s}
-                          onClick={() => setResStatus(s)}
-                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
-                            resStatus === s
-                              ? 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
-                          }`}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="space-y-1.5 shrink-0">
-                    <Label className="text-xs">{t('match.riskLevel', 'Risk Level')}</Label>
-                    <div className="flex flex-col gap-1">
-                      {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
-                        <button
-                          key={r}
-                          onClick={() => setResRisk(r)}
-                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
-                            resRisk === r
-                              ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
-                                : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
-                                : 'bg-primary text-primary-foreground border-primary'
-                              : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
-                          }`}
-                        >
-                          {r}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                  <div className="flex-1 min-w-0 space-y-1.5">
-                    <Label className="text-xs">{t('match.reason', 'Reason')}</Label>
-                    <Textarea
-                      value={resReason}
-                      onChange={e => setResReason(e.target.value)}
-                      rows={5}
-                      placeholder="Resolution rationale..."
-                      className="text-xs resize-none"
-                    />
-                  </div>
-                </div>
-                <div className="flex justify-end gap-2 pt-2 border-t">
-                  <Button size="sm" variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
-                  <Button size="sm" onClick={saveResolution} disabled={!resReason.trim()}>Save Resolution</Button>
-                </div>
-              </div>
-            </>
-          )}
-        </SheetContent>
-      </Sheet>
 
       {/* Bulk Resolve Sheet — mirrors watchlist */}
       <Sheet open={bulkDialog === 'resolve'} onOpenChange={v => !v && setBulkDialog(null)}>
