@@ -17,7 +17,7 @@ import { Label } from '@/components/ui/label';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import { priorityColor } from '@/lib/priority';
 import { MediaMatchDrawer } from './MediaMatchDrawer';
-import type { CheckerReview } from '@/types';
+
 import type { MediaCheckResult, MediaMatch, MediaArticle, MatchStatus, RiskLevel, MediaPrePost, MediaSecondaryId, MatchFieldResult } from '@/types';
 
 interface MediaCheckResultsViewProps {
