@@ -114,6 +114,8 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [showFilters, setShowFilters] = useState(false);
   const [visibleColumns, setVisibleColumns] = useState<MatchColumnKey[]>([...DEFAULT_MATCH_COLUMNS]);
+  const [sortColumn, setSortColumn] = useState<'priority' | 'strength' | null>('priority');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const dragItem = useRef<number | null>(null);
   const dragOverItem = useRef<number | null>(null);
 
