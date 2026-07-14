@@ -579,11 +579,20 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                 </th>
                 {visibleColumns.map(key => {
                   const col = MATCH_COLUMNS.find(c => c.key === key)!;
-                  const widthClass = key === 'priority' ? 'w-20' : key === 'strength' ? 'w-32' : '';
+                  const widthClass = key === 'priority' ? 'w-24' : key === 'strength' ? 'w-36' : '';
                   const stickyClass = key === 'name' ? 'sticky left-10 z-20 bg-card min-w-[250px]' : '';
+                  const isSortable = key === 'priority' || key === 'strength';
                   return (
                     <React.Fragment key={key}>
-                      <th className={`text-left px-4 py-3 font-medium text-muted-foreground ${widthClass} ${stickyClass}`}>{col.label}</th>
+                      <th
+                        className={`text-left px-4 py-3 font-medium text-muted-foreground ${widthClass} ${stickyClass} ${isSortable ? 'cursor-pointer hover:text-foreground select-none' : ''}`}
+                        onClick={isSortable ? () => handleSort(key as 'priority' | 'strength') : undefined}
+                      >
+                        <div className="flex items-center gap-1">
+                          {col.label}
+                          {isSortable && sortIndicator(key as 'priority' | 'strength')}
+                        </div>
+                      </th>
                       {key === 'name' && <th className="px-2 py-3 w-10 sticky left-[290px] z-20 bg-muted/50 border-r"></th>}
                     </React.Fragment>
                   );
