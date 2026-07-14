@@ -153,6 +153,21 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
     return next;
   });
   const selectedCount = selectedIds.size;
+  const selectedMatches = filteredMatches.filter(m => selectedIds.has(m.id));
+
+  const selectionSummary = useMemo(() => {
+    const byPriority: Record<string, number> = {};
+    const byRisk: Record<string, number> = {};
+    let reviewCount = 0;
+    let totalArticles = 0;
+    selectedMatches.forEach(m => {
+      byPriority[m.priorityLevel] = (byPriority[m.priorityLevel] || 0) + 1;
+      byRisk[m.riskLevel] = (byRisk[m.riskLevel] || 0) + 1;
+      if (m.reviewRequired) reviewCount++;
+      totalArticles += m.articleIds.length;
+    });
+    return { byPriority, byRisk, reviewCount, totalArticles };
+  }, [selectedMatches]);
 
   // Expanded rows
   const [expandedRows, setExpandedRows] = useState<Set<string>>(new Set());
