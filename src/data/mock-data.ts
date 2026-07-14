@@ -694,10 +694,10 @@ const caseDefs: CaseDef[] = [
     checkTypes: ['Watchlists'], ogsWorldCheck: false, ogsMediaCheck: false, rating: 'None', assignee: 'Sam Wilson',
     screeningData: { country: 'United Kingdom', idType: 'IMO Number', idNumber: 'IMO9647182' },
     matches: [
-      { matchedName: 'Red Falcon', aliases: ['S/S Red Falcon'], strength: 85, dataset: 'Other', status: 'False', riskLevel: 'None', updated: false, reviewRequired: false, reviewRequiredReasons: [],
-        ...wmVessel('SS Red Falcon', 'Red Falcon', 85, { imoInput: 'IMO9647182', imoMatch: 'IMO9647182', imoResult: 'match', flagInput: 'United Kingdom', flagMatch: 'United Kingdom', flagResult: 'match' }),
-        identifiers: { country: 'United Kingdom' },
-        recordData: { keyData: { 'Vessel Name': 'Red Falcon', 'IMO Number': 'IMO9647182', 'Flag State': 'United Kingdom', 'Category': 'Other', 'Listed Date': '2021-01-01', 'Last Updated': '2022-06-01' }, furtherInfo: 'Red Funnel passenger ferry operating in the Solent, UK. Historical database entry. No adverse information. Cleared.', aliases: ['S/S Red Falcon'], keywords: [], pepRoleDetails: undefined, connections: ['Red Funnel Ltd (Operator)'], sources: [{ name: 'Maritime UK', url: '#' }] } },
+      { matchedName: 'Red Falcon', aliases: ['M/V Red Falcon'], strength: 52, dataset: 'Other', status: 'False', riskLevel: 'None', updated: false, reviewRequired: false, reviewRequiredReasons: [],
+        ...wmVessel('SS Red Falcon', 'Red Falcon', 52, { imoInput: 'IMO9647182', imoMatch: 'IMO7392841', imoResult: 'mismatch', flagInput: 'United Kingdom', flagMatch: 'Bahamas', flagResult: 'mismatch', countryInput: 'United Kingdom', countryMatch: 'Bahamas', countryResult: 'mismatch' }),
+        identifiers: { country: 'Bahamas' },
+        recordData: { keyData: { 'Vessel Name': 'Red Falcon', 'IMO Number': 'IMO7392841', 'Flag State': 'Bahamas', 'Category': 'Other', 'Listed Date': '2021-01-01', 'Last Updated': '2022-06-01' }, furtherInfo: 'Bahamas-registered offshore supply vessel with the same name. Different IMO number and flag state confirm it is not the UK ferry.', aliases: ['M/V Red Falcon'], keywords: [], pepRoleDetails: undefined, connections: ['Atlantic Offshore Services (Operator)'], sources: [{ name: 'Lloyd\'s List', url: '#' }] } },
     ],
   },
   // 26. North Korean vessel — sanctions
