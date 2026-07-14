@@ -70,6 +70,7 @@ function fieldResultIcon(result: MatchFieldResult) {
 }
 
 export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckResultsViewProps) {
+  const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
   const [mediaMatches, setMediaMatches] = useState<MediaMatch[]>(result.mediaMatches);
 
@@ -78,6 +79,12 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
     const counts: Record<MatchStatus, number> = { Unresolved: 0, Positive: 0, Possible: 0, False: 0, Unknown: 0 };
     mediaMatches.forEach(m => { counts[m.status]++; });
     return counts;
+  }, [mediaMatches]);
+
+  const bucketHasReviewRequired = useMemo(() => {
+    const map: Record<MatchStatus, boolean> = { Unresolved: false, Positive: false, Possible: false, False: false, Unknown: false };
+    mediaMatches.forEach(m => { if (m.reviewRequired) map[m.status] = true; });
+    return map;
   }, [mediaMatches]);
 
   const defaultBucket = useMemo(() => {
