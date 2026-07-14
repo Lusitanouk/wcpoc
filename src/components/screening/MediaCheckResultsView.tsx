@@ -198,13 +198,23 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
     setDrawerOpen(false);
   };
 
+  // Match navigation in drawer
+  const selectedMatchIndex = selectedMatch ? filteredMatches.findIndex(m => m.id === selectedMatch.id) : -1;
+  const navigateMatch = (direction: 'prev' | 'next') => {
+    const newIndex = direction === 'prev' ? selectedMatchIndex - 1 : selectedMatchIndex + 1;
+    if (newIndex >= 0 && newIndex < filteredMatches.length) {
+      setSelectedMatch(filteredMatches[newIndex]);
+    }
+  };
+
   // Bulk resolve
   const [bulkDialog, setBulkDialog] = useState<'resolve' | 'review' | null>(null);
   const [bulkStatus, setBulkStatus] = useState<MatchStatus>('False');
   const [bulkRisk, setBulkRisk] = useState<RiskLevel>('None');
   const [bulkReason, setBulkReason] = useState('');
+  const [bulkComment, setBulkComment] = useState('');
   const openBulk = (kind: 'resolve' | 'review') => {
-    setBulkStatus('False'); setBulkRisk('None'); setBulkReason('');
+    setBulkStatus('False'); setBulkRisk('None'); setBulkReason(''); setBulkComment('');
     setBulkDialog(kind);
   };
   const handleBulkResolve = () => {
