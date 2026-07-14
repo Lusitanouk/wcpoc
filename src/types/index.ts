@@ -238,12 +238,15 @@ export interface ScreeningData {
 
 // --- Media Check Types ---
 
+export type MediaPrePost = 'Pre-conviction' | 'Post-conviction' | 'Allegation';
+
 export interface MediaArticle {
   id: string;
   caseId: string;
   headline: string;
   publication: string;
   publishedDate: string;
+  publishedTime?: string;
   wordCount: number;
   snippet: string;
   fullText: string;
@@ -252,11 +255,36 @@ export interface MediaArticle {
   matchedEntity: string;
   riskLevel: MediaRiskLevel;
   riskReason: string;
+  prePost: MediaPrePost;
   attached: boolean;
   visited: boolean;
   smartFilterRelevant: boolean;
   highlightedTerms: string[];
   sourceType: string;
+}
+
+export interface MediaSecondaryId {
+  label: string;
+  value: string;
+  result: MatchFieldResult;
+}
+
+export interface MediaMatch {
+  id: string;
+  caseId: string;
+  matchedName: string;
+  aliases: string[];
+  secondaryIds: MediaSecondaryId[];
+  articleIds: string[];
+  status: MatchStatus;
+  riskLevel: RiskLevel;
+  reason: string;
+  strength: number;
+  priorityScore: number;
+  priorityLevel: PriorityLevel;
+  reviewRequired: boolean;
+  updated: boolean;
+  alertDate: string;
 }
 
 export interface MediaCheckResult {
@@ -266,6 +294,7 @@ export interface MediaCheckResult {
   reviewRequired: number;
   attachedCount: number;
   matchedEntities: { name: string; count: number }[];
+  mediaMatches: MediaMatch[];
   articles: MediaArticle[];
   smartFilterEnabled: boolean;
   dateRange: 'last2years' | 'older' | 'all';

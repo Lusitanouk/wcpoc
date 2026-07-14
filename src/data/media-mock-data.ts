@@ -1,4 +1,16 @@
-import type { MediaArticle, MediaCheckResult, MediaRiskLevel } from '@/types';
+import type {
+  MediaArticle,
+  MediaCheckResult,
+  MediaRiskLevel,
+  MediaPrePost,
+  MediaMatch,
+  MediaSecondaryId,
+  MatchStatus,
+  RiskLevel,
+  PriorityLevel,
+  MatchFieldResult,
+} from '@/types';
+import { computePriorityScore, priorityLevel } from '@/lib/priority';
 
 const publications = [
   'Reuters', 'Associated Press', 'BBC News', 'The Guardian', 'Al Jazeera',
@@ -13,16 +25,18 @@ const topics = [
 ];
 
 const sourceTypes = ['Newspaper', 'Newswire', 'Web Content', 'Blog', 'Magazine', 'Broadcast', 'Trade Journal'];
-
 const countries = ['United States', 'United Kingdom', 'Russia', 'China', 'Germany', 'France', 'UAE', 'Brazil', 'India', 'Singapore'];
-
 const riskLevels: MediaRiskLevel[] = ['High', 'Medium', 'Low', 'No Risk', 'Unknown'];
+const prePostOptions: MediaPrePost[] = ['Pre-conviction', 'Post-conviction', 'Allegation'];
 
 function rand<T>(arr: T[]): T { return arr[Math.floor(Math.random() * arr.length)]; }
 function randInt(min: number, max: number) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function randDate(start: string, end: string) {
   const s = new Date(start).getTime(), e = new Date(end).getTime();
   return new Date(s + Math.random() * (e - s)).toISOString().split('T')[0];
+}
+function randTime() {
+  return `${String(randInt(0, 23)).padStart(2, '0')}:${String(randInt(0, 59)).padStart(2, '0')}`;
 }
 
 const headlineTemplates = [
@@ -41,6 +55,8 @@ const headlineTemplates = [
   'Whistleblower report implicates {name} in {topic}',
   '{name} cooperating with {country} investigators on {topic} probe',
   'Breaking: {name} sanctioned by {country} over {topic} links',
+  '{name} convicted of {topic} — sentenced in {country} court',
+  'Court finds {name} guilty of {topic}',
 ];
 
 const snippetTemplates = [
@@ -64,18 +80,26 @@ function generateHeadline(name: string): { headline: string; snippet: string; to
   };
 }
 
+function derivePrePost(headline: string): MediaPrePost {
+  const h = headline.toLowerCase();
+  if (h.includes('convict') || h.includes('sentenced') || h.includes('guilty') || h.includes('sanctioned by')) return 'Post-conviction';
+  if (h.includes('allege') || h.includes('denies') || h.includes('suspected') || h.includes('report:') || h.includes('whistleblower')) return 'Allegation';
+  return rand(prePostOptions);
+}
+
 export function generateMediaArticles(caseId: string, entityName: string, count: number): MediaArticle[] {
   return Array.from({ length: count }, (_, i) => {
     const { headline, snippet, topic, country } = generateHeadline(entityName);
     const additionalTopics = Array.from({ length: randInt(0, 2) }, () => rand(topics));
     const additionalCountries = Array.from({ length: randInt(0, 1) }, () => rand(countries));
-    
+
     return {
       id: `${caseId}-media-${i + 1}`,
       caseId,
       headline,
       publication: rand(publications),
       publishedDate: randDate('2023-01-01', '2025-02-15'),
+      publishedTime: randTime(),
       wordCount: randInt(200, 3000),
       snippet,
       fullText: `${snippet}\n\nThe matter continues to develop as authorities in ${country} coordinate with international partners. Additional details are expected to emerge in the coming weeks as the investigation progresses.\n\nLegal representatives for ${entityName} have declined to comment on the ongoing proceedings, citing the sensitive nature of the matter. However, sources close to the situation suggest that the investigation may expand to include additional parties.\n\nCompliance experts note that this case highlights the importance of thorough due diligence procedures and ongoing monitoring of business relationships in high-risk jurisdictions.`,
@@ -84,6 +108,7 @@ export function generateMediaArticles(caseId: string, entityName: string, count:
       matchedEntity: entityName,
       riskLevel: rand(riskLevels),
       riskReason: '',
+      prePost: derivePrePost(headline),
       attached: Math.random() > 0.85,
       visited: Math.random() > 0.6,
       smartFilterRelevant: Math.random() > 0.3,
@@ -93,11 +118,47 @@ export function generateMediaArticles(caseId: string, entityName: string, count:
   });
 }
 
+function buildSecondaryIds(entityName: string): MediaSecondaryId[] {
+  const results: MatchFieldResult[] = ['match', 'partial', 'mismatch', 'missing'];
+  const nat = rand(['US', 'UK', 'RU', 'CN', 'DE', 'FR', 'AE', 'BR']);
+  return [
+    { label: 'Date of Birth', value: randDate('1955-01-01', '1985-12-31'), result: rand(results) },
+    { label: 'Nationality', value: nat, result: rand(results) },
+    { label: 'Country', value: rand(countries), result: rand(results) },
+    { label: 'ID Document', value: `PP-${randInt(100000, 999999)}`, result: rand(results) },
+  ];
+}
+
+function generateAliases(name: string): string[] {
+  const parts = name.split(' ');
+  const first = parts[0];
+  const last = parts[parts.length - 1];
+  const aliases = [`${last}, ${first}`];
+  if (parts.length > 1) aliases.push(`${first[0]}. ${last}`);
+  if (Math.random() > 0.4) aliases.push(`${first} ${last[0]}.`);
+  return aliases;
+}
+
+function pickStatus(): MatchStatus {
+  const r = Math.random();
+  if (r < 0.55) return 'Unresolved';
+  if (r < 0.7) return 'Positive';
+  if (r < 0.82) return 'Possible';
+  if (r < 0.95) return 'False';
+  return 'Unknown';
+}
+
+function statusToRisk(status: MatchStatus): RiskLevel {
+  if (status === 'Positive') return rand<RiskLevel>(['High', 'Medium']);
+  if (status === 'Possible') return rand<RiskLevel>(['Medium', 'Low']);
+  if (status === 'False') return 'None';
+  return 'None';
+}
+
 export function generateMediaCheckResult(caseId: string, entityName: string): MediaCheckResult {
   const articleCount = randInt(20, 200);
   const articles = generateMediaArticles(caseId, entityName, Math.min(articleCount, 50));
-  
-  // Generate name variations as matched entities
+
   const nameParts = entityName.split(' ');
   const matchedEntities = [
     { name: entityName, count: randInt(Math.floor(articleCount * 0.5), articleCount) },
@@ -107,6 +168,47 @@ export function generateMediaCheckResult(caseId: string, entityName: string): Me
     matchedEntities.push({ name: `${nameParts[0]} ${nameParts[nameParts.length - 1]} Jr.`, count: randInt(1, 10) });
   }
 
+  // Build a MediaMatch per matched entity (row in the results view)
+  const mediaMatches: MediaMatch[] = matchedEntities.map((entity, idx) => {
+    // Assign a subset of articles to this entity — first entity gets most
+    const share = idx === 0 ? 0.7 : idx === 1 ? 0.2 : 0.1;
+    const targetCount = Math.max(1, Math.round(articles.length * share));
+    const start = Math.floor((idx / matchedEntities.length) * articles.length);
+    const assigned = articles.slice(start, start + targetCount);
+    // Tag the source articles' matchedEntity so drawer filters work
+    assigned.forEach(a => { a.matchedEntity = entity.name; });
+
+    const strength = idx === 0 ? randInt(78, 96) : idx === 1 ? randInt(55, 80) : randInt(35, 65);
+    const status = idx === 0 ? 'Unresolved' : pickStatus();
+    const riskLevel = statusToRisk(status);
+    const priorityScore = computePriorityScore({
+      strength,
+      dataset: 'Other',
+      status,
+      reviewRequired: false,
+      alertDate: new Date().toISOString(),
+    });
+    const priority: PriorityLevel = priorityLevel(priorityScore);
+
+    return {
+      id: `${caseId}-mmatch-${idx + 1}`,
+      caseId,
+      matchedName: entity.name,
+      aliases: generateAliases(entity.name),
+      secondaryIds: buildSecondaryIds(entity.name),
+      articleIds: assigned.map(a => a.id),
+      status,
+      riskLevel,
+      reason: '',
+      strength,
+      priorityScore,
+      priorityLevel: priority,
+      reviewRequired: idx === 0 && Math.random() > 0.5,
+      updated: idx === 0,
+      alertDate: new Date().toISOString(),
+    };
+  });
+
   return {
     caseId,
     entityName,
@@ -114,6 +216,7 @@ export function generateMediaCheckResult(caseId: string, entityName: string): Me
     reviewRequired: randInt(Math.floor(articleCount * 0.3), articleCount),
     attachedCount: articles.filter(a => a.attached).length,
     matchedEntities,
+    mediaMatches,
     articles,
     smartFilterEnabled: true,
     dateRange: 'last2years',
