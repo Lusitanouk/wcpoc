@@ -329,11 +329,36 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
           const bMatches = mediaMatches.filter(m => m.status === statsBucket);
           const total = bMatches.length;
           const totalArticles = bMatches.reduce((s, m) => s + m.articleIds.length, 0);
+          const reviewCount = bMatches.filter(m => m.reviewRequired).length;
+          const riskCounts: Record<string, number> = {};
+          bMatches.forEach(m => { riskCounts[m.riskLevel] = (riskCounts[m.riskLevel] || 0) + 1; });
           return (
             <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 px-4 border-t bg-muted/30 text-xs transition-all duration-200 ${hoveredBucket ? 'max-h-20 opacity-100 py-2' : 'max-h-0 overflow-hidden opacity-0'}`}>
               <span className="font-medium text-foreground">{total} {statsBucket.toLowerCase()}</span>
               <span className="text-muted-foreground">·</span>
               <span className="text-muted-foreground"><span className="text-foreground font-medium">{totalArticles}</span> articles</span>
+              {Object.entries(riskCounts).filter(([level]) => level !== 'None').length > 0 && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-muted-foreground">
+                    {Object.entries(riskCounts).filter(([level]) => level !== 'None').map(([level, count], i) => (
+                      <span key={level}>
+                        {i > 0 ? ', ' : ''}
+                        <span className={`font-medium ${level === 'High' ? 'text-destructive' : level === 'Medium' ? 'text-amber-600' : 'text-foreground'}`}>{count}</span>
+                        {' '}{level} risk
+                      </span>
+                    ))}
+                  </span>
+                </>
+              )}
+              {reviewCount > 0 && (
+                <>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-status-possible font-medium flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> {reviewCount} review required
+                  </span>
+                </>
+              )}
             </div>
           );
         })()}
