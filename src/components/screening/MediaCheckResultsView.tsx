@@ -298,6 +298,9 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
                   <Badge variant="secondary" className="ml-1 h-5 min-w-[20px] px-1.5 text-[10px]">
                     {bucketCounts[bucket]}
                   </Badge>
+                  {bucketHasReviewRequired[bucket] && (
+                    <AlertTriangle className="h-3 w-3 text-status-possible" />
+                  )}
                 </button>
               </TooltipTrigger>
               <TooltipContent side="bottom" className="sm:hidden text-xs">{bucket}</TooltipContent>
