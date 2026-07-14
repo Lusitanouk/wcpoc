@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import {
   Check, HelpCircle, XCircle, CircleOff, CircleDot, AlertTriangle, ChevronDown, ChevronRight,
-  Filter, CheckSquare, Eye, X, Paperclip, ExternalLink, Newspaper, Gavel, Scale, MessageSquareWarning,
+  ChevronLeft, Filter, CheckSquare, Eye, X, Paperclip, ExternalLink, Newspaper, Gavel, Scale, MessageSquareWarning,
 } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
