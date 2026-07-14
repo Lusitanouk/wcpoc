@@ -187,7 +187,6 @@ export function generateMediaCheckResult(caseId: string, entityName: string): Me
       status,
       reviewRequired: false,
       alertDate: new Date().toISOString(),
-      updated: idx === 0,
     });
     const priority: PriorityLevel = priorityLevel(priorityScore);
 
