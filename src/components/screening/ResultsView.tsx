@@ -352,6 +352,20 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
     setFilterPriority('all');
   };
 
+  const handleSort = (column: 'priority' | 'strength') => {
+    if (sortColumn === column) {
+      setSortDirection(prev => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
+  const sortIndicator = (column: 'priority' | 'strength') => {
+    if (sortColumn !== column) return <ChevronDown className="h-3 w-3 text-muted-foreground/40" />;
+    return <ChevronDown className={`h-3 w-3 text-primary transition-transform ${sortDirection === 'asc' ? 'rotate-180' : ''}`} />;
+  };
+
   return (
     <div>
 
