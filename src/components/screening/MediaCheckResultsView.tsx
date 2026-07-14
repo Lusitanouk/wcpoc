@@ -180,24 +180,15 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
   // Drawer
   const [selectedMatch, setSelectedMatch] = useState<MediaMatch | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const openMatch = (m: MediaMatch) => { setSelectedMatch(m); setDrawerOpen(true); };
+  const [openInFullscreen, setOpenInFullscreen] = useState(false);
+  const openMatch = (m: MediaMatch, fullscreen = false) => {
+    setSelectedMatch(m);
+    setOpenInFullscreen(fullscreen);
+    setDrawerOpen(true);
+  };
 
-  // Resolution controls (in drawer)
-  const [resStatus, setResStatus] = useState<MatchStatus>('False');
-  const [resRisk, setResRisk] = useState<RiskLevel>('None');
-  const [resReason, setResReason] = useState('');
-  useEffect(() => {
-    if (selectedMatch) {
-      setResStatus(selectedMatch.status === 'Unresolved' ? 'False' : selectedMatch.status);
-      setResRisk(selectedMatch.riskLevel);
-      setResReason(selectedMatch.reason || '');
-    }
-  }, [selectedMatch]);
-
-  const saveResolution = () => {
-    if (!selectedMatch) return;
-    setMediaMatches(prev => prev.map(m => m.id === selectedMatch.id ? { ...m, status: resStatus, riskLevel: resRisk, reason: resReason } : m));
-    setDrawerOpen(false);
+  const applyMatchUpdate = (patch: Partial<MediaMatch> & { id: string }) => {
+    setMediaMatches(prev => prev.map(m => m.id === patch.id ? { ...m, ...patch } : m));
   };
 
   // Match navigation in drawer
