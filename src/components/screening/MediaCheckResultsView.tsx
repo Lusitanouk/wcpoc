@@ -542,11 +542,43 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
           {selectedMatch && (
             <>
               <SheetHeader className="p-6 pb-4 border-b space-y-2">
-                <div className="flex items-center gap-2">
-                  <SheetTitle className="text-lg">{selectedMatch.matchedName}</SheetTitle>
-                  <Badge variant="outline" className={`text-[10px] ${priorityColor(selectedMatch.priorityLevel)}`}>
-                    {selectedMatch.priorityLevel} priority
-                  </Badge>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <SheetTitle className="text-lg truncate">{selectedMatch.matchedName}</SheetTitle>
+                    <Badge variant="outline" className={`text-[10px] shrink-0 ${priorityColor(selectedMatch.priorityLevel)}`}>
+                      {selectedMatch.priorityLevel} priority
+                    </Badge>
+                    {selectedMatch.reviewRequired && (
+                      <Badge variant="secondary" className="text-[10px] shrink-0 bg-status-possible/15 text-status-possible border-0 gap-1">
+                        <AlertTriangle className="h-3 w-3" /> Review required
+                      </Badge>
+                    )}
+                  </div>
+                  {selectedMatchIndex >= 0 && filteredMatches.length > 1 && (
+                    <div className="flex items-center gap-1 shrink-0">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => navigateMatch('prev')}
+                        disabled={selectedMatchIndex === 0}
+                      >
+                        <ChevronLeft className="h-3.5 w-3.5" />
+                      </Button>
+                      <span className="text-[11px] text-muted-foreground tabular-nums px-1">
+                        {selectedMatchIndex + 1} / {filteredMatches.length}
+                      </span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => navigateMatch('next')}
+                        disabled={selectedMatchIndex === filteredMatches.length - 1}
+                      >
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  )}
                 </div>
                 <SheetDescription className="text-xs">
                   {selectedArticles.length} adverse media {selectedArticles.length === 1 ? 'article' : 'articles'} for case {caseName}
@@ -625,40 +657,62 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
                 </div>
               </div>
 
-              {/* Resolution */}
+              {/* Resolution — aligned to watchlist button pickers */}
               <div className="p-6 space-y-3">
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Disposition</p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Status</Label>
-                    <Select value={resStatus} onValueChange={v => setResStatus(v as MatchStatus)}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {(['Positive', 'Possible', 'False', 'Unknown', 'Unresolved'] as MatchStatus[]).map(s => (
-                          <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                <h4 className="text-sm font-semibold">{t('match.resolution', 'Resolution')}</h4>
+                <div className="flex gap-4 items-start">
+                  <div className="space-y-1.5 shrink-0">
+                    <Label className="text-xs">{t('match.status', 'Status')}</Label>
+                    <div className="flex flex-col gap-1">
+                      {(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]).map(s => (
+                        <button
+                          key={s}
+                          onClick={() => setResStatus(s)}
+                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                            resStatus === s
+                              ? 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="text-xs">Risk Level</Label>
-                    <Select value={resRisk} onValueChange={v => setResRisk(v as RiskLevel)}>
-                      <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
-                          <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                  <div className="space-y-1.5 shrink-0">
+                    <Label className="text-xs">{t('match.riskLevel', 'Risk Level')}</Label>
+                    <div className="flex flex-col gap-1">
+                      {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
+                        <button
+                          key={r}
+                          onClick={() => setResRisk(r)}
+                          className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                            resRisk === r
+                              ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
+                                : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
+                                : 'bg-primary text-primary-foreground border-primary'
+                              : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                          }`}
+                        >
+                          {r}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1.5">
+                    <Label className="text-xs">{t('match.reason', 'Reason')}</Label>
+                    <Textarea
+                      value={resReason}
+                      onChange={e => setResReason(e.target.value)}
+                      rows={5}
+                      placeholder="Resolution rationale..."
+                      className="text-xs resize-none"
+                    />
                   </div>
                 </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs">Reason</Label>
-                  <Textarea value={resReason} onChange={e => setResReason(e.target.value)} placeholder="Disposition rationale..." className="min-h-[60px] text-xs resize-none" />
-                </div>
-                <div className="flex justify-end gap-2 pt-2">
+                <div className="flex justify-end gap-2 pt-2 border-t">
                   <Button size="sm" variant="outline" onClick={() => setDrawerOpen(false)}>Cancel</Button>
-                  <Button size="sm" onClick={saveResolution} disabled={!resReason.trim()}>Save Disposition</Button>
+                  <Button size="sm" onClick={saveResolution} disabled={!resReason.trim()}>Save Resolution</Button>
                 </div>
               </div>
             </>
@@ -666,62 +720,190 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
         </SheetContent>
       </Sheet>
 
-      {/* Bulk Resolve Sheet */}
+      {/* Bulk Resolve Sheet — mirrors watchlist */}
       <Sheet open={bulkDialog === 'resolve'} onOpenChange={v => !v && setBulkDialog(null)}>
-        <SheetContent className="sm:max-w-md w-full overflow-y-auto">
+        <SheetContent side="right" className="sm:max-w-lg w-full flex flex-col overflow-y-auto">
           <SheetHeader>
             <SheetTitle>Resolve {selectedCount === 1 ? 'Match' : 'Matches'} — {selectedCount}</SheetTitle>
-            <SheetDescription>Apply the same disposition to all selected matches.</SheetDescription>
+            <SheetDescription>Apply the same resolution to all selected media matches.</SheetDescription>
           </SheetHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-1.5">
-              <Label className="text-xs">Status</Label>
-              <Select value={bulkStatus} onValueChange={v => setBulkStatus(v as MatchStatus)}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
+
+          <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(selectionSummary.byPriority).map(([p, count]) => (
+                <Badge key={p} variant="outline" className="text-[10px]">{p} priority: {count}</Badge>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <Newspaper className="h-3 w-3 text-muted-foreground" />
+              <span className="text-muted-foreground">{selectionSummary.totalArticles} articles total</span>
+            </div>
+            {selectionSummary.reviewCount > 0 && (
+              <div className="flex items-center gap-1 text-status-possible">
+                <AlertTriangle className="h-3 w-3" />
+                <span>{selectionSummary.reviewCount} require review</span>
+              </div>
+            )}
+          </div>
+
+          <div className="max-h-40 overflow-y-auto border rounded-md">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b bg-muted/50 sticky top-0">
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Strength</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Articles</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Current</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedMatches.map(m => (
+                  <tr key={m.id} className="border-b">
+                    <td className="px-3 py-1.5 font-medium">{m.matchedName}</td>
+                    <td className="px-3 py-1.5 font-mono">{m.strength}%</td>
+                    <td className="px-3 py-1.5">{m.articleIds.length}</td>
+                    <td className="px-3 py-1.5 text-muted-foreground">{m.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">{t('match.resolution', 'Resolution')}</h4>
+            <div className="flex gap-4 items-start">
+              <div className="space-y-1.5 shrink-0">
+                <Label className="text-xs">{t('match.status', 'Status')}</Label>
+                <div className="flex flex-col gap-1">
                   {(['Positive', 'Possible', 'False', 'Unknown'] as MatchStatus[]).map(s => (
-                    <SelectItem key={s} value={s} className="text-xs">{s}</SelectItem>
+                    <button
+                      key={s}
+                      onClick={() => setBulkStatus(s)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                        bulkStatus === s
+                          ? 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {s}
+                    </button>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Risk Level</Label>
-              <Select value={bulkRisk} onValueChange={v => setBulkRisk(v as RiskLevel)}>
-                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                <SelectContent>
+                </div>
+              </div>
+              <div className="space-y-1.5 shrink-0">
+                <Label className="text-xs">{t('match.riskLevel', 'Risk Level')}</Label>
+                <div className="flex flex-col gap-1">
                   {(['High', 'Medium', 'Low', 'None'] as RiskLevel[]).map(r => (
-                    <SelectItem key={r} value={r} className="text-xs">{r}</SelectItem>
+                    <button
+                      key={r}
+                      onClick={() => setBulkRisk(r)}
+                      className={`px-2.5 py-1 rounded text-xs font-medium transition-colors border text-left ${
+                        bulkRisk === r
+                          ? r === 'High' ? 'bg-destructive text-destructive-foreground border-destructive'
+                            : r === 'Medium' ? 'bg-amber-500 text-white border-amber-500'
+                            : 'bg-primary text-primary-foreground border-primary'
+                          : 'bg-muted/50 text-muted-foreground border-transparent hover:bg-muted hover:text-foreground'
+                      }`}
+                    >
+                      {r}
+                    </button>
                   ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-1.5">
-              <Label className="text-xs">Reason (required)</Label>
-              <Textarea value={bulkReason} onChange={e => setBulkReason(e.target.value)} className="min-h-[60px] text-xs resize-none" />
+                </div>
+              </div>
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <Label className="text-xs">{t('match.reason', 'Reason')}</Label>
+                <Textarea
+                  value={bulkReason}
+                  onChange={e => setBulkReason(e.target.value)}
+                  rows={3}
+                  placeholder="Resolution rationale..."
+                  className="text-xs resize-none"
+                />
+              </div>
             </div>
           </div>
-          <SheetFooter>
+
+          <div className="border-t" />
+
+          <div className="space-y-3">
+            <h4 className="text-sm font-semibold">Review Comment</h4>
+            <Textarea
+              value={bulkComment}
+              onChange={e => setBulkComment(e.target.value)}
+              rows={2}
+              placeholder="Optional comment..."
+              className="text-xs resize-none"
+            />
+          </div>
+
+          <SheetFooter className="mt-auto pt-4 border-t flex-row justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
-            <Button size="sm" disabled={!bulkReason.trim()} onClick={handleBulkResolve}>Resolve {selectedCount}</Button>
+            <Button size="sm" disabled={!bulkReason.trim()} onClick={handleBulkResolve}>
+              Resolve {selectedCount} {selectedCount === 1 ? 'Match' : 'Matches'}
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
 
-      {/* Bulk Review Sheet */}
+      {/* Bulk Review Sheet — mirrors watchlist */}
       <Sheet open={bulkDialog === 'review'} onOpenChange={v => !v && setBulkDialog(null)}>
-        <SheetContent className="sm:max-w-md w-full overflow-y-auto">
+        <SheetContent side="right" className="sm:max-w-md w-full flex flex-col overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Mark as Reviewed — {selectedCount}</SheetTitle>
-            <SheetDescription>Confirm review of the selected matches.</SheetDescription>
+            <SheetTitle>Review {selectedCount === 1 ? 'Match' : 'Matches'} — {selectedCount}</SheetTitle>
+            <SheetDescription>Confirm that the selected matches have been reviewed. Their status will remain unchanged.</SheetDescription>
           </SheetHeader>
-          <div className="space-y-3 py-4">
-            <Label className="text-xs">Comment (optional)</Label>
-            <Textarea value={bulkReason} onChange={e => setBulkReason(e.target.value)} className="min-h-[60px] text-xs resize-none" />
+
+          <div className="p-3 rounded-md bg-muted/50 text-xs space-y-1.5">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(selectionSummary.byPriority).map(([p, count]) => (
+                <Badge key={p} variant="outline" className="text-[10px]">{p} priority: {count}</Badge>
+              ))}
+            </div>
+            {selectionSummary.reviewCount > 0 && (
+              <div className="flex items-center gap-1 text-status-possible">
+                <AlertTriangle className="h-3 w-3" />
+                <span>{selectionSummary.reviewCount} flagged for review</span>
+              </div>
+            )}
           </div>
-          <SheetFooter>
+
+          <div className="max-h-32 overflow-y-auto border rounded-md">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b bg-muted/50 sticky top-0">
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Name</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Strength</th>
+                  <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {selectedMatches.map(m => (
+                  <tr key={m.id} className="border-b">
+                    <td className="px-3 py-1.5 font-medium">{m.matchedName}</td>
+                    <td className="px-3 py-1.5 font-mono">{m.strength}%</td>
+                    <td className="px-3 py-1.5 text-muted-foreground">{m.status}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs">Review Comment (optional)</Label>
+            <Textarea
+              value={bulkComment}
+              onChange={e => setBulkComment(e.target.value)}
+              rows={2}
+              placeholder="Review notes..."
+              className="text-xs resize-none"
+            />
+          </div>
+
+          <SheetFooter className="mt-auto pt-4 border-t flex-row justify-end gap-2">
             <Button variant="outline" size="sm" onClick={() => setBulkDialog(null)}>Cancel</Button>
-            <Button size="sm" onClick={handleBulkReview}>Confirm Reviewed</Button>
+            <Button size="sm" onClick={handleBulkReview}>
+              Review {selectedCount} {selectedCount === 1 ? 'Match' : 'Matches'}
+            </Button>
           </SheetFooter>
         </SheetContent>
       </Sheet>
