@@ -442,7 +442,9 @@ export function MediaCheckResultsView({ result, caseName, caseId }: MediaCheckRe
                   <React.Fragment key={m.id}>
                     <tr
                       className={`border-b cursor-pointer transition-colors hover:bg-muted/30 ${m.reviewRequired ? 'bg-status-possible/5' : ''} ${isSelected ? 'bg-primary/5' : ''}`}
-                      onClick={() => openMatch(m)}
+                      tabIndex={0}
+                      onClick={() => openMatch(m, true)}
+                      onKeyDown={e => e.key === 'Enter' && openMatch(m, true)}
                     >
                       <td className="px-3 py-3" onClick={e => e.stopPropagation()}>
                         <Checkbox checked={isSelected} onCheckedChange={() => toggleOne(m.id)} className="h-4 w-4" />
