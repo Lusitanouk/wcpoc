@@ -24,6 +24,7 @@ import type { Match, MatchStatus, RiskLevel, CaseScreeningData, ChangeLogEntry, 
 import { useTranslation } from 'react-i18next';
 import { exportMatchPdf } from '@/lib/export';
 import { useAppContext } from '@/context/AppContext';
+import { getCaseById } from '@/data/mock-data';
 import { computeMlRecommendation, buildRecommendationNarrative, type MlRecommendation, type MlFactor } from '@/lib/ml-recommendation';
 import { Sparkles } from 'lucide-react';
 import { WhatChanged } from './WhatChanged';
@@ -558,18 +559,31 @@ function ProvenanceStrip({ match }: { match: Match }) {
   );
 }
 
-function NameRow({ match, rec, variant }: { match: Match; rec: MlRecommendation; variant: 'default' | 'condensed' }) {
+function NameRow({ match, rec, variant, screenedName }: { match: Match; rec: MlRecommendation; variant: 'default' | 'condensed'; screenedName?: string }) {
   const nmd = match.nameMatchDetail;
   const nameFactor = rec.factors.find(f => f.fieldKey === 'name');
+  const nameField = match.whyMatched.find(w => w.field.toLowerCase().includes('name'));
   const isRTL = nmd?.script === 'Arabic';
   const scriptNote = nmd?.script && nmd.script !== 'Latin' ? nmd.script : null;
   const extras: string[] = [];
   if (nmd?.transliterated) extras.push('transliterated');
   if (nmd?.transposition) extras.push('name transposition');
   const hasExtras = extras.length > 0 || (match.aliases.length > 0 && variant === 'default');
+
+  // Derive result from actual evidence: prefer whyMatched name result, else band by similarity.
+  const sim = nmd?.similarity ?? match.strength;
+  const derivedResult: MatchFieldResult =
+    nameField?.result && nameField.result !== 'missing'
+      ? nameField.result
+      : sim >= 85 ? 'match'
+      : sim >= 65 ? 'partial'
+      : 'mismatch';
+
+  const screened = nameField?.inputValue || screenedName || '—';
+
   return (
     <tr className="border-b align-top bg-primary/[0.03]">
-      <td className="px-2 py-1.5 text-center">{fieldResultIcon('match')}</td>
+      <td className="px-2 py-1.5 text-center">{fieldResultIcon(derivedResult)}</td>
       <td className="px-3 py-1.5 whitespace-nowrap">
         <div className="flex items-center gap-1 flex-wrap">
           <span className="font-medium">Name</span>
@@ -599,11 +613,11 @@ function NameRow({ match, rec, variant }: { match: Match; rec: MlRecommendation;
           )}
         </div>
       </td>
-      <td className="px-3 py-1.5 text-muted-foreground">—</td>
+      <td className="px-3 py-1.5 text-muted-foreground">{screened}</td>
       <td className="px-3 py-1.5 font-medium" lang={SCRIPT_LANG[nmd?.script || 'Latin']} dir={isRTL ? 'rtl' : undefined}>
         {nmd?.matchedString || match.matchedName}
       </td>
-      <td className="px-2 py-1.5 tabular-nums">{nmd ? `${nmd.similarity}%` : fieldResultLabel('match')}</td>
+      <td className="px-2 py-1.5 tabular-nums">{nmd ? `${nmd.similarity}%` : fieldResultLabel(derivedResult)}</td>
       <td className="px-3 py-1.5 border-l"><InfluenceCell factor={nameFactor} /></td>
     </tr>
   );
@@ -624,6 +638,7 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
   // Supports / Against derivation
   const supports: string[] = [];
   const against: string[] = [];
+  const neutrals: string[] = [];
   rec.factors.forEach(f => {
     const impact = Math.round(f.score * f.weight);
     // Try to build human-friendly line from bound field
@@ -656,12 +671,14 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
     }
     if (f.contribution === 'positive' && impact >= 4) supports.push(line);
     else if (f.contribution === 'negative' && impact >= 3) against.push(line);
-    else if (f.contribution === 'neutral' && f.fieldKey !== 'name' && !bound) against.push(line);
+    else if (f.contribution === 'neutral') neutrals.push(line);
   });
 
   const leversLine = rec.resolutionLevers.length > 0
     ? rec.resolutionLevers.map(l => l.text).join(' ')
     : null;
+
+  const screenedName = getCaseById(match.caseId)?.name;
 
   return (
     <div className="space-y-1.5">
@@ -712,7 +729,7 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
             </tr>
           </thead>
           <tbody>
-            <NameRow match={match} rec={rec} variant={variant} />
+            <NameRow match={match} rec={rec} variant={variant} screenedName={screenedName} />
 
             {discriminators.map((wf, i) => {
               const rowBg = wf.result === 'mismatch' ? 'bg-status-unresolved/5' : wf.result === 'partial' ? 'bg-status-possible/5' : '';
@@ -810,6 +827,19 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
           )}
         </div>
       </div>
+
+      {/* Neutral / uninformative factors */}
+      {neutrals.length > 0 && (
+        <div className="px-2.5 py-1 text-[10.5px] leading-snug text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="text-[9px] font-semibold uppercase tracking-wider">Neutral:</span>
+          {neutrals.slice(0, 4).map((n, i) => (
+            <span key={i} className="inline-flex items-center gap-1">
+              <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+              <span>{n}</span>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Levers one-liner */}
       {leversLine && (
