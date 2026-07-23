@@ -1,37 +1,33 @@
-import type { Match, MatchStatus, RiskLevel } from '@/types';
+import type { Match, MatchStatus, RiskLevel, WhyMatchedField, MatchFieldResult } from '@/types';
 
 export type FactorContribution = 'positive' | 'neutral' | 'negative';
 
 export type MlFactorKey = 'name' | 'rarity' | 'dob' | 'id' | 'nationality';
 
 export interface MlFactor {
-  /** Stable key used to bind a factor to a whyMatched field row */
   fieldKey: MlFactorKey;
-  /** Short label, e.g. "Name match" */
   label: string;
-  /** 0-100 raw score for this factor */
   score: number;
-  /** 0-1 weight used in the combinational score */
   weight: number;
-  /** Direction of contribution toward a true-match recommendation */
   contribution: FactorContribution;
-  /** One-line explanation a data analyst can read */
   detail: string;
 }
 
+export interface ResolutionLever {
+  fieldKey: MlFactorKey;
+  text: string;
+}
+
 export interface MlRecommendation {
-  /** Combinational score 0-100 (weighted) */
   compositeScore: number;
-  /** Model confidence 0-100 (driven by data completeness + score certainty) */
   confidence: number;
-  /** Recommended disposition */
   recommendedStatus: MatchStatus;
   recommendedRisk: RiskLevel;
   recommendedOutcome: 'Full Match' | 'Partial Match' | 'No Match' | 'Unknown';
-  /** Ordered factor list, highest absolute contribution first */
   factors: MlFactor[];
-  /** Short tag — e.g. "True Match · High confidence" */
   headline: string;
+  /** Up to 2 hypothetical identifier resolutions that would most shift the outcome */
+  resolutionLevers: ResolutionLever[];
 }
 
 // Simple deterministic hash → 0-1
@@ -53,7 +49,7 @@ function resultToScore(r?: string) {
     case 'match':    return 100;
     case 'partial':  return 55;
     case 'mismatch': return 5;
-    default:         return 35; // missing
+    default:         return 35;
   }
 }
 
@@ -63,28 +59,21 @@ function resultToContribution(r?: string): FactorContribution {
   return 'neutral';
 }
 
-export function computeMlRecommendation(match: Match): MlRecommendation {
-  // ── 1. Name match (from match strength and primary name field) ──
+type Core = Omit<MlRecommendation, 'resolutionLevers'>;
+
+function computeCore(match: Match): Core {
   const nameField = match.whyMatched.find(f => f.field.toLowerCase().includes('name')) || match.whyMatched[0];
   const nameScore = Math.round(0.7 * match.strength + 0.3 * resultToScore(nameField?.result));
 
-  // ── 2. Name rarity (deterministic from matched name) ──
-  // Short / common names → lower rarity; unique tokens → higher rarity
   const tokens = match.matchedName.split(/\s+/).filter(Boolean);
   const uniqueness = Math.min(1, tokens.length / 4);
   const rarityBase = 35 + seededRand(match.matchedName) * 55;
   const rarityScore = Math.round(rarityBase * (0.6 + 0.4 * uniqueness));
 
-  // ── 3. Secondary identifiers (DOB / ID / nationality / country) ──
   const dob = findField(match, ['dob', 'birth']);
-  const idDoc = findField(match, ['id', 'passport', 'document']);
+  const idDoc = findField(match, ['passport', 'document', 'id number', 'id type']);
   const nat = findField(match, ['nationality', 'country', 'jurisdiction']);
-  const secondaryFields = [dob, idDoc, nat].filter(Boolean);
-  const secondaryScore = secondaryFields.length
-    ? Math.round(secondaryFields.reduce((s, f) => s + resultToScore(f!.result), 0) / secondaryFields.length)
-    : 30;
 
-  // Per-id micro-factors (so analyst sees breakdown)
   const idFactors: MlFactor[] = [];
   if (dob) idFactors.push({
     fieldKey: 'dob',
@@ -111,7 +100,6 @@ export function computeMlRecommendation(match: Match): MlRecommendation {
     detail: `${nat.inputValue || '—'} vs ${nat.matchedValue || '—'} → ${nat.result}`,
   });
 
-  // Distribute remaining weight if no id factors present
   const usedIdWeight = idFactors.reduce((s, f) => s + f.weight, 0);
   const slackWeight = 0.28 - usedIdWeight;
 
@@ -139,33 +127,20 @@ export function computeMlRecommendation(match: Match): MlRecommendation {
     ...idFactors,
   ];
 
-  // ── Combinational score (weighted average) ──
   const totalW = factors.reduce((s, f) => s + f.weight, 0);
   const composite = Math.round(factors.reduce((s, f) => s + f.score * f.weight, 0) / totalW);
 
-  // ── Confidence ──
-  // Data completeness — more secondary IDs = more signal
-  const completeness = (idFactors.length + 2) / 5; // name+rarity always present
-
-  // Conflict / dispersion — weighted mass of factors pushing each direction
+  const completeness = (idFactors.length + 2) / 5;
   let posW = 0, negW = 0;
   factors.forEach(f => {
     if (f.contribution === 'positive') posW += f.weight;
     else if (f.contribution === 'negative') negW += f.weight;
   });
-  // When both directions have real mass, we have disagreement.
-  // min(posW,negW) is at most ~totalW/2. Scale to a 0-55 penalty so confidence
-  // can genuinely fall into the 30s when e.g. name is a strong match but DOB/ID mismatch.
   const conflictPenalty = Math.round((Math.min(posW, negW) / (totalW / 2)) * 55);
-
-  // Small boost when the composite is decisively at either extreme AND factors agree
   const decisive = (composite >= 80 || composite <= 25) && conflictPenalty < 10 ? 8 : 0;
-
   const confidenceRaw = 45 + completeness * 35 + decisive - conflictPenalty;
   const confidence = Math.round(Math.max(30, Math.min(98, confidenceRaw)));
 
-
-  // ── Recommendation derivation ──
   let recommendedStatus: MatchStatus;
   let recommendedOutcome: MlRecommendation['recommendedOutcome'];
   let recommendedRisk: RiskLevel;
@@ -203,6 +178,85 @@ export function computeMlRecommendation(match: Match): MlRecommendation {
   };
 }
 
+// ── Resolution levers ───────────────────────────────────────
+// Detect identifiers that are currently missing (either absent from whyMatched or with result === 'missing').
+// For each, simulate a hypothetical resolution (match / mismatch) and pick the ones that move
+// the outcome or confidence the most.
+
+const LEVER_MAP: Record<Exclude<MlFactorKey, 'name' | 'rarity'>, { needles: string[]; label: string; fallbackField: string }> = {
+  dob:         { needles: ['dob', 'birth'],                              label: 'date of birth', fallbackField: 'DOB' },
+  id:          { needles: ['passport', 'document', 'id number', 'id type'], label: 'ID document',  fallbackField: 'ID Number' },
+  nationality: { needles: ['nationality', 'country', 'jurisdiction'],    label: 'nationality',   fallbackField: 'Nationality' },
+};
+
+function hypothesise(match: Match, key: 'dob' | 'id' | 'nationality', result: MatchFieldResult): Match {
+  const cfg = LEVER_MAP[key];
+  const wm: WhyMatchedField[] = match.whyMatched.map(f => ({ ...f }));
+  const idx = wm.findIndex(f => cfg.needles.some(n => f.field.toLowerCase().includes(n)));
+  if (idx >= 0) {
+    wm[idx] = { ...wm[idx], result };
+  } else {
+    wm.push({ field: cfg.fallbackField, result, detail: 'hypothetical', inputValue: '?', matchedValue: '?' });
+  }
+  return { ...match, whyMatched: wm };
+}
+
+function outcomeLabel(s: MatchStatus): string {
+  return s === 'False' ? 'False Positive' : s;
+}
+
+function buildLevers(match: Match, current: Core): ResolutionLever[] {
+  const candidates: ('dob' | 'id' | 'nationality')[] = [];
+  (Object.keys(LEVER_MAP) as (keyof typeof LEVER_MAP)[]).forEach(key => {
+    const cfg = LEVER_MAP[key];
+    const f = match.whyMatched.find(w => cfg.needles.some(n => w.field.toLowerCase().includes(n)));
+    if (!f || f.result === 'missing') candidates.push(key);
+  });
+
+  type Ranked = ResolutionLever & { rank: number };
+  const ranked: Ranked[] = [];
+
+  for (const key of candidates) {
+    // Consider match vs mismatch — pick the more informative direction per key
+    for (const hypResult of ['match', 'mismatch'] as MatchFieldResult[]) {
+      const alt = computeCore(hypothesise(match, key, hypResult));
+      const statusChanged = alt.recommendedStatus !== current.recommendedStatus;
+      const confDelta = alt.confidence - current.confidence;
+      if (!statusChanged && Math.abs(confDelta) < 8) continue;
+
+      const cfg = LEVER_MAP[key];
+      const article = /^[aeiou]/i.test(cfg.label) ? 'An' : 'A';
+      const supplying = hypResult === 'match'
+        ? `${article} confirmed ${cfg.label} that matches`
+        : `${article} confirmed ${cfg.label} that differs`;
+
+      const text = statusChanged
+        ? `${supplying} would move this to ${outcomeLabel(alt.recommendedStatus)} at ${alt.confidence}% confidence.`
+        : `${supplying} would ${confDelta > 0 ? 'raise' : 'lower'} confidence from ${current.confidence}% to ${alt.confidence}%.`;
+
+      const rank = statusChanged ? 100 + Math.abs(confDelta) : Math.abs(confDelta);
+      ranked.push({ fieldKey: key, text, rank });
+    }
+  }
+
+  // Prefer one lever per fieldKey, take strongest overall
+  ranked.sort((a, b) => b.rank - a.rank);
+  const seen = new Set<MlFactorKey>();
+  const out: ResolutionLever[] = [];
+  for (const r of ranked) {
+    if (seen.has(r.fieldKey)) continue;
+    seen.add(r.fieldKey);
+    out.push({ fieldKey: r.fieldKey, text: r.text });
+    if (out.length >= 2) break;
+  }
+  return out;
+}
+
+export function computeMlRecommendation(match: Match): MlRecommendation {
+  const core = computeCore(match);
+  return { ...core, resolutionLevers: buildLevers(match, core) };
+}
+
 /** Build a human-readable narrative for the resolution Reason field. */
 export function buildRecommendationNarrative(match: Match, rec: MlRecommendation): string {
   const top = rec.factors.slice(0, 3);
@@ -226,5 +280,10 @@ export function buildRecommendationNarrative(match: Match, rec: MlRecommendation
       ? `Insufficient secondary-identifier evidence to confirm or dismiss. Request additional KYC data points (DOB, nationality, ID) and rerun.`
       : `Name similarity is offset by mismatching identifiers and/or low name rarity, consistent with a coincidental collision. Recommended as a False Positive.`;
   lines.push(verdict);
+  if (rec.resolutionLevers.length > 0) {
+    lines.push('');
+    lines.push('What would resolve this:');
+    rec.resolutionLevers.forEach(l => lines.push(`  • ${l.text}`));
+  }
   return lines.join('\n');
 }
