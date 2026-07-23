@@ -1014,12 +1014,8 @@ function AlertRow({ m, onNavigate, showChanges, showMakerDecision, showGroupCol,
               <p className="text-[10px] text-muted-foreground italic mt-1">{m.matchStrengthExplanation}</p>
               {m.changeLog.length > 0 && (
                 <div className="mt-2 pt-2 border-t">
-                  <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
-                  {m.changeLog.slice(0, 3).map((cl, i) => (
-                    <p key={i} className="text-[10px] text-muted-foreground">
-                      {cl.field}: {cl.from} → {cl.to}
-                    </p>
-                  ))}
+                  <p className="text-[10px] font-semibold text-status-possible mb-1.5">What changed</p>
+                  <WhatChanged changeLog={m.changeLog} reviewRequiredReasons={m.reviewRequiredReasons} variant="inline" maxItems={3} />
                 </div>
               )}
             </div>
