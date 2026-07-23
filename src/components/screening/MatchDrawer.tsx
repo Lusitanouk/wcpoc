@@ -559,18 +559,31 @@ function ProvenanceStrip({ match }: { match: Match }) {
   );
 }
 
-function NameRow({ match, rec, variant }: { match: Match; rec: MlRecommendation; variant: 'default' | 'condensed' }) {
+function NameRow({ match, rec, variant, screenedName }: { match: Match; rec: MlRecommendation; variant: 'default' | 'condensed'; screenedName?: string }) {
   const nmd = match.nameMatchDetail;
   const nameFactor = rec.factors.find(f => f.fieldKey === 'name');
+  const nameField = match.whyMatched.find(w => w.field.toLowerCase().includes('name'));
   const isRTL = nmd?.script === 'Arabic';
   const scriptNote = nmd?.script && nmd.script !== 'Latin' ? nmd.script : null;
   const extras: string[] = [];
   if (nmd?.transliterated) extras.push('transliterated');
   if (nmd?.transposition) extras.push('name transposition');
   const hasExtras = extras.length > 0 || (match.aliases.length > 0 && variant === 'default');
+
+  // Derive result from actual evidence: prefer whyMatched name result, else band by similarity.
+  const sim = nmd?.similarity ?? match.strength;
+  const derivedResult: MatchFieldResult =
+    nameField?.result && nameField.result !== 'missing'
+      ? nameField.result
+      : sim >= 85 ? 'match'
+      : sim >= 65 ? 'partial'
+      : 'mismatch';
+
+  const screened = nameField?.inputValue || screenedName || '—';
+
   return (
     <tr className="border-b align-top bg-primary/[0.03]">
-      <td className="px-2 py-1.5 text-center">{fieldResultIcon('match')}</td>
+      <td className="px-2 py-1.5 text-center">{fieldResultIcon(derivedResult)}</td>
       <td className="px-3 py-1.5 whitespace-nowrap">
         <div className="flex items-center gap-1 flex-wrap">
           <span className="font-medium">Name</span>
@@ -600,11 +613,11 @@ function NameRow({ match, rec, variant }: { match: Match; rec: MlRecommendation;
           )}
         </div>
       </td>
-      <td className="px-3 py-1.5 text-muted-foreground">—</td>
+      <td className="px-3 py-1.5 text-muted-foreground">{screened}</td>
       <td className="px-3 py-1.5 font-medium" lang={SCRIPT_LANG[nmd?.script || 'Latin']} dir={isRTL ? 'rtl' : undefined}>
         {nmd?.matchedString || match.matchedName}
       </td>
-      <td className="px-2 py-1.5 tabular-nums">{nmd ? `${nmd.similarity}%` : fieldResultLabel('match')}</td>
+      <td className="px-2 py-1.5 tabular-nums">{nmd ? `${nmd.similarity}%` : fieldResultLabel(derivedResult)}</td>
       <td className="px-3 py-1.5 border-l"><InfluenceCell factor={nameFactor} /></td>
     </tr>
   );
