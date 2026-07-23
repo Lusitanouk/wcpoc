@@ -409,24 +409,59 @@ function ResolutionPanel({
 
 // ─── AI Recommend Button ────────────────────────────────────────────────────
 
-function AiRecommendButton({ match, onApply }: { match: Match; onApply: (rec: MlRecommendation, narrative: string) => void }) {
+function AiRecommendButton({ match, onApply, applied }: { match: Match; onApply: (rec: MlRecommendation, suggestion: AiSuggestion) => void; applied: boolean }) {
   const [loading, setLoading] = useState(false);
-  const [applied, setApplied] = useState(false);
+  const rec = computeMlRecommendation(match);
 
   const handleClick = () => {
+    if (rec.abstained) return;
     setLoading(true);
-    // Simulate a brief inference delay so the action feels deliberate
     setTimeout(() => {
-      const rec = computeMlRecommendation(match);
       const narrative = buildRecommendationNarrative(match, rec);
-      onApply(rec, narrative);
+      const suggestion: AiSuggestion = {
+        suggestedStatus: rec.recommendedStatus,
+        suggestedRisk: rec.recommendedRisk,
+        suggestedOutcome: rec.recommendedOutcome,
+        compositeScore: rec.compositeScore,
+        confidence: rec.confidence,
+        factorSnapshot: rec.factors.map(f => ({
+          fieldKey: f.fieldKey,
+          label: f.label,
+          score: f.score,
+          weight: f.weight,
+          contribution: f.contribution,
+        })),
+        narrative,
+        modelVersion: rec.modelVersion,
+        createdAt: new Date().toISOString().split('T')[0],
+        disposition: 'pending',
+        abstained: false,
+      };
+      onApply(rec, suggestion);
       setLoading(false);
-      setApplied(true);
-      setTimeout(() => setApplied(false), 2000);
-    }, 350);
+    }, 300);
   };
 
-  const rec = computeMlRecommendation(match);
+  if (rec.abstained) {
+    return (
+      <div className="rounded-md border border-muted bg-muted/30 p-2.5 flex items-center gap-2.5">
+        <div className="h-7 w-7 rounded-md bg-muted flex items-center justify-center shrink-0">
+          <Info className="h-3.5 w-3.5 text-muted-foreground" />
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[11px] font-semibold leading-tight">Insufficient evidence for a recommendation</div>
+          <div className="text-[10px] text-muted-foreground leading-snug truncate">
+            {rec.missingIdentifiers.length > 0
+              ? `Missing: ${rec.missingIdentifiers.join(', ')}`
+              : `Confidence ${rec.confidence}% below floor.`}
+          </div>
+        </div>
+        <Button type="button" size="sm" variant="secondary" disabled className="h-7 text-[11px] shrink-0" aria-label="AI abstained">
+          Abstained
+        </Button>
+      </div>
+    );
+  }
 
   return (
     <div className="rounded-md border border-primary/30 bg-gradient-to-br from-primary/[0.06] to-primary/[0.02] p-2.5 flex items-center gap-2.5">
@@ -449,6 +484,34 @@ function AiRecommendButton({ match, onApply }: { match: Match; onApply: (rec: Ml
       >
         {applied ? <><Check className="h-3 w-3" /> Applied</> : loading ? 'Analyzing…' : <><Sparkles className="h-3 w-3" /> Apply</>}
       </Button>
+    </div>
+  );
+}
+
+// ─── AI Narrative reference (read-only, collapsed by default) ──────────────
+
+function AiNarrativeReference({ suggestion }: { suggestion: AiSuggestion }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="rounded-md border border-primary/20 bg-primary/[0.03]">
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        className="w-full flex items-center gap-1.5 px-2.5 py-1.5 text-left"
+      >
+        <Sparkles className="h-3 w-3 text-primary shrink-0" />
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-primary">AI narrative (reference)</span>
+        <Badge className="ml-1 text-[9px] px-1 h-4 bg-primary/10 text-primary border-primary/20">
+          {suggestion.suggestedStatus === 'False' ? 'False Positive' : suggestion.suggestedStatus} · {suggestion.confidence}%
+        </Badge>
+        {open ? <ChevronUp className="h-3 w-3 ml-auto text-muted-foreground" /> : <ChevronDown className="h-3 w-3 ml-auto text-muted-foreground" />}
+      </button>
+      {open && (
+        <div className="px-2.5 pb-2 pt-1 border-t border-primary/10">
+          <pre className="text-[10.5px] leading-relaxed whitespace-pre-wrap font-sans text-muted-foreground">{suggestion.narrative}</pre>
+          <p className="text-[9px] italic text-muted-foreground/70 mt-1.5">Reference only — this narrative is not written into your Reason field. Your own wording will be recorded as the human decision.</p>
+        </div>
+      )}
     </div>
   );
 }
