@@ -559,8 +559,9 @@ export function WhyMatchedSection({ match }: { match: Match }) {
   };
   const usedFactors = new Set<MlFactor>();
   const fieldRows: Row[] = match.whyMatched.map((wf, i) => {
-    const factor = factorForField(rec, wf.field);
-    if (factor && !usedFactors.has(factor)) usedFactors.add(factor); else if (factor && usedFactors.has(factor)) {/* already bound */}
+    const candidate = factorForField(rec, wf.field);
+    const factor = candidate && !usedFactors.has(candidate) ? candidate : undefined;
+    if (factor) usedFactors.add(factor);
     if (factor) usedFactors.add(factor);
     return {
       key: `f-${i}`,
