@@ -15,6 +15,24 @@ export type MediaRiskLevel = 'High' | 'Medium' | 'Low' | 'No Risk' | 'Unknown';
 export type CheckerDecision = 'Accepted' | 'Amended' | 'Rejected';
 export type MakerType = 'Human' | 'Agentic';
 
+/** Evidence trace attached to an agentic maker decision */
+export interface AgenticEvidenceTrace {
+  /** Snapshot of the ML factors the bot relied on */
+  factorSnapshot: {
+    fieldKey: string;
+    label: string;
+    score: number;
+    weight: number;
+    contribution: 'positive' | 'neutral' | 'negative';
+  }[];
+  /** Specific evidence fields the bot examined */
+  examinedFields: string[];
+  /** Fields / signals that were unavailable or out of scope */
+  notConsidered: string[];
+  /** Model version used */
+  modelVersion: string;
+}
+
 export interface MakerDecision {
   /** Who made the resolution */
   author: string;
@@ -30,6 +48,45 @@ export interface MakerDecision {
   comment?: string;
   /** When the maker submitted the resolution */
   createdAt: string;
+  /** Evidence trace for agentic makers */
+  evidenceTrace?: AgenticEvidenceTrace;
+}
+
+/**
+ * AI-generated suggestion attached to a match — recorded separately from the
+ * analyst's own resolution so that provenance is auditable.
+ */
+export type AiSuggestionDisposition = 'pending' | 'accepted' | 'modified' | 'overridden';
+
+export interface AiSuggestion {
+  /** Suggested resolution status */
+  suggestedStatus: MatchStatus;
+  /** Suggested risk level */
+  suggestedRisk: RiskLevel;
+  /** Suggested match outcome */
+  suggestedOutcome: 'Full Match' | 'Partial Match' | 'No Match' | 'Unknown';
+  /** Composite 0-100 score at time of suggestion */
+  compositeScore: number;
+  /** Confidence 0-100 at time of suggestion */
+  confidence: number;
+  /** Snapshot of the factors that drove the suggestion */
+  factorSnapshot: {
+    fieldKey: string;
+    label: string;
+    score: number;
+    weight: number;
+    contribution: 'positive' | 'neutral' | 'negative';
+  }[];
+  /** Full generated narrative (audit reference) */
+  narrative: string;
+  /** Model identifier */
+  modelVersion: string;
+  /** When the suggestion was recorded */
+  createdAt: string;
+  /** How the analyst dispositioned it on save */
+  disposition: AiSuggestionDisposition;
+  /** True when the model abstained (insufficient evidence) */
+  abstained?: boolean;
 }
 
 export interface CheckerReview {
@@ -218,6 +275,8 @@ export interface ListingProvenance {
   note?: string;
 }
 
+export type ResolutionHistoryEntryType = 'human' | 'ai_suggestion';
+
 export interface ResolutionHistoryEntry {
   id: string;
   status: MatchStatus;
@@ -226,6 +285,14 @@ export interface ResolutionHistoryEntry {
   comment?: string;
   author: string;
   createdAt: string;
+  /** Distinguishes AI suggestion entries from human decision entries */
+  entryType?: ResolutionHistoryEntryType;
+  /** For AI entries — confidence at time of suggestion */
+  confidence?: number;
+  /** For AI entries — composite score at time of suggestion */
+  compositeScore?: number;
+  /** For AI entries — the analyst disposition of this suggestion */
+  disposition?: AiSuggestionDisposition;
 }
 
 export interface Match {
@@ -259,6 +326,8 @@ export interface Match {
   makerDecision?: MakerDecision;
   checkerReview?: CheckerReview;
   pendingCheckerReview: boolean;
+  /** Stage 3 — AI suggestion recorded on this match, if any */
+  aiSuggestion?: AiSuggestion;
 }
 
 export interface ScreeningConfig {
