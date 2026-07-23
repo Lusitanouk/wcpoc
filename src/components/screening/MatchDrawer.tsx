@@ -639,7 +639,9 @@ export function WhyMatchedSection({ match }: { match: Match }) {
                       <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                         <div className={`h-full ${s.bar} transition-all`} style={{ width: `${f.score}%` }} />
                       </div>
-                      <span className={`text-[10px] font-semibold tabular-nums w-6 text-right ${s.text}`}>+{impact}</span>
+                      <span className={`text-[10px] font-semibold tabular-nums w-8 text-right ${s.text}`}>
+                        {f.contribution === 'negative' ? `−${impact}` : f.contribution === 'positive' ? `+${impact}` : `${impact}`}
+                      </span>
                     </div>
                   ) : (
                     <span className="text-[10px] text-muted-foreground">{row.result ? fieldResultLabel(row.result) : '—'}</span>
