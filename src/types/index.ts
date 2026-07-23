@@ -275,6 +275,8 @@ export interface ListingProvenance {
   note?: string;
 }
 
+export type ResolutionHistoryEntryType = 'human' | 'ai_suggestion';
+
 export interface ResolutionHistoryEntry {
   id: string;
   status: MatchStatus;
@@ -283,6 +285,14 @@ export interface ResolutionHistoryEntry {
   comment?: string;
   author: string;
   createdAt: string;
+  /** Distinguishes AI suggestion entries from human decision entries */
+  entryType?: ResolutionHistoryEntryType;
+  /** For AI entries — confidence at time of suggestion */
+  confidence?: number;
+  /** For AI entries — composite score at time of suggestion */
+  compositeScore?: number;
+  /** For AI entries — the analyst disposition of this suggestion */
+  disposition?: AiSuggestionDisposition;
 }
 
 export interface Match {
@@ -316,6 +326,8 @@ export interface Match {
   makerDecision?: MakerDecision;
   checkerReview?: CheckerReview;
   pendingCheckerReview: boolean;
+  /** Stage 3 — AI suggestion recorded on this match, if any */
+  aiSuggestion?: AiSuggestion;
 }
 
 export interface ScreeningConfig {
