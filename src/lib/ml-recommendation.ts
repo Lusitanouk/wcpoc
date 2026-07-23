@@ -87,6 +87,7 @@ export function computeMlRecommendation(match: Match): MlRecommendation {
   // Per-id micro-factors (so analyst sees breakdown)
   const idFactors: MlFactor[] = [];
   if (dob) idFactors.push({
+    fieldKey: 'dob',
     label: 'Date of birth',
     score: resultToScore(dob.result),
     weight: 0.10,
@@ -94,6 +95,7 @@ export function computeMlRecommendation(match: Match): MlRecommendation {
     detail: `${dob.inputValue || '—'} vs ${dob.matchedValue || '—'} → ${dob.result}`,
   });
   if (idDoc) idFactors.push({
+    fieldKey: 'id',
     label: 'ID document',
     score: resultToScore(idDoc.result),
     weight: 0.10,
@@ -101,6 +103,7 @@ export function computeMlRecommendation(match: Match): MlRecommendation {
     detail: `${idDoc.inputValue || '—'} vs ${idDoc.matchedValue || '—'} → ${idDoc.result}`,
   });
   if (nat) idFactors.push({
+    fieldKey: 'nationality',
     label: 'Nationality / country',
     score: resultToScore(nat.result),
     weight: 0.08,
@@ -114,6 +117,7 @@ export function computeMlRecommendation(match: Match): MlRecommendation {
 
   const factors: MlFactor[] = [
     {
+      fieldKey: 'name',
       label: 'Name match',
       score: nameScore,
       weight: 0.45 + slackWeight * 0.6,
@@ -121,6 +125,7 @@ export function computeMlRecommendation(match: Match): MlRecommendation {
       detail: `Fuzzy + token similarity vs "${match.matchedName}" (strength ${match.strength}%)`,
     },
     {
+      fieldKey: 'rarity',
       label: 'Name rarity',
       score: rarityScore,
       weight: 0.27 + slackWeight * 0.4,
@@ -138,9 +143,27 @@ export function computeMlRecommendation(match: Match): MlRecommendation {
   const totalW = factors.reduce((s, f) => s + f.weight, 0);
   const composite = Math.round(factors.reduce((s, f) => s + f.score * f.weight, 0) / totalW);
 
-  // Confidence driven by data completeness
+  // ── Confidence ──
+  // Data completeness — more secondary IDs = more signal
   const completeness = (idFactors.length + 2) / 5; // name+rarity always present
-  const confidence = Math.round(Math.min(98, 55 + completeness * 35 + (composite >= 80 || composite <= 25 ? 8 : 0)));
+
+  // Conflict / dispersion — weighted mass of factors pushing each direction
+  let posW = 0, negW = 0;
+  factors.forEach(f => {
+    if (f.contribution === 'positive') posW += f.weight;
+    else if (f.contribution === 'negative') negW += f.weight;
+  });
+  // When both directions have real mass, we have disagreement.
+  // min(posW,negW) is at most ~totalW/2. Scale to a 0-55 penalty so confidence
+  // can genuinely fall into the 30s when e.g. name is a strong match but DOB/ID mismatch.
+  const conflictPenalty = Math.round((Math.min(posW, negW) / (totalW / 2)) * 55);
+
+  // Small boost when the composite is decisively at either extreme AND factors agree
+  const decisive = (composite >= 80 || composite <= 25) && conflictPenalty < 10 ? 8 : 0;
+
+  const confidenceRaw = 45 + completeness * 35 + decisive - conflictPenalty;
+  const confidence = Math.round(Math.max(30, Math.min(98, confidenceRaw)));
+
 
   // ── Recommendation derivation ──
   let recommendedStatus: MatchStatus;
