@@ -715,7 +715,7 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                           <div className="ml-6">
                             {/* Why it matched — unified panel (same as record view) */}
                             <p className="text-xs font-semibold mb-2">Why it matched</p>
-                            <WhyMatchedSection match={m} />
+                            <WhyMatchedSection match={m} variant="condensed" />
                             <p className="text-[10px] text-muted-foreground italic mt-1">{m.matchStrengthExplanation}</p>
                             {m.reviewRequired && m.changeLog.length > 0 && (
                               <div className="mt-2 pt-2 border-t">
