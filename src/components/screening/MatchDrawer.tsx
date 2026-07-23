@@ -524,16 +524,20 @@ function contributionStyle(c: MlFactor['contribution']) {
   return { bar: 'bg-muted-foreground/60', text: 'text-muted-foreground', sign: '·' };
 }
 
-// Heuristic mapping between an ML factor and a whyMatched field
-function factorMatchesField(factorLabel: string, fieldName: string) {
-  const f = factorLabel.toLowerCase();
+// Bind an ML factor to a whyMatched field by explicit factor.fieldKey.
+// Uses precise field-name checks (word boundaries) to avoid mis-binding
+// e.g. "Resident" or "Provider" onto the "id" key.
+function factorForField(rec: ReturnType<typeof computeMlRecommendation>, fieldName: string): MlFactor | undefined {
   const n = fieldName.toLowerCase();
-  if (f.includes('name match')) return n.includes('name');
-  if (f.includes('date of birth')) return n.includes('dob') || n.includes('birth');
-  if (f.includes('id document')) return n.includes('id') || n.includes('passport') || n.includes('document');
-  if (f.includes('nationality')) return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
-  return false;
+  let key: MlFactor['fieldKey'] | null = null;
+  if (/\bname\b/.test(n)) key = 'name';
+  else if (n.includes('dob') || n.includes('birth')) key = 'dob';
+  else if (n.includes('passport') || n.includes('document') || /\bid\b/.test(n) || n.includes('id number') || n.includes('id type')) key = 'id';
+  else if (n.includes('nationality') || n.includes('country') || n.includes('jurisdiction')) key = 'nationality';
+  if (!key) return undefined;
+  return rec.factors.find(f => f.fieldKey === key);
 }
+
 
 // ─── Why It Matched — unified ML + field-comparison table ────────────────────
 
