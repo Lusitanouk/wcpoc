@@ -28,7 +28,18 @@ export interface MlRecommendation {
   headline: string;
   /** Up to 2 hypothetical identifier resolutions that would most shift the outcome */
   resolutionLevers: ResolutionLever[];
+  /** True when the model declined to recommend (confidence below floor) */
+  abstained: boolean;
+  /** Human-readable reason for abstention when abstained === true */
+  abstentionReason?: string;
+  /** Fields that would most help resolve the abstention */
+  missingIdentifiers: string[];
+  /** Semantic version of the scoring model */
+  modelVersion: string;
 }
+
+export const AI_MODEL_VERSION = 'wc-ml-v0.3';
+export const CONFIDENCE_FLOOR = 45;
 
 // Simple deterministic hash → 0-1
 function seededRand(s: string) {
