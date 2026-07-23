@@ -20,12 +20,12 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from '@/component
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { priorityColor } from '@/lib/priority';
-import type { Match, MatchStatus, RiskLevel, CaseScreeningData, ChangeLogEntry, CheckerDecision, MatchFieldResult } from '@/types';
+import type { Match, MatchStatus, RiskLevel, CaseScreeningData, ChangeLogEntry, CheckerDecision, MatchFieldResult, AiSuggestion, AiSuggestionDisposition, ResolutionHistoryEntry } from '@/types';
 import { useTranslation } from 'react-i18next';
 import { exportMatchPdf } from '@/lib/export';
 import { useAppContext } from '@/context/AppContext';
 import { getCaseById } from '@/data/mock-data';
-import { computeMlRecommendation, buildRecommendationNarrative, type MlRecommendation, type MlFactor } from '@/lib/ml-recommendation';
+import { computeMlRecommendation, buildRecommendationNarrative, AI_MODEL_VERSION, type MlRecommendation, type MlFactor } from '@/lib/ml-recommendation';
 import { Sparkles } from 'lucide-react';
 import { WhatChanged } from './WhatChanged';
 
