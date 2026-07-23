@@ -828,6 +828,19 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
         </div>
       </div>
 
+      {/* Neutral / uninformative factors */}
+      {neutrals.length > 0 && (
+        <div className="px-2.5 py-1 text-[10.5px] leading-snug text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5">
+          <span className="text-[9px] font-semibold uppercase tracking-wider">Neutral:</span>
+          {neutrals.slice(0, 4).map((n, i) => (
+            <span key={i} className="inline-flex items-center gap-1">
+              <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+              <span>{n}</span>
+            </span>
+          ))}
+        </div>
+      )}
+
       {/* Levers one-liner */}
       {leversLine && (
         <div className="flex items-start gap-1.5 px-1 text-[11px] leading-snug">
