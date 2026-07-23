@@ -1470,13 +1470,16 @@ export function MatchDrawer({
               <>
                 <AiRecommendButton
                   match={match}
-                  onApply={(rec, narrative) => {
+                  applied={!!pendingAiSuggestion}
+                  onApply={(rec, suggestion) => {
                     setStatus(rec.recommendedStatus);
                     setRisk(rec.recommendedRisk);
                     setMatchOutcome(rec.recommendedOutcome);
-                    setReason(narrative);
+                    setPendingAiSuggestion(suggestion);
+                    // Do NOT overwrite Reason — leave that to the analyst.
                   }}
                 />
+                {pendingAiSuggestion && <AiNarrativeReference suggestion={pendingAiSuggestion} />}
                 <ResolutionPanel
                   status={status} setStatus={setStatus}
                   risk={risk} setRisk={setRisk}
