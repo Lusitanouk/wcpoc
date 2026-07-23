@@ -160,14 +160,11 @@ function computeCore(match: Match): Core {
     recommendedStatus = 'Positive';
     recommendedOutcome = 'Full Match';
     recommendedRisk = match.dataset === 'Sanctions' ? 'High' : match.riskLevel === 'None' ? 'Medium' : match.riskLevel;
-  } else if (composite >= 55) {
+  } else if (composite >= 30) {
+    // 30–78: Possible (request additional data); no more open-ended Unknown band.
     recommendedStatus = 'Possible';
     recommendedOutcome = 'Partial Match';
-    recommendedRisk = 'Medium';
-  } else if (composite >= 30) {
-    recommendedStatus = 'Unknown';
-    recommendedOutcome = 'Unknown';
-    recommendedRisk = 'Low';
+    recommendedRisk = composite >= 55 ? 'Medium' : 'Low';
   } else {
     recommendedStatus = 'False';
     recommendedOutcome = 'No Match';
@@ -176,7 +173,20 @@ function computeCore(match: Match): Core {
 
   factors.sort((a, b) => Math.abs(b.score - 50) * b.weight - Math.abs(a.score - 50) * a.weight);
 
-  const headline = `${recommendedStatus === 'False' ? 'False Positive' : recommendedStatus} · ${confidence >= 80 ? 'High' : confidence >= 65 ? 'Moderate' : 'Low'} confidence`;
+  // Determine missing identifiers (unavailable secondary evidence)
+  const missingIdentifiers: string[] = [];
+  if (!dob || dob.result === 'missing') missingIdentifiers.push('Date of birth');
+  if (!idDoc || idDoc.result === 'missing') missingIdentifiers.push('ID document');
+  if (!nat || nat.result === 'missing') missingIdentifiers.push('Nationality');
+
+  const abstained = confidence < CONFIDENCE_FLOOR;
+  const abstentionReason = abstained
+    ? 'Insufficient evidence for a recommendation'
+    : undefined;
+
+  const headline = abstained
+    ? 'Insufficient evidence for a recommendation'
+    : `${recommendedStatus === 'False' ? 'False Positive' : recommendedStatus} · ${confidence >= 80 ? 'High' : confidence >= 65 ? 'Moderate' : 'Low'} confidence`;
 
   return {
     compositeScore: composite,
@@ -186,6 +196,10 @@ function computeCore(match: Match): Core {
     recommendedOutcome,
     factors,
     headline,
+    abstained,
+    abstentionReason,
+    missingIdentifiers,
+    modelVersion: AI_MODEL_VERSION,
   };
 }
 
