@@ -729,7 +729,7 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
             </tr>
           </thead>
           <tbody>
-            <NameRow match={match} rec={rec} variant={variant} />
+            <NameRow match={match} rec={rec} variant={variant} screenedName={screenedName} />
 
             {discriminators.map((wf, i) => {
               const rowBg = wf.result === 'mismatch' ? 'bg-status-unresolved/5' : wf.result === 'partial' ? 'bg-status-possible/5' : '';
