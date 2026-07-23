@@ -68,6 +68,8 @@ interface MatchDef {
   matchStrengthExplanation: string;
   identifiers: Match['identifiers'];
   recordData: Match['recordData'];
+  nameMatchDetail?: NameMatchDetail;
+  listingProvenance?: ListingProvenance;
 }
 
 // Helper to create why-matched fields for individuals
@@ -862,6 +864,8 @@ export const cases: Case[] = caseDefs.map((def, i) => {
       identifiers: mDef.identifiers,
       recordData: mDef.recordData,
       resolutionHistory,
+      nameMatchDetail: mDef.nameMatchDetail,
+      listingProvenance: mDef.listingProvenance,
       pendingCheckerReview,
       makerDecision,
       checkerReview: undefined,
