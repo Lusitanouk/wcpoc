@@ -182,6 +182,42 @@ export interface WhyMatchedField {
   matchedValue?: string;
 }
 
+export type NameScript = 'Latin' | 'Cyrillic' | 'Arabic' | 'CJK' | 'Other';
+
+export interface NameMatchDetail {
+  /** The exact matched string that produced the hit (may equal an alias) */
+  matchedString: string;
+  /** True when the hit was on an AKA/alias rather than the primary record name */
+  isAlias: boolean;
+  /** Which alias, when isAlias === true */
+  aliasValue?: string;
+  /** Similarity 0-100 for that specific matched string */
+  similarity: number;
+  /** Script of the matched string */
+  script: NameScript;
+  /** True when matched via transliteration to Latin */
+  transliterated: boolean;
+  /** True when name transposition (surname/given swap) was applied */
+  transposition: boolean;
+}
+
+export type DesignationType = 'direct' | 'ownership' | 'control';
+
+export interface ListingProvenance {
+  /** Sanctioning body — OFAC, EU Council, UN, HM Treasury, etc. */
+  sanctioningBody: string;
+  /** Programme / regime label, e.g. "SDN — SDGT (EO 13224)", "EU 269/2014" */
+  programme: string;
+  listingDate?: string;
+  delistingDate?: string;
+  /** Direct designation vs derivative via ownership (OFAC 50% Rule) or control */
+  designationType: DesignationType;
+  /** For ownership/control, chain from listed root → this record */
+  ownershipChain?: string[];
+  /** Optional short compliance note (e.g. "51% owned by [X]") */
+  note?: string;
+}
+
 export interface ResolutionHistoryEntry {
   id: string;
   status: MatchStatus;
@@ -216,6 +252,9 @@ export interface Match {
   identifiers: MatchIdentifiers;
   recordData: MatchRecord;
   resolutionHistory: ResolutionHistoryEntry[];
+  // Evidence enrichments (Stage 2)
+  nameMatchDetail?: NameMatchDetail;
+  listingProvenance?: ListingProvenance;
   // Maker-Checker workflow
   makerDecision?: MakerDecision;
   checkerReview?: CheckerReview;
