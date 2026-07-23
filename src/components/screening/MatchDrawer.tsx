@@ -638,6 +638,7 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
   // Supports / Against derivation
   const supports: string[] = [];
   const against: string[] = [];
+  const neutrals: string[] = [];
   rec.factors.forEach(f => {
     const impact = Math.round(f.score * f.weight);
     // Try to build human-friendly line from bound field
@@ -670,12 +671,14 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
     }
     if (f.contribution === 'positive' && impact >= 4) supports.push(line);
     else if (f.contribution === 'negative' && impact >= 3) against.push(line);
-    else if (f.contribution === 'neutral' && f.fieldKey !== 'name' && !bound) against.push(line);
+    else if (f.contribution === 'neutral') neutrals.push(line);
   });
 
   const leversLine = rec.resolutionLevers.length > 0
     ? rec.resolutionLevers.map(l => l.text).join(' ')
     : null;
+
+  const screenedName = getCaseById(match.caseId)?.name;
 
   return (
     <div className="space-y-1.5">
