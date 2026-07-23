@@ -18,6 +18,7 @@ import { cases, allMatches, getCaseById, updateMatch, recalcCaseCounts } from '@
 import { priorityColor } from '@/lib/priority';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import { MatchDrawer } from '@/components/screening/MatchDrawer';
+import { WhatChanged } from '@/components/screening/WhatChanged';
 import { useAppContext } from '@/context/AppContext';
 import type { Match, PriorityLevel, MatchStatus, RiskLevel, CheckerDecision } from '@/types';
 
