@@ -256,14 +256,27 @@ export default function AlertsPage() {
   };
 
   const handleBulkResolve = () => {
+    const caseIds = new Set<string>();
+    selectedMatches.forEach(m => {
+      updateMatch(m.id, { status: bulkStatus, riskLevel: bulkRisk, reason: bulkReason });
+      caseIds.add(m.caseId);
+    });
+    caseIds.forEach(cid => recalcCaseCounts(cid));
     setBulkDialog(null);
     setSelectedIds(new Set());
   };
 
   const handleBulkReview = () => {
+    const caseIds = new Set<string>();
+    selectedMatches.forEach(m => {
+      updateMatch(m.id, { reviewRequired: false });
+      caseIds.add(m.caseId);
+    });
+    caseIds.forEach(cid => recalcCaseCounts(cid));
     setBulkDialog(null);
     setSelectedIds(new Set());
   };
+
 
   const handleBulkCheckerDecision = () => {
     const now = new Date().toISOString().split('T')[0];
