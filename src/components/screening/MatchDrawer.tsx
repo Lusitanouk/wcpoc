@@ -4,7 +4,7 @@ import {
   Clock, User, History, ChevronsUpDown, Maximize2, Minimize2,
   ExternalLink, FileText, Database, Download, ArrowDown, X, AlertTriangle,
   ArrowRight, ShieldCheck, ShieldAlert, Bot, ThumbsUp, ThumbsDown, Pencil,
-  ChevronDown, ChevronUp, Zap, Eye,
+  ChevronDown, ChevronUp, Zap, Eye, Info,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
