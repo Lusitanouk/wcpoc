@@ -4,7 +4,7 @@ import {
   Clock, User, History, ChevronsUpDown, Maximize2, Minimize2,
   ExternalLink, FileText, Database, Download, ArrowDown, X, AlertTriangle,
   ArrowRight, ShieldCheck, ShieldAlert, Bot, ThumbsUp, ThumbsDown, Pencil,
-  ChevronDown, ChevronUp, Zap, Eye,
+  ChevronDown, ChevronUp, Zap, Eye, Info,
 } from 'lucide-react';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Badge } from '@/components/ui/badge';
@@ -475,19 +475,7 @@ function factorForField(rec: ReturnType<typeof computeMlRecommendation>, fieldNa
 }
 
 
-// ─── Why It Matched — Evidence (primary) + Model Assessment (subordinate) ────
-
-function fieldHasFactor(match: Match, key: MlFactor['fieldKey']): boolean {
-  if (key === 'name') return true;
-  if (key === 'rarity') return false;
-  return match.whyMatched.some(f => {
-    const n = f.field.toLowerCase();
-    if (key === 'dob') return n.includes('dob') || n.includes('birth');
-    if (key === 'id') return n.includes('passport') || n.includes('document') || /\bid\b/.test(n);
-    if (key === 'nationality') return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
-    return false;
-  });
-}
+// ─── Why It Matched — consolidated evidence + assessment table ────────────────
 
 const SCRIPT_LANG: Record<string, string | undefined> = {
   Cyrillic: 'ru',
@@ -495,84 +483,129 @@ const SCRIPT_LANG: Record<string, string | undefined> = {
   CJK: 'ja',
 };
 
-function NameEvidenceBlock({ match }: { match: Match }) {
-  const nmd = match.nameMatchDetail;
-  if (!nmd) {
-    // Fallback: minimal display of the primary matched name
-    return (
-      <div className="px-3 py-2 border-b bg-muted/20">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mr-2">Matched on primary name</span>
-        <span className="text-sm font-semibold">{match.matchedName}</span>
-      </div>
-    );
+function InfluenceCell({ factor }: { factor?: MlFactor }) {
+  if (!factor) {
+    return <span className="text-[10px] text-muted-foreground/70">—</span>;
   }
-  const notes: string[] = [nmd.script];
-  if (nmd.transliterated) notes.push('transliterated');
-  if (nmd.transposition) notes.push('name transposition applied');
-  const isRTL = nmd.script === 'Arabic';
+  const s = contributionStyle(factor.contribution);
+  const impact = Math.round(factor.score * factor.weight);
+  const signed = factor.contribution === 'negative' ? `−${impact}` : factor.contribution === 'positive' ? `+${impact}` : `${impact}`;
   return (
-    <div className="px-3 py-2.5 border-b bg-primary/[0.03]">
-      <div className="flex items-center gap-2 flex-wrap mb-1">
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Matched on</span>
-        {nmd.isAlias
-          ? <Badge variant="secondary" className="text-[9px] h-4 px-1.5">alias</Badge>
-          : <Badge variant="secondary" className="text-[9px] h-4 px-1.5">primary name</Badge>}
-        <span className="text-[10px] text-muted-foreground">{notes.join(' · ')}</span>
-        <span className="ml-auto text-[11px] font-semibold tabular-nums">{nmd.similarity}%</span>
-      </div>
-      <div
-        className="text-sm font-semibold"
-        lang={SCRIPT_LANG[nmd.script]}
-        dir={isRTL ? 'rtl' : undefined}
-      >
-        {nmd.matchedString}
-      </div>
-      <div className="text-[10px] text-muted-foreground mt-0.5">
-        Primary record name: <span className="font-medium text-foreground">{match.matchedName}</span>
-      </div>
+    <TooltipProvider delayDuration={150}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="flex items-center gap-1.5 cursor-help">
+            <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden min-w-[40px]">
+              <div className={`h-full ${s.bar} transition-all`} style={{ width: `${Math.max(6, factor.score)}%` }} />
+            </div>
+            <span className={`text-[10px] font-semibold tabular-nums w-9 text-right ${s.text}`}>{signed}</span>
+          </div>
+        </TooltipTrigger>
+        <TooltipContent side="left" className="max-w-[240px] text-[11px]">
+          <div className="font-semibold mb-0.5">{factor.label}</div>
+          <div className="text-muted-foreground mb-1">Weight {(factor.weight * 100).toFixed(0)}% · score {factor.score}/100</div>
+          <div>{factor.detail}</div>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  );
+}
+
+function ProvenanceStrip({ match }: { match: Match }) {
+  const prov = match.listingProvenance;
+  if (!prov) return null;
+  const isDerived = prov.designationType !== 'direct';
+  const typeClass = isDerived
+    ? 'bg-amber-500/10 text-amber-600 border-amber-500/40'
+    : 'bg-muted text-foreground border-border';
+  const typeLabel = prov.designationType === 'direct'
+    ? 'Direct'
+    : prov.designationType === 'ownership'
+    ? 'Ownership-derived'
+    : 'Control-derived';
+  const bits: string[] = [prov.sanctioningBody, prov.programme];
+  if (prov.listingDate) bits.push(`listed ${prov.listingDate}`);
+  if (prov.delistingDate) bits.push(`delisted ${prov.delistingDate}`);
+  const hasChain = prov.ownershipChain && prov.ownershipChain.length > 0;
+  return (
+    <div className="px-3 py-1.5 border-t bg-muted/20 flex items-center gap-1.5 flex-wrap text-[11px]">
+      <Database className="h-3 w-3 text-muted-foreground shrink-0" />
+      <span className="text-muted-foreground uppercase tracking-wide text-[9px] font-semibold mr-1">Provenance</span>
+      <span className="font-medium">{bits.join(' · ')}</span>
+      <span className="text-muted-foreground">·</span>
+      <Badge variant="secondary" className={`text-[9px] h-4 px-1.5 border ${typeClass}`}>{typeLabel}</Badge>
+      {hasChain && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <button className="text-[10px] underline-offset-2 hover:underline text-primary">
+              chain ({prov.ownershipChain!.length}) ▸
+            </button>
+          </PopoverTrigger>
+          <PopoverContent side="top" align="start" className="w-auto p-2 z-[200]">
+            <div className="flex items-center gap-1 flex-wrap text-[10px]">
+              {prov.ownershipChain!.map((seg, si) => (
+                <span key={si} className="flex items-center gap-1">
+                  <span className="px-1.5 py-0.5 rounded bg-muted border font-medium">{seg}</span>
+                  {si < prov.ownershipChain!.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground" />}
+                </span>
+              ))}
+            </div>
+            {prov.note && <p className="text-[10px] text-muted-foreground mt-1.5 italic">{prov.note}</p>}
+          </PopoverContent>
+        </Popover>
+      )}
     </div>
   );
 }
 
-function ListingProvenanceBlock({ match }: { match: Match }) {
-  const prov = match.listingProvenance;
-  if (!prov) return null;
-  const typeClass =
-    prov.designationType === 'direct'
-      ? 'bg-destructive/10 text-destructive border-destructive/30'
-      : 'bg-amber-500/10 text-amber-600 border-amber-500/30';
-  const typeLabel =
-    prov.designationType === 'direct'
-      ? 'Direct designation'
-      : prov.designationType === 'ownership'
-      ? 'Ownership-derived (OFAC 50% Rule)'
-      : 'Control-derived';
+function NameRow({ match, rec, variant }: { match: Match; rec: MlRecommendation; variant: 'default' | 'condensed' }) {
+  const nmd = match.nameMatchDetail;
+  const nameFactor = rec.factors.find(f => f.fieldKey === 'name');
+  const isRTL = nmd?.script === 'Arabic';
+  const scriptNote = nmd?.script && nmd.script !== 'Latin' ? nmd.script : null;
+  const extras: string[] = [];
+  if (nmd?.transliterated) extras.push('transliterated');
+  if (nmd?.transposition) extras.push('name transposition');
+  const hasExtras = extras.length > 0 || (match.aliases.length > 0 && variant === 'default');
   return (
-    <div className="px-3 py-2.5 border-t bg-muted/20">
-      <div className="flex items-center gap-2 mb-1.5 flex-wrap">
-        <Database className="h-3.5 w-3.5 text-foreground shrink-0" />
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-foreground">Listing provenance</span>
-        <Badge variant="secondary" className={`text-[9px] h-4 px-1.5 border ${typeClass}`}>{typeLabel}</Badge>
-      </div>
-      <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-[11px]">
-        <div><span className="text-muted-foreground">Sanctioning body: </span><span className="font-medium">{prov.sanctioningBody}</span></div>
-        <div><span className="text-muted-foreground">Programme: </span><span className="font-medium">{prov.programme}</span></div>
-        {prov.listingDate && <div><span className="text-muted-foreground">Listed: </span><span className="font-medium">{prov.listingDate}</span></div>}
-        {prov.delistingDate && <div><span className="text-muted-foreground">Delisted: </span><span className="font-medium">{prov.delistingDate}</span></div>}
-      </div>
-      {prov.ownershipChain && prov.ownershipChain.length > 0 && (
-        <div className="mt-1.5 flex items-center gap-1 flex-wrap text-[10px]">
-          <span className="text-muted-foreground uppercase tracking-wide font-semibold mr-1">Chain:</span>
-          {prov.ownershipChain.map((seg, si) => (
-            <span key={si} className="flex items-center gap-1">
-              <span className="px-1.5 py-0.5 rounded bg-background border font-medium">{seg}</span>
-              {si < prov.ownershipChain!.length - 1 && <ArrowRight className="h-3 w-3 text-muted-foreground" />}
-            </span>
-          ))}
+    <tr className="border-b align-top bg-primary/[0.03]">
+      <td className="px-2 py-1.5 text-center">{fieldResultIcon('match')}</td>
+      <td className="px-3 py-1.5 whitespace-nowrap">
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className="font-medium">Name</span>
+          {nmd && (
+            <Badge variant="secondary" className="text-[9px] h-4 px-1">{nmd.isAlias ? 'alias' : 'primary'}</Badge>
+          )}
+          {scriptNote && <span className="text-[9px] text-muted-foreground uppercase tracking-wide">{scriptNote}</span>}
+          {hasExtras && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <button className="inline-flex" aria-label="Name match details">
+                  <Info className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                </button>
+              </PopoverTrigger>
+              <PopoverContent side="top" align="start" className="w-72 p-3 z-[200] text-[11px]">
+                {extras.length > 0 && <div className="mb-1.5"><span className="text-muted-foreground">Notes: </span>{extras.join(', ')}</div>}
+                {match.aliases.length > 0 && (
+                  <>
+                    <div className="text-muted-foreground uppercase tracking-wide text-[9px] font-semibold mb-1">All aliases</div>
+                    <div className="flex flex-wrap gap-1">
+                      {match.aliases.map((a, ai) => <Badge key={ai} variant="secondary" className="text-[10px]">{a}</Badge>)}
+                    </div>
+                  </>
+                )}
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
-      )}
-      {prov.note && <p className="text-[10px] text-muted-foreground mt-1 italic">{prov.note}</p>}
-    </div>
+      </td>
+      <td className="px-3 py-1.5 text-muted-foreground">—</td>
+      <td className="px-3 py-1.5 font-medium" lang={SCRIPT_LANG[nmd?.script || 'Latin']} dir={isRTL ? 'rtl' : undefined}>
+        {nmd?.matchedString || match.matchedName}
+      </td>
+      <td className="px-2 py-1.5 tabular-nums">{nmd ? `${nmd.similarity}%` : fieldResultLabel('match')}</td>
+      <td className="px-3 py-1.5 border-l"><InfluenceCell factor={nameFactor} /></td>
+    </tr>
   );
 }
 
@@ -583,157 +616,212 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
     : rec.compositeScore >= 55 ? 'text-status-possible'
     : 'text-status-positive';
 
-  // ── LAYER 1: MATCH EVIDENCE (primary) ────────────────────
-  const evidenceLayer = (
-    <div className="rounded-md border bg-card overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-2 border-b bg-muted/40">
+  const discriminators = match.whyMatched.filter(f => f.result !== 'match');
+  const agreements = match.whyMatched.filter(f => f.result === 'match');
+  const allAgree = discriminators.length === 0 && agreements.length > 0;
+  const [agreementsOpen, setAgreementsOpen] = useState(allAgree);
+
+  // Supports / Against derivation
+  const supports: string[] = [];
+  const against: string[] = [];
+  rec.factors.forEach(f => {
+    const impact = Math.round(f.score * f.weight);
+    // Try to build human-friendly line from bound field
+    const bound = match.whyMatched.find(w => {
+      const n = w.field.toLowerCase();
+      if (f.fieldKey === 'dob') return n.includes('dob') || n.includes('birth');
+      if (f.fieldKey === 'id') return n.includes('passport') || n.includes('document') || /\bid\b/.test(n);
+      if (f.fieldKey === 'nationality') return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
+      return false;
+    });
+    let line = '';
+    if (f.fieldKey === 'name') {
+      line = f.contribution === 'positive'
+        ? `Name similarity ${match.strength}%`
+        : `Weak name similarity (${match.strength}%)`;
+    } else if (f.fieldKey === 'rarity') {
+      line = f.contribution === 'positive'
+        ? 'Uncommon name — coincidence unlikely'
+        : f.contribution === 'negative'
+        ? 'Common name — false-positive baseline elevated'
+        : 'Moderately common name';
+    } else if (bound) {
+      const shown = bound.matchedValue || bound.inputValue || '—';
+      if (bound.result === 'match') line = `${bound.field} matches (${shown})`;
+      else if (bound.result === 'partial') line = `${bound.field} partial (${bound.inputValue || '—'} vs ${bound.matchedValue || '—'})`;
+      else if (bound.result === 'mismatch') line = `${bound.field}: ${bound.inputValue || '—'} vs ${bound.matchedValue || '—'}`;
+      else line = `No ${bound.field.toLowerCase()} supplied`;
+    } else {
+      line = f.label;
+    }
+    if (f.contribution === 'positive' && impact >= 4) supports.push(line);
+    else if (f.contribution === 'negative' && impact >= 3) against.push(line);
+    else if (f.contribution === 'neutral' && f.fieldKey !== 'name' && !bound) against.push(line);
+  });
+
+  const leversLine = rec.resolutionLevers.length > 0
+    ? rec.resolutionLevers.map(l => l.text).join(' ')
+    : null;
+
+  return (
+    <div className="space-y-1.5">
+      {/* Header strip */}
+      <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-card">
         <FileText className="h-3.5 w-3.5 text-foreground shrink-0" />
-        <span className="text-[11px] font-semibold uppercase tracking-wide text-foreground">Match Evidence</span>
-        <span className="text-[10px] text-muted-foreground hidden sm:inline">Deterministic facts from the matching engine</span>
-      </div>
-
-      <NameEvidenceBlock match={match} />
-
-      <table className="w-full text-xs">
-        <thead>
-          <tr className="bg-muted/30 border-b">
-            <th className="w-8 px-2 py-1.5"></th>
-            <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Field</th>
-            <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Screened</th>
-            <th className="text-left px-3 py-1.5 font-medium text-muted-foreground">Matched record</th>
-            <th className="text-left px-2 py-1.5 font-medium text-muted-foreground w-[90px]">Result</th>
-          </tr>
-        </thead>
-        <tbody>
-          {match.whyMatched.map((wf, i) => {
-            const rowBg =
-              wf.result === 'match' ? 'bg-status-positive/5'
-              : wf.result === 'mismatch' ? 'bg-status-unresolved/5'
-              : '';
-            return (
-              <tr key={i} className={`border-b last:border-b-0 align-top ${rowBg}`}>
-                <td className="px-2 py-1.5 text-center">{fieldResultIcon(wf.result)}</td>
-                <td className="px-3 py-1.5 font-medium whitespace-nowrap">{wf.field}</td>
-                <td className="px-3 py-1.5 text-muted-foreground">{wf.inputValue || '—'}</td>
-                <td className="px-3 py-1.5 font-medium">{wf.matchedValue || '—'}</td>
-                <td className="px-2 py-1.5">{fieldResultLabel(wf.result)}</td>
-              </tr>
-            );
-          })}
-          {match.aliases.length > 0 && variant === 'default' && (
-            <tr className="border-b last:border-b-0 bg-muted/10">
-              <td className="px-2 py-1.5 text-center"><User className="h-3.5 w-3.5 text-muted-foreground mx-auto" /></td>
-              <td className="px-3 py-1.5 font-medium align-top">All aliases</td>
-              <td className="px-3 py-1.5 text-muted-foreground" colSpan={3}>
-                <div className="flex flex-wrap gap-1">
-                  {match.aliases.map((a, ai) => (
-                    <Badge key={ai} variant="secondary" className="text-[10px]">{a}</Badge>
-                  ))}
-                </div>
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
-
-      <ListingProvenanceBlock match={match} />
-    </div>
-  );
-
-  // ── LAYER 2: MODEL ASSESSMENT (subordinate) ──────────────
-  const assessmentLayer = (
-    <div className="rounded-md border border-dashed border-border/60 bg-muted/25 overflow-hidden">
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-dashed border-border/60">
-        <Sparkles className="h-3 w-3 text-muted-foreground shrink-0" />
-        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">Model assessment</span>
-        <span className="text-[10px] text-muted-foreground/80 italic hidden sm:inline">Interpretation of the evidence above</span>
+        <span className="text-[11px] font-semibold uppercase tracking-wide">Why it matched</span>
         <div className="ml-auto flex items-center gap-3">
           <div className="text-right">
             <div className="text-[11px] font-semibold leading-tight">{rec.headline}</div>
             <div className="text-[9px] text-muted-foreground">Confidence {rec.confidence}%</div>
           </div>
           <div className="w-px h-7 bg-border" />
-          <div className="text-right">
-            <div className={`text-base font-bold tabular-nums leading-none ${scoreColor}`}>{rec.compositeScore}</div>
-            <div className="text-[9px] text-muted-foreground uppercase tracking-wide mt-0.5">/ 100</div>
-          </div>
+          <TooltipProvider delayDuration={150}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="text-right cursor-help flex items-center gap-1">
+                  <div>
+                    <div className={`text-base font-bold tabular-nums leading-none ${scoreColor}`}>{rec.compositeScore}</div>
+                    <div className="text-[9px] text-muted-foreground uppercase tracking-wide mt-0.5">/ 100</div>
+                  </div>
+                  <Info className="h-3 w-3 text-muted-foreground" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="left" className="max-w-[240px] text-[11px]">
+                Composite score is derived in part from the matching engine's own strength score, so it is not fully independent corroboration of the evidence below.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
-      {variant === 'default' && (
+      {/* Unified table */}
+      <div className="rounded-md border bg-card overflow-hidden">
         <table className="w-full text-xs">
           <thead>
-            <tr className="border-b border-border/50 bg-background/30">
-              <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px] uppercase tracking-wide">Factor</th>
-              <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-[42%]">Contribution</th>
-              <th className="text-right px-3 py-1 font-medium text-muted-foreground text-[10px] uppercase tracking-wide w-[70px]">Weight</th>
+            <tr className="bg-muted/40 border-b">
+              <th colSpan={5} className="text-left px-3 py-1 font-semibold text-[9px] uppercase tracking-wider text-muted-foreground">Evidence</th>
+              <th className="text-left px-3 py-1 font-semibold text-[9px] uppercase tracking-wider text-muted-foreground border-l">Assessment</th>
+            </tr>
+            <tr className="bg-muted/20 border-b">
+              <th className="w-8 px-2 py-1"></th>
+              <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px]">Field</th>
+              <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px]">Screened</th>
+              <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px]">On record</th>
+              <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[10px] w-[80px]">Result</th>
+              <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px] w-[38%] border-l">Influence</th>
             </tr>
           </thead>
           <tbody>
-            {rec.factors.map((f, i) => {
-              const s = contributionStyle(f.contribution);
-              const impact = Math.round(f.score * f.weight);
+            <NameRow match={match} rec={rec} variant={variant} />
+
+            {discriminators.map((wf, i) => {
+              const rowBg = wf.result === 'mismatch' ? 'bg-status-unresolved/5' : wf.result === 'partial' ? 'bg-status-possible/5' : '';
+              const factor = rec.factors.find(f => {
+                const n = wf.field.toLowerCase();
+                if (f.fieldKey === 'dob') return n.includes('dob') || n.includes('birth');
+                if (f.fieldKey === 'id') return n.includes('passport') || n.includes('document') || /\bid\b/.test(n);
+                if (f.fieldKey === 'nationality') return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
+                return false;
+              });
               return (
-                <tr key={i} className="border-b border-border/40 last:border-b-0 align-top">
-                  <td className="px-3 py-1.5">
-                    <div className="font-medium leading-tight">{f.label}</div>
-                    {!fieldHasFactor(match, f.fieldKey) && (
-                      <div className="text-[10px] text-muted-foreground leading-snug mt-0.5 font-normal">{f.detail}</div>
-                    )}
-                  </td>
-                  <td className="px-2 py-1.5">
-                    <div className="flex items-center gap-1.5">
-                      <span className={`text-[10px] font-bold w-3 ${s.text}`}>{s.sign}</span>
-                      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className={`h-full ${s.bar} transition-all`} style={{ width: `${f.score}%` }} />
-                      </div>
-                      <span className={`text-[10px] font-semibold tabular-nums w-8 text-right ${s.text}`}>
-                        {f.contribution === 'negative' ? `−${impact}` : f.contribution === 'positive' ? `+${impact}` : `${impact}`}
-                      </span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-1.5 text-right text-[10px] text-muted-foreground tabular-nums">{(f.weight * 100).toFixed(0)}%</td>
+                <tr key={i} className={`border-b last:border-b-0 align-top ${rowBg}`}>
+                  <td className="px-2 py-1.5 text-center">{fieldResultIcon(wf.result)}</td>
+                  <td className="px-3 py-1.5 font-medium whitespace-nowrap">{wf.field}</td>
+                  <td className="px-3 py-1.5 text-muted-foreground">{wf.inputValue || '—'}</td>
+                  <td className="px-3 py-1.5 font-medium">{wf.matchedValue || '—'}</td>
+                  <td className="px-2 py-1.5">{fieldResultLabel(wf.result)}</td>
+                  <td className="px-3 py-1.5 border-l"><InfluenceCell factor={factor} /></td>
                 </tr>
               );
             })}
+
+            {agreements.length > 0 && (
+              <>
+                <tr className="border-b last:border-b-0 bg-muted/10">
+                  <td colSpan={6} className="px-2 py-1">
+                    <button
+                      type="button"
+                      onClick={() => setAgreementsOpen(o => !o)}
+                      className="w-full flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground"
+                    >
+                      {agreementsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                      <Check className="h-3 w-3 text-status-positive" />
+                      <span>{agreements.length} field{agreements.length === 1 ? '' : 's'} matched exactly</span>
+                    </button>
+                  </td>
+                </tr>
+                {agreementsOpen && agreements.map((wf, i) => {
+                  const factor = rec.factors.find(f => {
+                    const n = wf.field.toLowerCase();
+                    if (f.fieldKey === 'dob') return n.includes('dob') || n.includes('birth');
+                    if (f.fieldKey === 'id') return n.includes('passport') || n.includes('document') || /\bid\b/.test(n);
+                    if (f.fieldKey === 'nationality') return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
+                    return false;
+                  });
+                  return (
+                    <tr key={`ag-${i}`} className="border-b last:border-b-0 align-top bg-status-positive/[0.04]">
+                      <td className="px-2 py-1.5 text-center">{fieldResultIcon('match')}</td>
+                      <td className="px-3 py-1.5 font-medium whitespace-nowrap">{wf.field}</td>
+                      <td className="px-3 py-1.5 text-muted-foreground">{wf.inputValue || '—'}</td>
+                      <td className="px-3 py-1.5 font-medium">{wf.matchedValue || '—'}</td>
+                      <td className="px-2 py-1.5">{fieldResultLabel('match')}</td>
+                      <td className="px-3 py-1.5 border-l"><InfluenceCell factor={factor} /></td>
+                    </tr>
+                  );
+                })}
+              </>
+            )}
           </tbody>
         </table>
-      )}
 
-      {/* What would resolve this */}
-      <div className="px-3 py-2 border-t border-dashed border-border/60 bg-background/40">
-        <div className="flex items-center gap-1.5 mb-1">
-          <Zap className="h-3 w-3 text-primary shrink-0" />
-          <span className="text-[10px] font-semibold uppercase tracking-wide text-foreground">What would resolve this</span>
+        <ProvenanceStrip match={match} />
+      </div>
+
+      {/* Supports / Against contrast */}
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-md border bg-status-positive/[0.04] border-status-positive/30 px-2.5 py-1.5">
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-status-positive mb-1">Supports match</div>
+          {supports.length > 0 ? (
+            <ul className="space-y-0.5">
+              {supports.slice(0, 4).map((s, i) => (
+                <li key={i} className="text-[11px] leading-snug flex gap-1.5">
+                  <Check className="h-3 w-3 text-status-positive shrink-0 mt-0.5" />
+                  <span>{s}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[11px] text-muted-foreground italic leading-snug">No corroborating evidence beyond name similarity.</p>
+          )}
         </div>
-        {rec.resolutionLevers.length > 0 ? (
-          <ul className="space-y-0.5">
-            {rec.resolutionLevers.map((l, i) => (
-              <li key={i} className="text-[11px] text-foreground leading-snug">• {l.text}</li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-[11px] text-muted-foreground leading-snug">
-            No missing identifier would meaningfully change the outcome — the current evidence already leans decisively toward the recommendation.
-          </p>
-        )}
+        <div className="rounded-md border bg-status-unresolved/[0.04] border-status-unresolved/30 px-2.5 py-1.5">
+          <div className="text-[9px] font-semibold uppercase tracking-wider text-status-unresolved mb-1">Argues against</div>
+          {against.length > 0 ? (
+            <ul className="space-y-0.5">
+              {against.slice(0, 4).map((s, i) => (
+                <li key={i} className="text-[11px] leading-snug flex gap-1.5">
+                  <X className="h-3 w-3 text-status-unresolved shrink-0 mt-0.5" />
+                  <span>{s}</span>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="text-[11px] text-muted-foreground italic leading-snug">Nothing contradicts this match.</p>
+          )}
+        </div>
       </div>
 
-      <div className="px-3 py-1.5 border-t border-dashed border-border/60 bg-muted/30">
-        <p className="text-[10px] text-muted-foreground leading-snug italic">
-          Note: the composite score is derived in part from the matching engine's own strength score, so it is not fully independent corroboration of the evidence above.
-        </p>
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="space-y-2">
-      {evidenceLayer}
-      {assessmentLayer}
+      {/* Levers one-liner */}
+      {leversLine && (
+        <div className="flex items-start gap-1.5 px-1 text-[11px] leading-snug">
+          <Zap className="h-3 w-3 text-primary shrink-0 mt-0.5" />
+          <span><span className="font-semibold">Would resolve this: </span><span className="text-muted-foreground">{leversLine}</span></span>
+        </div>
+      )}
     </div>
   );
 }
+
 
 // ─── Record Detail Tabs ───────────────────────────────────────────────────────
 
