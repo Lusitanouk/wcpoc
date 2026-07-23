@@ -126,15 +126,50 @@ function generateNotes(caseId: string): CaseNote[] {
   }));
 }
 
+const highChanges: Omit<ChangeLogEntry, 'changedAt'>[] = [
+  { field: 'Sanctions Programme', from: '—', to: 'EU 269/2014', changeType: 'listing_added', materiality: 'high', summary: 'Now designated under EU Regulation 269/2014 (Ukraine territorial integrity)' },
+  { field: 'Sanctions Programme', from: 'OFAC SDN', to: '—', changeType: 'listing_removed', materiality: 'high', summary: 'Delisted from OFAC SDN' },
+  { field: 'Date of Birth', from: '—', to: '1972-03-14', changeType: 'identifier_added', materiality: 'high', summary: 'Date of birth added to source record — improves disambiguation' },
+  { field: 'PEP Class', from: 'PEP Class 2', to: 'PEP Class 1', changeType: 'risk_escalation', materiality: 'high', summary: 'Escalated to PEP Class 1 (Head of State / Government)' },
+  { field: 'ID Document', from: '—', to: 'Passport P7291834 (RU)', changeType: 'identifier_added', materiality: 'high', summary: 'Passport number added to source record' },
+  { field: 'Category', from: 'Special Interest', to: 'Sanctions', changeType: 'listing_amended', materiality: 'high', summary: 'Category upgraded from Special Interest to formal sanctions listing' },
+];
+const mediumChanges: Omit<ChangeLogEntry, 'changedAt'>[] = [
+  { field: 'Nationality', from: 'US', to: 'US, UK', changeType: 'identifier_added', materiality: 'medium', summary: 'Additional nationality (UK) recorded' },
+  { field: 'Alias', from: '—', to: 'Karlos Mendoza', changeType: 'identifier_added', materiality: 'medium', summary: 'New alias added' },
+  { field: 'ID Number', from: 'AB12345', to: 'AB123456', changeType: 'identifier_changed', materiality: 'medium', summary: 'ID number corrected (previously missing check digit)' },
+  { field: 'PEP Class', from: 'PEP Class 1', to: 'PEP Class 2', changeType: 'risk_de_escalation', materiality: 'medium', summary: 'De-escalated to PEP Class 2 following role change' },
+];
+const lowChanges: Omit<ChangeLogEntry, 'changedAt'>[] = [
+  { field: 'Source URL', from: 'ofac.gov/sdn/old', to: 'ofac.gov/sdn/new', changeType: 'cosmetic', materiality: 'low', summary: 'Source URL updated (no content change)' },
+  { field: 'Further Info', from: 'Businessman based in Moscow', to: 'Businessman based in Moscow.', changeType: 'cosmetic', materiality: 'low', summary: 'Punctuation correction' },
+  { field: 'Record Metadata', from: '2024-11-01', to: '2024-11-02', changeType: 'record_metadata', materiality: 'low', summary: 'Record refreshed (no material change)' },
+  { field: 'Keyword', from: 'oligarch', to: 'oligarch, businessman', changeType: 'cosmetic', materiality: 'low', summary: 'Additional keyword indexed' },
+];
+
 function generateChangeLog(isReviewReq: boolean): ChangeLogEntry[] {
   if (!isReviewReq) return [];
-  return Array.from({ length: randInt(1, 3) }, () => ({
-    field: rand(changeFields),
-    from: rand(['Active', 'PEP Class 1', 'US', 'None', 'Category A']),
-    to: rand(['Inactive', 'PEP Class 2', 'RU', 'Listed', 'Category B']),
-    changedAt: randDate('2025-01-01', '2025-02-15'),
-  }));
+  const withDate = (e: Omit<ChangeLogEntry, 'changedAt'>): ChangeLogEntry => ({ ...e, changedAt: randDate('2025-01-01', '2025-02-15') });
+  // 4 archetypes to give the UI meaningful variety
+  const arch = randInt(0, 3);
+  if (arch === 0) {
+    // Single high-materiality change
+    return [withDate(rand(highChanges))];
+  }
+  if (arch === 1) {
+    // Only low-materiality noise
+    const n = randInt(2, 3);
+    return Array.from({ length: n }, () => withDate(rand(lowChanges)));
+  }
+  if (arch === 2) {
+    // Mixed: one high + a couple of low
+    return [withDate(rand(highChanges)), withDate(rand(lowChanges)), withDate(rand(lowChanges))];
+  }
+  // Medium-only small change(s)
+  const n = randInt(1, 2);
+  return Array.from({ length: n }, () => withDate(rand(mediumChanges)));
 }
+
 
 const resolutionReasons = [
   'No matching identifiers found — cleared as false positive.',

@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MatchDrawer, WhyMatchedSection } from './MatchDrawer';
+import { WhatChanged } from './WhatChanged';
 import { priorityColor } from '@/lib/priority';
 import { updateMatch, recalcCaseCounts } from '@/data/mock-data';
 import type { Match, CheckType, MatchStatus, Dataset, RiskLevel, CaseScreeningData } from '@/types';
@@ -718,12 +719,13 @@ export function ResultsView({ matches, caseName, caseId, screeningData, onMatchU
                             <p className="text-[10px] text-muted-foreground italic mt-1">{m.matchStrengthExplanation}</p>
                             {m.reviewRequired && m.changeLog.length > 0 && (
                               <div className="mt-2 pt-2 border-t">
-                                <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
-                                {m.changeLog.slice(0, 2).map((cl, i) => (
-                                  <p key={i} className="text-[10px] text-muted-foreground">
-                                    {cl.field}: {cl.from} → {cl.to}
-                                  </p>
-                                ))}
+                                <p className="text-[10px] font-semibold text-status-possible mb-1.5">What changed</p>
+                                <WhatChanged
+                                  changeLog={m.changeLog}
+                                  reviewRequiredReasons={m.reviewRequiredReasons}
+                                  variant="inline"
+                                  maxItems={3}
+                                />
                               </div>
                             )}
                           </div>

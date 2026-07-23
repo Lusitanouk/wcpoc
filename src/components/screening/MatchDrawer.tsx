@@ -26,6 +26,7 @@ import { exportMatchPdf } from '@/lib/export';
 import { useAppContext } from '@/context/AppContext';
 import { computeMlRecommendation, buildRecommendationNarrative, type MlRecommendation, type MlFactor } from '@/lib/ml-recommendation';
 import { Sparkles } from 'lucide-react';
+import { WhatChanged } from './WhatChanged';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -117,77 +118,12 @@ function SourceCitation({ sources, indices }: { sources: { name: string; url: st
 
 // ─── Change Chip ─────────────────────────────────────────────────────────────
 
-function ChangeChip({ change, index, onClick }: { change: ChangeLogEntry; index: number; onClick: () => void }) {
-  return (
-    <button
-      onClick={onClick}
-      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium bg-status-possible/15 text-status-possible border border-status-possible/25 hover:bg-status-possible/25 transition-colors cursor-pointer"
-    >
-      <span className="inline-flex items-center justify-center w-3.5 h-3.5 rounded-full bg-status-possible/25 text-[9px] font-bold shrink-0">{index + 1}</span>
-      {change.field}
-    </button>
-  );
-}
-
 // ─── What Changed Section ────────────────────────────────────────────────────
 
 function WhatChangedSection({ changeLog, reviewRequiredReasons }: { changeLog: ChangeLogEntry[]; reviewRequiredReasons: string[] }) {
-  const rowRefs = useRef<(HTMLTableRowElement | null)[]>([]);
-
-  const scrollToRow = useCallback((index: number) => {
-    const el = rowRefs.current[index];
-    if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      el.classList.add('ring-2', 'ring-status-possible', 'ring-inset');
-      setTimeout(() => el.classList.remove('ring-2', 'ring-status-possible', 'ring-inset'), 1800);
-    }
-  }, []);
-
-  return (
-    <div className="space-y-2">
-      {reviewRequiredReasons.length > 0 && (
-        <p className="text-[10px] text-muted-foreground leading-relaxed">{reviewRequiredReasons.join(' · ')}</p>
-      )}
-      <div className="flex flex-wrap gap-1.5">
-        {changeLog.map((cl, i) => (
-          <ChangeChip key={i} change={cl} index={i} onClick={() => scrollToRow(i)} />
-        ))}
-      </div>
-      <div className="rounded-md border overflow-hidden">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="bg-status-possible/8 border-b">
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground w-5"><span className="sr-only">#</span></th>
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Field</th>
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Previous</th>
-              <th className="px-1 py-2 w-5"></th>
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground">Updated</th>
-              <th className="text-left px-3 py-2 font-medium text-muted-foreground hidden sm:table-cell">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {changeLog.map((cl, i) => (
-              <tr key={i} ref={el => { rowRefs.current[i] = el; }} className="border-b last:border-b-0 transition-all duration-300">
-                <td className="px-3 py-2.5">
-                  <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-status-possible/20 text-status-possible text-[9px] font-bold">{i + 1}</span>
-                </td>
-                <td className="px-3 py-2.5 font-medium">{cl.field}</td>
-                <td className="px-3 py-2.5">
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-destructive/10 text-destructive text-[11px] font-mono line-through">{cl.from}</span>
-                </td>
-                <td className="px-1 py-2.5 text-muted-foreground"><ArrowRight className="h-3 w-3" /></td>
-                <td className="px-3 py-2.5">
-                  <span className="inline-flex items-center px-1.5 py-0.5 rounded bg-status-positive/10 text-status-positive text-[11px] font-mono font-semibold">{cl.to}</span>
-                </td>
-                <td className="px-3 py-2.5 text-[11px] text-muted-foreground hidden sm:table-cell whitespace-nowrap">{cl.changedAt}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  );
+  return <WhatChanged changeLog={changeLog} reviewRequiredReasons={reviewRequiredReasons} variant="full" />;
 }
+
 
 // ─── Maker Decision Card ─────────────────────────────────────────────────────
 
@@ -524,16 +460,20 @@ function contributionStyle(c: MlFactor['contribution']) {
   return { bar: 'bg-muted-foreground/60', text: 'text-muted-foreground', sign: '·' };
 }
 
-// Heuristic mapping between an ML factor and a whyMatched field
-function factorMatchesField(factorLabel: string, fieldName: string) {
-  const f = factorLabel.toLowerCase();
+// Bind an ML factor to a whyMatched field by explicit factor.fieldKey.
+// Uses precise field-name checks (word boundaries) to avoid mis-binding
+// e.g. "Resident" or "Provider" onto the "id" key.
+function factorForField(rec: ReturnType<typeof computeMlRecommendation>, fieldName: string): MlFactor | undefined {
   const n = fieldName.toLowerCase();
-  if (f.includes('name match')) return n.includes('name');
-  if (f.includes('date of birth')) return n.includes('dob') || n.includes('birth');
-  if (f.includes('id document')) return n.includes('id') || n.includes('passport') || n.includes('document');
-  if (f.includes('nationality')) return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
-  return false;
+  let key: MlFactor['fieldKey'] | null = null;
+  if (/\bname\b/.test(n)) key = 'name';
+  else if (n.includes('dob') || n.includes('birth')) key = 'dob';
+  else if (n.includes('passport') || n.includes('document') || /\bid\b/.test(n) || n.includes('id number') || n.includes('id type')) key = 'id';
+  else if (n.includes('nationality') || n.includes('country') || n.includes('jurisdiction')) key = 'nationality';
+  if (!key) return undefined;
+  return rec.factors.find(f => f.fieldKey === key);
 }
+
 
 // ─── Why It Matched — unified ML + field-comparison table ────────────────────
 
@@ -555,7 +495,9 @@ export function WhyMatchedSection({ match }: { match: Match }) {
   };
   const usedFactors = new Set<MlFactor>();
   const fieldRows: Row[] = match.whyMatched.map((wf, i) => {
-    const factor = rec.factors.find(f => !usedFactors.has(f) && factorMatchesField(f.label, wf.field));
+    const candidate = factorForField(rec, wf.field);
+    const factor = candidate && !usedFactors.has(candidate) ? candidate : undefined;
+    if (factor) usedFactors.add(factor);
     if (factor) usedFactors.add(factor);
     return {
       key: `f-${i}`,
@@ -633,7 +575,9 @@ export function WhyMatchedSection({ match }: { match: Match }) {
                       <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
                         <div className={`h-full ${s.bar} transition-all`} style={{ width: `${f.score}%` }} />
                       </div>
-                      <span className={`text-[10px] font-semibold tabular-nums w-6 text-right ${s.text}`}>+{impact}</span>
+                      <span className={`text-[10px] font-semibold tabular-nums w-8 text-right ${s.text}`}>
+                        {f.contribution === 'negative' ? `−${impact}` : f.contribution === 'positive' ? `+${impact}` : `${impact}`}
+                      </span>
                     </div>
                   ) : (
                     <span className="text-[10px] text-muted-foreground">{row.result ? fieldResultLabel(row.result) : '—'}</span>

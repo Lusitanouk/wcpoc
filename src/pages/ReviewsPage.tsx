@@ -18,6 +18,7 @@ import { cases, allMatches, getCaseById, updateMatch, recalcCaseCounts } from '@
 import { priorityColor } from '@/lib/priority';
 import FilterBar, { type FilterDefinition } from '@/components/FilterBar';
 import { MatchDrawer } from '@/components/screening/MatchDrawer';
+import { WhatChanged } from '@/components/screening/WhatChanged';
 import { useAppContext } from '@/context/AppContext';
 import type { Match, PriorityLevel, MatchStatus, RiskLevel, CheckerDecision } from '@/types';
 
@@ -255,14 +256,27 @@ export default function AlertsPage() {
   };
 
   const handleBulkResolve = () => {
+    const caseIds = new Set<string>();
+    selectedMatches.forEach(m => {
+      updateMatch(m.id, { status: bulkStatus, riskLevel: bulkRisk, reason: bulkReason });
+      caseIds.add(m.caseId);
+    });
+    caseIds.forEach(cid => recalcCaseCounts(cid));
     setBulkDialog(null);
     setSelectedIds(new Set());
   };
 
   const handleBulkReview = () => {
+    const caseIds = new Set<string>();
+    selectedMatches.forEach(m => {
+      updateMatch(m.id, { reviewRequired: false });
+      caseIds.add(m.caseId);
+    });
+    caseIds.forEach(cid => recalcCaseCounts(cid));
     setBulkDialog(null);
     setSelectedIds(new Set());
   };
+
 
   const handleBulkCheckerDecision = () => {
     const now = new Date().toISOString().split('T')[0];
@@ -937,22 +951,19 @@ function AlertRow({ m, onNavigate, showChanges, showMakerDecision, showGroupCol,
         <Eye className="h-4 w-4 text-muted-foreground hover:text-foreground transition-colors" />
       </td>
       {showChanges && (
-        <td className="px-4 py-3">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="text-xs text-muted-foreground cursor-help max-w-[180px] truncate">
-                {m.changeLog.length > 0 ? m.changeLog.map(cl => `${cl.field}: ${cl.from}→${cl.to}`).join('; ') : '—'}
-              </div>
-            </TooltipTrigger>
-            <TooltipContent className="max-w-xs">
-              {m.changeLog.length > 0 ? (
-                <table className="text-xs">
-                  <thead><tr><th className="pr-2 text-left">Field</th><th className="pr-2 text-left">From</th><th className="pr-2 text-left">To</th><th className="text-left">Date</th></tr></thead>
-                  <tbody>{m.changeLog.map((cl, i) => (<tr key={i}><td className="pr-2">{cl.field}</td><td className="pr-2">{cl.from}</td><td className="pr-2">{cl.to}</td><td>{cl.changedAt}</td></tr>))}</tbody>
-                </table>
-              ) : <span>No change details</span>}
-            </TooltipContent>
-          </Tooltip>
+        <td className="px-4 py-3 max-w-[220px]">
+          {m.changeLog.length > 0 ? (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="cursor-help">
+                  <WhatChanged changeLog={m.changeLog} variant="summary" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent className="max-w-sm p-2">
+                <WhatChanged changeLog={m.changeLog} variant="inline" />
+              </TooltipContent>
+            </Tooltip>
+          ) : <span className="text-xs text-muted-foreground">—</span>}
         </td>
       )}
       {showMakerDecision && (
@@ -1003,12 +1014,8 @@ function AlertRow({ m, onNavigate, showChanges, showMakerDecision, showGroupCol,
               <p className="text-[10px] text-muted-foreground italic mt-1">{m.matchStrengthExplanation}</p>
               {m.changeLog.length > 0 && (
                 <div className="mt-2 pt-2 border-t">
-                  <p className="text-[10px] font-semibold text-status-possible mb-1">What changed</p>
-                  {m.changeLog.slice(0, 3).map((cl, i) => (
-                    <p key={i} className="text-[10px] text-muted-foreground">
-                      {cl.field}: {cl.from} → {cl.to}
-                    </p>
-                  ))}
+                  <p className="text-[10px] font-semibold text-status-possible mb-1.5">What changed</p>
+                  <WhatChanged changeLog={m.changeLog} reviewRequiredReasons={m.reviewRequiredReasons} variant="inline" maxItems={3} />
                 </div>
               )}
             </div>

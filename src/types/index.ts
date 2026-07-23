@@ -55,11 +55,28 @@ export interface Group {
   ongoingFrequency: string;
 }
 
+export type ChangeMateriality = 'high' | 'medium' | 'low';
+export type ChangeType =
+  | 'listing_added'
+  | 'listing_removed'
+  | 'listing_amended'
+  | 'identifier_added'
+  | 'identifier_changed'
+  | 'identifier_removed'
+  | 'risk_escalation'
+  | 'risk_de_escalation'
+  | 'record_metadata'
+  | 'cosmetic';
+
 export interface ChangeLogEntry {
   field: string;
   from: string;
   to: string;
   changedAt: string;
+  changeType?: ChangeType;
+  materiality?: ChangeMateriality;
+  /** Short plain-English compliance summary, e.g. "Now designated under EU 269/2014" */
+  summary?: string;
 }
 
 export interface CaseScreeningData {
