@@ -26,6 +26,7 @@ import { exportMatchPdf } from '@/lib/export';
 import { useAppContext } from '@/context/AppContext';
 import { computeMlRecommendation, buildRecommendationNarrative, type MlRecommendation, type MlFactor } from '@/lib/ml-recommendation';
 import { Sparkles } from 'lucide-react';
+import { WhatChanged } from './WhatChanged';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
