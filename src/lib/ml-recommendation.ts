@@ -2,7 +2,11 @@ import type { Match, MatchStatus, RiskLevel } from '@/types';
 
 export type FactorContribution = 'positive' | 'neutral' | 'negative';
 
+export type MlFactorKey = 'name' | 'rarity' | 'dob' | 'id' | 'nationality';
+
 export interface MlFactor {
+  /** Stable key used to bind a factor to a whyMatched field row */
+  fieldKey: MlFactorKey;
   /** Short label, e.g. "Name match" */
   label: string;
   /** 0-100 raw score for this factor */
