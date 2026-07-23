@@ -15,6 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { MatchDrawer, WhyMatchedSection } from './MatchDrawer';
+import { WhatChanged } from './WhatChanged';
 import { priorityColor } from '@/lib/priority';
 import { updateMatch, recalcCaseCounts } from '@/data/mock-data';
 import type { Match, CheckType, MatchStatus, Dataset, RiskLevel, CaseScreeningData } from '@/types';
