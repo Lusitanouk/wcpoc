@@ -1100,6 +1100,8 @@ export function MatchDrawer({
   const [matchOutcome, setMatchOutcome] = useState('');
   const [comment, setComment]         = useState('');
   const [isFullscreen, setIsFullscreen] = useState(defaultFullscreen ?? false);
+  // AI suggestion applied in this session (separate from analyst's Reason)
+  const [pendingAiSuggestion, setPendingAiSuggestion] = useState<AiSuggestion | null>(null);
   const whatChangedRef = useRef<HTMLDivElement>(null);
 
   // ─── Persisted section open/closed state ─────────────────────
@@ -1123,6 +1125,7 @@ export function MatchDrawer({
       setRisk(match.riskLevel);
       setReason(match.reason);
       setComment('');
+      setPendingAiSuggestion(null);
       setIsFullscreen(defaultFullscreen ?? false);
     }
   }, [match?.id, defaultFullscreen, open]);
@@ -1143,8 +1146,54 @@ export function MatchDrawer({
     setTimeout(() => el.classList.remove('ring-2', 'ring-status-possible', 'ring-inset', 'rounded-md'), 1800);
   };
 
+  // Derive AI disposition based on how the analyst's final choices compare to the suggestion
+  const deriveDisposition = (s: AiSuggestion, finalStatus: MatchStatus, finalRisk: RiskLevel, finalOutcome: string): AiSuggestionDisposition => {
+    if (s.suggestedStatus !== finalStatus) return 'overridden';
+    if (s.suggestedRisk !== finalRisk || (finalOutcome && s.suggestedOutcome !== finalOutcome)) return 'modified';
+    return 'accepted';
+  };
+
   const handleSave = () => {
-    onUpdate({ ...match, status, riskLevel: risk, reason });
+    const now = new Date().toISOString().split('T')[0];
+    const historyAdditions: ResolutionHistoryEntry[] = [];
+    let aiSuggestion: AiSuggestion | undefined = match.aiSuggestion;
+
+    if (pendingAiSuggestion) {
+      const disposition = deriveDisposition(pendingAiSuggestion, status, risk, matchOutcome);
+      aiSuggestion = { ...pendingAiSuggestion, disposition };
+      historyAdditions.push({
+        id: `rh-ai-${Date.now()}`,
+        status: pendingAiSuggestion.suggestedStatus,
+        riskLevel: pendingAiSuggestion.suggestedRisk,
+        reason: pendingAiSuggestion.narrative,
+        author: `AI Model (${pendingAiSuggestion.modelVersion})`,
+        createdAt: now,
+        entryType: 'ai_suggestion',
+        confidence: pendingAiSuggestion.confidence,
+        compositeScore: pendingAiSuggestion.compositeScore,
+        disposition,
+      });
+    }
+
+    historyAdditions.push({
+      id: `rh-hu-${Date.now()}`,
+      status,
+      riskLevel: risk,
+      reason,
+      comment: comment || undefined,
+      author: 'Current User (Analyst)',
+      createdAt: now,
+      entryType: 'human',
+    });
+
+    onUpdate({
+      ...match,
+      status,
+      riskLevel: risk,
+      reason,
+      aiSuggestion,
+      resolutionHistory: [...historyAdditions, ...match.resolutionHistory],
+    });
     onClose();
   };
 
