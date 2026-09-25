@@ -547,13 +547,17 @@ const SCRIPT_LANG: Record<string, string | undefined> = {
   CJK: 'ja',
 };
 
-function InfluenceCell({ factor }: { factor?: MlFactor }) {
+function InfluenceCell({ factor, bucket }: { factor?: MlFactor; bucket?: EvidenceBucket }) {
   if (!factor) {
     return <span className="text-[10px] text-muted-foreground/70">—</span>;
   }
-  const s = contributionStyle(factor.contribution);
+  // In the assessment view the bar colour/sign follows the bucket (for/against the match),
+  // not the factor's own contribution sign — a mismatched high-weight field argues against.
+  const effContribution: MlFactor['contribution'] =
+    bucket === 'supports' ? 'positive' : bucket === 'against' ? 'negative' : factor.contribution;
+  const s = contributionStyle(effContribution);
   const impact = Math.round(factor.score * factor.weight);
-  const signed = factor.contribution === 'negative' ? `−${impact}` : factor.contribution === 'positive' ? `+${impact}` : `${impact}`;
+  const signed = effContribution === 'negative' ? `−${impact}` : effContribution === 'positive' ? `+${impact}` : `${impact}`;
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
@@ -797,7 +801,7 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
                 : <X className="h-3 w-3 text-status-unresolved shrink-0 mt-0.5" />}
               <span className="flex-1">{it.line}</span>
             </div>
-            {it.factor && <div className="pl-[18px] pt-0.5"><InfluenceCell factor={it.factor} /></div>}
+            {it.factor && <div className="pl-[18px] pt-0.5"><InfluenceCell factor={it.factor} bucket={kind} /></div>}
           </li>
         ))}
       </ul>
