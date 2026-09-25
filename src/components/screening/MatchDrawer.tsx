@@ -698,16 +698,6 @@ interface EvidenceItem {
   bucket: EvidenceBucket;
 }
 
-function factorForField(rec: MlRecommendation, fieldName: string): MlFactor | undefined {
-  const n = fieldName.toLowerCase();
-  return rec.factors.find(f => {
-    if (f.fieldKey === 'dob') return n.includes('dob') || n.includes('birth');
-    if (f.fieldKey === 'id') return n.includes('passport') || n.includes('document') || /\bid\b/.test(n);
-    if (f.fieldKey === 'nationality') return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
-    return false;
-  });
-}
-
 /** Single source of truth used by both the Evidence and Assessment views. */
 function buildEvidenceItems(match: Match, rec: MlRecommendation): EvidenceItem[] {
   const items: EvidenceItem[] = [];
