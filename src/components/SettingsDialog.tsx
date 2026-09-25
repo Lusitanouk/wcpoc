@@ -163,7 +163,7 @@ export function SettingsDialog() {
               </SelectContent>
             </Select>
             <p className="text-[10px] text-muted-foreground">
-              {new Date().toLocaleString(locale, { timeZone: timezone, timeZoneName: 'long' })}
+              {new Date().toLocaleString(safeLocale, { timeZone: timezone, timeZoneName: 'long' })}
             </p>
           </div>
         </div>
