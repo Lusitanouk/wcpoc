@@ -44,6 +44,15 @@ export function SettingsDialog() {
 
   const systemTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+  // Guard against invalid stored locale tags (e.g. "en-US@posix")
+  const safeLocale = (() => {
+    try {
+      return new Intl.DateTimeFormat(locale).resolvedOptions().locale;
+    } catch {
+      return 'en-US';
+    }
+  })();
+
   const roleDescriptions: Record<UserRole, string> = {
     Analyst: 'Resolve and review matches (Maker)',
     Supervisor: 'Oversee analysts and manage cases',
@@ -154,7 +163,7 @@ export function SettingsDialog() {
               </SelectContent>
             </Select>
             <p className="text-[10px] text-muted-foreground">
-              {new Date().toLocaleString(locale, { timeZone: timezone, timeZoneName: 'long' })}
+              {new Date().toLocaleString(safeLocale, { timeZone: timezone, timeZoneName: 'long' })}
             </p>
           </div>
         </div>
