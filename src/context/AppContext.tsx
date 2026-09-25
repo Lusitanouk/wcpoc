@@ -67,9 +67,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Normalize the i18n language to a supported locale; environments can report
   // invalid tags like "en-US@posix" which break Intl formatters.
   const rawLang = i18n.language || 'en';
-  const locale: SupportedLocale = (SUPPORTED_LOCALES as readonly string[]).includes(rawLang)
-    ? (rawLang as SupportedLocale)
-    : (SUPPORTED_LOCALES.find(l => rawLang.startsWith(l.split('-')[0])) ?? 'en');
+  const locale: SupportedLocale =
+    SUPPORTED_LOCALES.find(l => l.code === rawLang)?.code ??
+    SUPPORTED_LOCALES.find(l => rawLang.startsWith(l.code.split('-')[0]))?.code ??
+    'en';
 
   return (
     <AppContext.Provider value={{
