@@ -547,13 +547,17 @@ const SCRIPT_LANG: Record<string, string | undefined> = {
   CJK: 'ja',
 };
 
-function InfluenceCell({ factor }: { factor?: MlFactor }) {
+function InfluenceCell({ factor, bucket }: { factor?: MlFactor; bucket?: EvidenceBucket }) {
   if (!factor) {
     return <span className="text-[10px] text-muted-foreground/70">—</span>;
   }
-  const s = contributionStyle(factor.contribution);
+  // In the assessment view the bar colour/sign follows the bucket (for/against the match),
+  // not the factor's own contribution sign — a mismatched high-weight field argues against.
+  const effContribution: MlFactor['contribution'] =
+    bucket === 'supports' ? 'positive' : bucket === 'against' ? 'negative' : factor.contribution;
+  const s = contributionStyle(effContribution);
   const impact = Math.round(factor.score * factor.weight);
-  const signed = factor.contribution === 'negative' ? `−${impact}` : factor.contribution === 'positive' ? `+${impact}` : `${impact}`;
+  const signed = effContribution === 'negative' ? `−${impact}` : effContribution === 'positive' ? `+${impact}` : `${impact}`;
   return (
     <TooltipProvider delayDuration={150}>
       <Tooltip>
