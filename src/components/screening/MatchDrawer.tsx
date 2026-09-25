@@ -1474,10 +1474,10 @@ export function MatchDrawer({
                     setRisk(rec.recommendedRisk);
                     setMatchOutcome(rec.recommendedOutcome);
                     setPendingAiSuggestion(suggestion);
-                    // Do NOT overwrite Reason — leave that to the analyst.
+                    setReason(suggestion.narrative);
                   }}
                 />
-                {pendingAiSuggestion && <AiNarrativeReference suggestion={pendingAiSuggestion} />}
+
                 <ResolutionPanel
                   status={status} setStatus={setStatus}
                   risk={risk} setRisk={setRisk}
