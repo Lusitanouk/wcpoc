@@ -772,7 +772,7 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
     : 'text-status-positive';
 
   const [view, setViewState] = useState<WhyView>(() =>
-    (localStorage.getItem(WHY_VIEW_KEY) as WhyView) === 'assessment' ? 'assessment' : 'evidence');
+    (localStorage.getItem(WHY_VIEW_KEY) as WhyView) === 'evidence' ? 'evidence' : 'assessment');
   const setView = (v: WhyView) => { setViewState(v); localStorage.setItem(WHY_VIEW_KEY, v); };
 
   const items = buildEvidenceItems(match, rec);
@@ -820,8 +820,8 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
         <FileText className="h-3.5 w-3.5 text-foreground shrink-0" />
         <span className="text-[11px] font-semibold uppercase tracking-wide">Why it matched</span>
         <div className="flex border rounded-sm overflow-hidden ml-2" role="group" aria-label="View mode">
-          {toggleBtn('evidence', 'Match evidence')}
           {toggleBtn('assessment', 'Model assessment')}
+          {toggleBtn('evidence', 'Match evidence')}
         </div>
         <div className="ml-auto flex items-center gap-3">
           <div className="text-right">
