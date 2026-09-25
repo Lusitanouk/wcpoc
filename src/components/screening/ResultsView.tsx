@@ -68,10 +68,8 @@ const fieldResultIcon = (result: string) => {
   }
 };
 
-function strengthColor(s: number) {
-  if (s >= 75) return 'bg-status-unresolved';
-  if (s >= 50) return 'bg-status-possible';
-  return 'bg-status-false';
+function strengthColor(_s: number) {
+  return 'bg-primary';
 }
 
 const BUCKETS: MatchStatus[] = ['Unresolved', 'Positive', 'Possible', 'False', 'Unknown'];
