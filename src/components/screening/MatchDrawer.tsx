@@ -778,10 +778,6 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
   const items = buildEvidenceItems(match, rec);
   const nameItem = items[0];
   const fieldItems = items.filter(it => it.key.startsWith('f-'));
-  const discriminators = fieldItems.filter(it => it.result !== 'match');
-  const agreements = fieldItems.filter(it => it.result === 'match');
-  const allAgree = discriminators.length === 0 && agreements.length > 0;
-  const [agreementsOpen, setAgreementsOpen] = useState(allAgree);
 
   const supports = items.filter(i => i.bucket === 'supports');
   const against = items.filter(i => i.bucket === 'against');
@@ -867,8 +863,8 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
             </thead>
             <tbody>
               <NameRow match={match} rec={rec} variant={variant} screenedName={screenedName} />
-              {discriminators.map(it => {
-                const rowBg = it.result === 'mismatch' ? 'bg-status-unresolved/5' : it.result === 'partial' ? 'bg-status-possible/5' : '';
+              {fieldItems.map(it => {
+                const rowBg = it.result === 'mismatch' ? 'bg-status-unresolved/5' : it.result === 'partial' ? 'bg-status-possible/5' : it.result === 'match' ? 'bg-status-positive/[0.04]' : '';
                 return (
                   <tr key={it.key} className={`border-b last:border-b-0 align-top ${rowBg}`}>
                     <td className="px-2 py-1.5 text-center">{fieldResultIcon(it.result || 'missing')}</td>
@@ -880,30 +876,6 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
                   </tr>
                 );
               })}
-              {agreements.length > 0 && (
-                <>
-                  <tr className="border-b last:border-b-0 bg-muted/10">
-                    <td colSpan={6} className="px-2 py-1">
-                      <button type="button" onClick={() => setAgreementsOpen(o => !o)}
-                        className="w-full flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground">
-                        {agreementsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                        <Check className="h-3 w-3 text-status-positive" />
-                        <span>{agreements.length} field{agreements.length === 1 ? '' : 's'} matched exactly</span>
-                      </button>
-                    </td>
-                  </tr>
-                  {agreementsOpen && agreements.map(it => (
-                    <tr key={it.key} className="border-b last:border-b-0 align-top bg-status-positive/[0.04]">
-                      <td className="px-2 py-1.5 text-center">{fieldResultIcon('match')}</td>
-                      <td className="px-3 py-1.5 font-medium whitespace-nowrap">{it.label}</td>
-                      <td className="px-3 py-1.5 text-muted-foreground">{it.screened || '—'}</td>
-                      <td className="px-3 py-1.5 font-medium">{it.onRecord || '—'}</td>
-                      <td className="px-2 py-1.5">{fieldResultLabel('match')}</td>
-                      <td className="px-3 py-1.5 border-l"><InfluenceCell factor={it.factor} /></td>
-                    </tr>
-                  ))}
-                </>
-              )}
             </tbody>
           </table>
           <ProvenanceStrip match={match} />
