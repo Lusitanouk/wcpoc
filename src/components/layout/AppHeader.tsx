@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SettingsDialog } from '@/components/SettingsDialog';
-import { LsegWorldCheckLogo } from '@/components/layout/LsegWorldCheckLogo';
 import { NotificationsDrawer } from '@/components/NotificationsDrawer';
 import { getCaseById } from '@/data/mock-data';
 import { allMatches } from '@/data/mock-data';
