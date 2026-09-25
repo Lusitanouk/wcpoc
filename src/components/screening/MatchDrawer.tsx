@@ -778,10 +778,6 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
   const items = buildEvidenceItems(match, rec);
   const nameItem = items[0];
   const fieldItems = items.filter(it => it.key.startsWith('f-'));
-  const discriminators = fieldItems.filter(it => it.result !== 'match');
-  const agreements = fieldItems.filter(it => it.result === 'match');
-  const allAgree = discriminators.length === 0 && agreements.length > 0;
-  const [agreementsOpen, setAgreementsOpen] = useState(allAgree);
 
   const supports = items.filter(i => i.bucket === 'supports');
   const against = items.filter(i => i.bucket === 'against');
