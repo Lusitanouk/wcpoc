@@ -801,7 +801,7 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
                 : <X className="h-3 w-3 text-status-unresolved shrink-0 mt-0.5" />}
               <span className="flex-1">{it.line}</span>
             </div>
-            {it.factor && <div className="pl-[18px] pt-0.5"><InfluenceCell factor={it.factor} /></div>}
+            {it.factor && <div className="pl-[18px] pt-0.5"><InfluenceCell factor={it.factor} bucket={kind} /></div>}
           </li>
         ))}
       </ul>
