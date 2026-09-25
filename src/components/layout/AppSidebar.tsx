@@ -30,11 +30,8 @@ export function AppSidebar() {
 
   return (
     <Sidebar collapsible="icon">
-      <div className="h-14 flex items-center px-4 border-b border-sidebar-border gap-2">
+      <div className="h-14 flex items-center px-4 border-b border-sidebar-border">
         <SidebarTrigger />
-        <span className="font-bold text-sidebar-primary text-lg group-data-[collapsible=icon]:hidden">
-          LSEG World-Check One
-        </span>
       </div>
       <SidebarContent>
         <SidebarGroup>
