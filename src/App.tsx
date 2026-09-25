@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppProvider } from "@/context/AppContext";
+import { PassphraseGate } from "@/components/PassphraseGate";
 import { AppLayout } from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
 import HomePage from "./pages/HomePage";
@@ -19,6 +20,7 @@ const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
+    <PassphraseGate>
     <AppProvider>
       <TooltipProvider>
         <Toaster />
@@ -40,6 +42,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </AppProvider>
+    </PassphraseGate>
   </QueryClientProvider>
 );
 
