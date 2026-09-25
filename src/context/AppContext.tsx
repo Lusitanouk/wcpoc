@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { UserRole } from '@/types';
-import type { SupportedLocale } from '@/i18n';
+import { SUPPORTED_LOCALES, type SupportedLocale } from '@/i18n';
 
 export type ThemeMode = 'light' | 'dark' | 'system';
 
