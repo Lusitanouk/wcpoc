@@ -848,7 +848,37 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
         </div>
       </div>
 
-      {view === 'evidence' ? (
+      {view === 'assessment' ? (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-md border bg-status-positive/[0.04] border-status-positive/30 px-2.5 py-1.5">
+              <div className="text-[9px] font-semibold uppercase tracking-wider text-status-positive mb-1">Supports match ({supports.length})</div>
+              {bucketList(supports, 'supports', 'No corroborating evidence beyond name similarity.')}
+            </div>
+            <div className="rounded-md border bg-status-unresolved/[0.04] border-status-unresolved/30 px-2.5 py-1.5">
+              <div className="text-[9px] font-semibold uppercase tracking-wider text-status-unresolved mb-1">Argues against ({against.length})</div>
+              {bucketList(against, 'against', 'Nothing contradicts this match.')}
+            </div>
+          </div>
+          {neutrals.length > 0 && (
+            <div className="px-2.5 py-1 text-[10.5px] leading-snug text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="text-[9px] font-semibold uppercase tracking-wider">Neutral:</span>
+              {neutrals.map(n => (
+                <span key={n.key} className="inline-flex items-center gap-1">
+                  <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+                  <span>{n.line}</span>
+                </span>
+              ))}
+            </div>
+          )}
+          {leversLine && (
+            <div className="flex items-start gap-1.5 px-1 text-[11px] leading-snug">
+              <Zap className="h-3 w-3 text-primary shrink-0 mt-0.5" />
+              <span><span className="font-semibold">Would resolve this: </span><span className="text-muted-foreground">{leversLine}</span></span>
+            </div>
+          )}
+        </>
+      ) : (
         <div className="rounded-md border bg-card overflow-hidden">
           <table className="w-full text-xs">
             <thead>
@@ -880,36 +910,6 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
           </table>
           <ProvenanceStrip match={match} />
         </div>
-      ) : (
-        <>
-          <div className="grid grid-cols-2 gap-2">
-            <div className="rounded-md border bg-status-positive/[0.04] border-status-positive/30 px-2.5 py-1.5">
-              <div className="text-[9px] font-semibold uppercase tracking-wider text-status-positive mb-1">Supports match ({supports.length})</div>
-              {bucketList(supports, 'supports', 'No corroborating evidence beyond name similarity.')}
-            </div>
-            <div className="rounded-md border bg-status-unresolved/[0.04] border-status-unresolved/30 px-2.5 py-1.5">
-              <div className="text-[9px] font-semibold uppercase tracking-wider text-status-unresolved mb-1">Argues against ({against.length})</div>
-              {bucketList(against, 'against', 'Nothing contradicts this match.')}
-            </div>
-          </div>
-          {neutrals.length > 0 && (
-            <div className="px-2.5 py-1 text-[10.5px] leading-snug text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5">
-              <span className="text-[9px] font-semibold uppercase tracking-wider">Neutral:</span>
-              {neutrals.map(n => (
-                <span key={n.key} className="inline-flex items-center gap-1">
-                  <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
-                  <span>{n.line}</span>
-                </span>
-              ))}
-            </div>
-          )}
-          {leversLine && (
-            <div className="flex items-start gap-1.5 px-1 text-[11px] leading-snug">
-              <Zap className="h-3 w-3 text-primary shrink-0 mt-0.5" />
-              <span><span className="font-semibold">Would resolve this: </span><span className="text-muted-foreground">{leversLine}</span></span>
-            </div>
-          )}
-        </>
       )}
     </div>
   );
