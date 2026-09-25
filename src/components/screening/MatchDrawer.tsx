@@ -817,9 +817,7 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
     <div className="space-y-1.5">
       {/* Header strip */}
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-card">
-        <FileText className="h-3.5 w-3.5 text-foreground shrink-0" />
-        <span className="text-[11px] font-semibold uppercase tracking-wide">Why it matched</span>
-        <div className="flex border rounded-sm overflow-hidden ml-2" role="group" aria-label="View mode">
+        <div className="flex border rounded-sm overflow-hidden" role="group" aria-label="View mode">
           {toggleBtn('assessment', 'Model assessment')}
           {toggleBtn('evidence', 'Match evidence')}
         </div>
