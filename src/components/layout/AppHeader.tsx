@@ -8,7 +8,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SettingsDialog } from '@/components/SettingsDialog';
-import { LsegWorldCheckLogo } from '@/components/layout/LsegWorldCheckLogo';
 import { NotificationsDrawer } from '@/components/NotificationsDrawer';
 import { getCaseById } from '@/data/mock-data';
 import { allMatches } from '@/data/mock-data';
@@ -59,9 +58,9 @@ export function AppHeader() {
   return (
     <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-3 shrink-0 sticky top-0 z-30">
 
-      {/* Brand logo */}
+      {/* Brand text */}
       <Link to="/home" className="shrink-0 text-foreground" aria-label="LSEG World-Check One home">
-        <LsegWorldCheckLogo className="h-5 w-auto" />
+        <span className="font-bold text-sm tracking-tight">LSEG World-Check One</span>
       </Link>
       <span className="h-5 w-px bg-border shrink-0" aria-hidden="true" />
 
