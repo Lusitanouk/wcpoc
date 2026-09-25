@@ -58,6 +58,12 @@ export function AppHeader() {
   return (
     <header className="h-14 border-b border-border bg-card flex items-center px-4 gap-3 shrink-0 sticky top-0 z-30">
 
+      {/* Brand logo */}
+      <Link to="/home" className="shrink-0 text-foreground" aria-label="LSEG World-Check One home">
+        <LsegWorldCheckLogo className="h-5 w-auto" />
+      </Link>
+      <span className="h-5 w-px bg-border shrink-0" aria-hidden="true" />
+
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1.5 text-sm min-w-0">
         <Link to="/home" className="text-muted-foreground hover:text-foreground transition-colors">{t('nav.home')}</Link>
