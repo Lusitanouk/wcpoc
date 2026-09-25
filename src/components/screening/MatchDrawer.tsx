@@ -686,6 +686,94 @@ function NameRow({ match, rec, variant, screenedName }: { match: Match; rec: MlR
   );
 }
 
+type EvidenceBucket = 'supports' | 'against' | 'neutral';
+interface EvidenceItem {
+  key: string;
+  label: string;
+  screened?: string;
+  onRecord?: string;
+  result?: MatchFieldResult;
+  factor?: MlFactor;
+  line: string;
+  bucket: EvidenceBucket;
+}
+
+function factorForField(rec: MlRecommendation, fieldName: string): MlFactor | undefined {
+  const n = fieldName.toLowerCase();
+  return rec.factors.find(f => {
+    if (f.fieldKey === 'dob') return n.includes('dob') || n.includes('birth');
+    if (f.fieldKey === 'id') return n.includes('passport') || n.includes('document') || /\bid\b/.test(n);
+    if (f.fieldKey === 'nationality') return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
+    return false;
+  });
+}
+
+/** Single source of truth used by both the Evidence and Assessment views. */
+function buildEvidenceItems(match: Match, rec: MlRecommendation): EvidenceItem[] {
+  const items: EvidenceItem[] = [];
+  const bucketOf = (result: MatchFieldResult | undefined, f?: MlFactor): EvidenceBucket => {
+    // Field result is the fact; factor direction can only soften, never contradict it.
+    if (result === 'mismatch') return 'against';
+    if (result === 'match') return f?.contribution === 'negative' ? 'neutral' : 'supports';
+    if (result === 'partial') return f?.contribution === 'positive' ? 'supports' : f?.contribution === 'negative' ? 'against' : 'neutral';
+    if (!f) return 'neutral';
+    return f.contribution === 'positive' ? 'supports' : f.contribution === 'negative' ? 'against' : 'neutral';
+  };
+
+  // Name — same similarity + result used everywhere
+  const nmd = match.nameMatchDetail;
+  const nameField = match.whyMatched.find(w => w.field.toLowerCase().includes('name'));
+  const sim = nmd?.similarity ?? match.strength;
+  const nameResult: MatchFieldResult =
+    nameField?.result && nameField.result !== 'missing' ? nameField.result
+    : sim >= 85 ? 'match' : sim >= 65 ? 'partial' : 'mismatch';
+  const nameFactor = rec.factors.find(f => f.fieldKey === 'name');
+  const onRecordName = nmd?.matchedString || match.matchedName;
+  items.push({
+    key: 'name',
+    label: 'Name',
+    screened: nameField?.inputValue || getCaseById(match.caseId)?.name,
+    onRecord: onRecordName,
+    result: nameResult,
+    factor: nameFactor,
+    line: nameResult === 'match'
+      ? `Name similarity ${sim}%${nmd?.isAlias ? ' (alias)' : ''}`
+      : nameResult === 'partial' ? `Partial name similarity (${sim}%)` : `Weak name similarity (${sim}%)`,
+    bucket: bucketOf(nameResult, nameFactor),
+  });
+
+  // Fields
+  match.whyMatched.forEach((wf, i) => {
+    if (wf === nameField) return;
+    const f = factorForField(rec, wf.field);
+    const line =
+      wf.result === 'match' ? `${wf.field} matches (${wf.matchedValue || wf.inputValue || '—'})`
+      : wf.result === 'partial' ? `${wf.field} partial (${wf.inputValue || '—'} vs ${wf.matchedValue || '—'})`
+      : wf.result === 'mismatch' ? `${wf.field}: ${wf.inputValue || '—'} vs ${wf.matchedValue || '—'}`
+      : `No ${wf.field.toLowerCase()} supplied`;
+    items.push({
+      key: `f-${i}`, label: wf.field, screened: wf.inputValue, onRecord: wf.matchedValue,
+      result: wf.result, factor: f, line, bucket: bucketOf(wf.result, f),
+    });
+  });
+
+  // Factors not bound to any row (e.g. rarity)
+  const bound = new Set(items.map(it => it.factor).filter(Boolean));
+  rec.factors.forEach(f => {
+    if (bound.has(f)) return;
+    const line = f.fieldKey === 'rarity'
+      ? f.contribution === 'positive' ? 'Uncommon name — coincidence unlikely'
+        : f.contribution === 'negative' ? 'Common name — false-positive baseline elevated'
+        : 'Moderately common name'
+      : f.label;
+    items.push({ key: `x-${f.fieldKey}`, label: f.label, factor: f, line, bucket: bucketOf(undefined, f) });
+  });
+  return items;
+}
+
+type WhyView = 'evidence' | 'assessment';
+const WHY_VIEW_KEY = 'why-matched-view';
+
 export function WhyMatchedSection({ match, variant = 'default' }: { match: Match; variant?: 'default' | 'condensed' }) {
   const rec = computeMlRecommendation(match);
   const scoreColor =
@@ -693,55 +781,51 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
     : rec.compositeScore >= 55 ? 'text-status-possible'
     : 'text-status-positive';
 
-  const discriminators = match.whyMatched.filter(f => f.result !== 'match');
-  const agreements = match.whyMatched.filter(f => f.result === 'match');
+  const [view, setViewState] = useState<WhyView>(() =>
+    (localStorage.getItem(WHY_VIEW_KEY) as WhyView) === 'assessment' ? 'assessment' : 'evidence');
+  const setView = (v: WhyView) => { setViewState(v); localStorage.setItem(WHY_VIEW_KEY, v); };
+
+  const items = buildEvidenceItems(match, rec);
+  const nameItem = items[0];
+  const fieldItems = items.filter(it => it.key.startsWith('f-'));
+  const discriminators = fieldItems.filter(it => it.result !== 'match');
+  const agreements = fieldItems.filter(it => it.result === 'match');
   const allAgree = discriminators.length === 0 && agreements.length > 0;
   const [agreementsOpen, setAgreementsOpen] = useState(allAgree);
 
-  // Supports / Against derivation
-  const supports: string[] = [];
-  const against: string[] = [];
-  const neutrals: string[] = [];
-  rec.factors.forEach(f => {
-    const impact = Math.round(f.score * f.weight);
-    // Try to build human-friendly line from bound field
-    const bound = match.whyMatched.find(w => {
-      const n = w.field.toLowerCase();
-      if (f.fieldKey === 'dob') return n.includes('dob') || n.includes('birth');
-      if (f.fieldKey === 'id') return n.includes('passport') || n.includes('document') || /\bid\b/.test(n);
-      if (f.fieldKey === 'nationality') return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
-      return false;
-    });
-    let line = '';
-    if (f.fieldKey === 'name') {
-      line = f.contribution === 'positive'
-        ? `Name similarity ${match.strength}%`
-        : `Weak name similarity (${match.strength}%)`;
-    } else if (f.fieldKey === 'rarity') {
-      line = f.contribution === 'positive'
-        ? 'Uncommon name — coincidence unlikely'
-        : f.contribution === 'negative'
-        ? 'Common name — false-positive baseline elevated'
-        : 'Moderately common name';
-    } else if (bound) {
-      const shown = bound.matchedValue || bound.inputValue || '—';
-      if (bound.result === 'match') line = `${bound.field} matches (${shown})`;
-      else if (bound.result === 'partial') line = `${bound.field} partial (${bound.inputValue || '—'} vs ${bound.matchedValue || '—'})`;
-      else if (bound.result === 'mismatch') line = `${bound.field}: ${bound.inputValue || '—'} vs ${bound.matchedValue || '—'}`;
-      else line = `No ${bound.field.toLowerCase()} supplied`;
-    } else {
-      line = f.label;
-    }
-    if (f.contribution === 'positive' && impact >= 4) supports.push(line);
-    else if (f.contribution === 'negative' && impact >= 3) against.push(line);
-    else if (f.contribution === 'neutral') neutrals.push(line);
-  });
+  const supports = items.filter(i => i.bucket === 'supports');
+  const against = items.filter(i => i.bucket === 'against');
+  const neutrals = items.filter(i => i.bucket === 'neutral');
 
-  const leversLine = rec.resolutionLevers.length > 0
-    ? rec.resolutionLevers.map(l => l.text).join(' ')
-    : null;
+  const leversLine = rec.resolutionLevers.length > 0 ? rec.resolutionLevers.map(l => l.text).join(' ') : null;
+  const screenedName = nameItem.screened;
 
-  const screenedName = getCaseById(match.caseId)?.name;
+  const bucketList = (list: EvidenceItem[], kind: 'supports' | 'against', empty: string) => (
+    list.length > 0 ? (
+      <ul className="space-y-1">
+        {list.map(it => (
+          <li key={it.key} className="text-[11px] leading-snug">
+            <div className="flex gap-1.5">
+              {kind === 'supports'
+                ? <Check className="h-3 w-3 text-status-positive shrink-0 mt-0.5" />
+                : <X className="h-3 w-3 text-status-unresolved shrink-0 mt-0.5" />}
+              <span className="flex-1">{it.line}</span>
+            </div>
+            {it.factor && <div className="pl-[18px] pt-0.5"><InfluenceCell factor={it.factor} /></div>}
+          </li>
+        ))}
+      </ul>
+    ) : <p className="text-[11px] text-muted-foreground italic leading-snug">{empty}</p>
+  );
+
+  const toggleBtn = (v: WhyView, label: string) => (
+    <button
+      type="button"
+      onClick={() => setView(v)}
+      className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${view === v ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'}`}
+      aria-pressed={view === v}
+    >{label}</button>
+  );
 
   return (
     <div className="space-y-1.5">
@@ -749,6 +833,10 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
       <div className="flex items-center gap-2 px-3 py-1.5 rounded-md border bg-card">
         <FileText className="h-3.5 w-3.5 text-foreground shrink-0" />
         <span className="text-[11px] font-semibold uppercase tracking-wide">Why it matched</span>
+        <div className="flex border rounded-sm overflow-hidden ml-2" role="group" aria-label="View mode">
+          {toggleBtn('evidence', 'Match evidence')}
+          {toggleBtn('assessment', 'Model assessment')}
+        </div>
         <div className="ml-auto flex items-center gap-3">
           <div className="text-right">
             <div className="text-[11px] font-semibold leading-tight">{rec.headline}</div>
@@ -774,142 +862,92 @@ export function WhyMatchedSection({ match, variant = 'default' }: { match: Match
         </div>
       </div>
 
-      {/* Unified table */}
-      <div className="rounded-md border bg-card overflow-hidden">
-        <table className="w-full text-xs">
-          <thead>
-            <tr className="bg-muted/40 border-b">
-              <th colSpan={5} className="text-left px-3 py-1 font-semibold text-[9px] uppercase tracking-wider text-muted-foreground">Evidence</th>
-              <th className="text-left px-3 py-1 font-semibold text-[9px] uppercase tracking-wider text-muted-foreground border-l">Assessment</th>
-            </tr>
-            <tr className="bg-muted/20 border-b">
-              <th className="w-8 px-2 py-1"></th>
-              <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px]">Field</th>
-              <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px]">Screened</th>
-              <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px]">On record</th>
-              <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[10px] w-[80px]">Result</th>
-              <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px] w-[38%] border-l">Influence</th>
-            </tr>
-          </thead>
-          <tbody>
-            <NameRow match={match} rec={rec} variant={variant} screenedName={screenedName} />
-
-            {discriminators.map((wf, i) => {
-              const rowBg = wf.result === 'mismatch' ? 'bg-status-unresolved/5' : wf.result === 'partial' ? 'bg-status-possible/5' : '';
-              const factor = rec.factors.find(f => {
-                const n = wf.field.toLowerCase();
-                if (f.fieldKey === 'dob') return n.includes('dob') || n.includes('birth');
-                if (f.fieldKey === 'id') return n.includes('passport') || n.includes('document') || /\bid\b/.test(n);
-                if (f.fieldKey === 'nationality') return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
-                return false;
-              });
-              return (
-                <tr key={i} className={`border-b last:border-b-0 align-top ${rowBg}`}>
-                  <td className="px-2 py-1.5 text-center">{fieldResultIcon(wf.result)}</td>
-                  <td className="px-3 py-1.5 font-medium whitespace-nowrap">{wf.field}</td>
-                  <td className="px-3 py-1.5 text-muted-foreground">{wf.inputValue || '—'}</td>
-                  <td className="px-3 py-1.5 font-medium">{wf.matchedValue || '—'}</td>
-                  <td className="px-2 py-1.5">{fieldResultLabel(wf.result)}</td>
-                  <td className="px-3 py-1.5 border-l"><InfluenceCell factor={factor} /></td>
-                </tr>
-              );
-            })}
-
-            {agreements.length > 0 && (
-              <>
-                <tr className="border-b last:border-b-0 bg-muted/10">
-                  <td colSpan={6} className="px-2 py-1">
-                    <button
-                      type="button"
-                      onClick={() => setAgreementsOpen(o => !o)}
-                      className="w-full flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground"
-                    >
-                      {agreementsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                      <Check className="h-3 w-3 text-status-positive" />
-                      <span>{agreements.length} field{agreements.length === 1 ? '' : 's'} matched exactly</span>
-                    </button>
-                  </td>
-                </tr>
-                {agreementsOpen && agreements.map((wf, i) => {
-                  const factor = rec.factors.find(f => {
-                    const n = wf.field.toLowerCase();
-                    if (f.fieldKey === 'dob') return n.includes('dob') || n.includes('birth');
-                    if (f.fieldKey === 'id') return n.includes('passport') || n.includes('document') || /\bid\b/.test(n);
-                    if (f.fieldKey === 'nationality') return n.includes('nationality') || n.includes('country') || n.includes('jurisdiction');
-                    return false;
-                  });
-                  return (
-                    <tr key={`ag-${i}`} className="border-b last:border-b-0 align-top bg-status-positive/[0.04]">
+      {view === 'evidence' ? (
+        <div className="rounded-md border bg-card overflow-hidden">
+          <table className="w-full text-xs">
+            <thead>
+              <tr className="bg-muted/20 border-b">
+                <th className="w-8 px-2 py-1"></th>
+                <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px]">Field</th>
+                <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px]">Screened</th>
+                <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px]">On record</th>
+                <th className="text-left px-2 py-1 font-medium text-muted-foreground text-[10px] w-[80px]">Result</th>
+                <th className="text-left px-3 py-1 font-medium text-muted-foreground text-[10px] w-[32%] border-l">Influence</th>
+              </tr>
+            </thead>
+            <tbody>
+              <NameRow match={match} rec={rec} variant={variant} screenedName={screenedName} />
+              {discriminators.map(it => {
+                const rowBg = it.result === 'mismatch' ? 'bg-status-unresolved/5' : it.result === 'partial' ? 'bg-status-possible/5' : '';
+                return (
+                  <tr key={it.key} className={`border-b last:border-b-0 align-top ${rowBg}`}>
+                    <td className="px-2 py-1.5 text-center">{fieldResultIcon(it.result || 'missing')}</td>
+                    <td className="px-3 py-1.5 font-medium whitespace-nowrap">{it.label}</td>
+                    <td className="px-3 py-1.5 text-muted-foreground">{it.screened || '—'}</td>
+                    <td className="px-3 py-1.5 font-medium">{it.onRecord || '—'}</td>
+                    <td className="px-2 py-1.5">{fieldResultLabel(it.result || 'missing')}</td>
+                    <td className="px-3 py-1.5 border-l"><InfluenceCell factor={it.factor} /></td>
+                  </tr>
+                );
+              })}
+              {agreements.length > 0 && (
+                <>
+                  <tr className="border-b last:border-b-0 bg-muted/10">
+                    <td colSpan={6} className="px-2 py-1">
+                      <button type="button" onClick={() => setAgreementsOpen(o => !o)}
+                        className="w-full flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-foreground">
+                        {agreementsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                        <Check className="h-3 w-3 text-status-positive" />
+                        <span>{agreements.length} field{agreements.length === 1 ? '' : 's'} matched exactly</span>
+                      </button>
+                    </td>
+                  </tr>
+                  {agreementsOpen && agreements.map(it => (
+                    <tr key={it.key} className="border-b last:border-b-0 align-top bg-status-positive/[0.04]">
                       <td className="px-2 py-1.5 text-center">{fieldResultIcon('match')}</td>
-                      <td className="px-3 py-1.5 font-medium whitespace-nowrap">{wf.field}</td>
-                      <td className="px-3 py-1.5 text-muted-foreground">{wf.inputValue || '—'}</td>
-                      <td className="px-3 py-1.5 font-medium">{wf.matchedValue || '—'}</td>
+                      <td className="px-3 py-1.5 font-medium whitespace-nowrap">{it.label}</td>
+                      <td className="px-3 py-1.5 text-muted-foreground">{it.screened || '—'}</td>
+                      <td className="px-3 py-1.5 font-medium">{it.onRecord || '—'}</td>
                       <td className="px-2 py-1.5">{fieldResultLabel('match')}</td>
-                      <td className="px-3 py-1.5 border-l"><InfluenceCell factor={factor} /></td>
+                      <td className="px-3 py-1.5 border-l"><InfluenceCell factor={it.factor} /></td>
                     </tr>
-                  );
-                })}
-              </>
-            )}
-          </tbody>
-        </table>
-
-        <ProvenanceStrip match={match} />
-      </div>
-
-      {/* Supports / Against contrast */}
-      <div className="grid grid-cols-2 gap-2">
-        <div className="rounded-md border bg-status-positive/[0.04] border-status-positive/30 px-2.5 py-1.5">
-          <div className="text-[9px] font-semibold uppercase tracking-wider text-status-positive mb-1">Supports match</div>
-          {supports.length > 0 ? (
-            <ul className="space-y-0.5">
-              {supports.slice(0, 4).map((s, i) => (
-                <li key={i} className="text-[11px] leading-snug flex gap-1.5">
-                  <Check className="h-3 w-3 text-status-positive shrink-0 mt-0.5" />
-                  <span>{s}</span>
-                </li>
+                  ))}
+                </>
+              )}
+            </tbody>
+          </table>
+          <ProvenanceStrip match={match} />
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="rounded-md border bg-status-positive/[0.04] border-status-positive/30 px-2.5 py-1.5">
+              <div className="text-[9px] font-semibold uppercase tracking-wider text-status-positive mb-1">Supports match ({supports.length})</div>
+              {bucketList(supports, 'supports', 'No corroborating evidence beyond name similarity.')}
+            </div>
+            <div className="rounded-md border bg-status-unresolved/[0.04] border-status-unresolved/30 px-2.5 py-1.5">
+              <div className="text-[9px] font-semibold uppercase tracking-wider text-status-unresolved mb-1">Argues against ({against.length})</div>
+              {bucketList(against, 'against', 'Nothing contradicts this match.')}
+            </div>
+          </div>
+          {neutrals.length > 0 && (
+            <div className="px-2.5 py-1 text-[10.5px] leading-snug text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5">
+              <span className="text-[9px] font-semibold uppercase tracking-wider">Neutral:</span>
+              {neutrals.map(n => (
+                <span key={n.key} className="inline-flex items-center gap-1">
+                  <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
+                  <span>{n.line}</span>
+                </span>
               ))}
-            </ul>
-          ) : (
-            <p className="text-[11px] text-muted-foreground italic leading-snug">No corroborating evidence beyond name similarity.</p>
+            </div>
           )}
-        </div>
-        <div className="rounded-md border bg-status-unresolved/[0.04] border-status-unresolved/30 px-2.5 py-1.5">
-          <div className="text-[9px] font-semibold uppercase tracking-wider text-status-unresolved mb-1">Argues against</div>
-          {against.length > 0 ? (
-            <ul className="space-y-0.5">
-              {against.slice(0, 4).map((s, i) => (
-                <li key={i} className="text-[11px] leading-snug flex gap-1.5">
-                  <X className="h-3 w-3 text-status-unresolved shrink-0 mt-0.5" />
-                  <span>{s}</span>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-[11px] text-muted-foreground italic leading-snug">Nothing contradicts this match.</p>
+          {leversLine && (
+            <div className="flex items-start gap-1.5 px-1 text-[11px] leading-snug">
+              <Zap className="h-3 w-3 text-primary shrink-0 mt-0.5" />
+              <span><span className="font-semibold">Would resolve this: </span><span className="text-muted-foreground">{leversLine}</span></span>
+            </div>
           )}
-        </div>
-      </div>
-
-      {/* Neutral / uninformative factors */}
-      {neutrals.length > 0 && (
-        <div className="px-2.5 py-1 text-[10.5px] leading-snug text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5">
-          <span className="text-[9px] font-semibold uppercase tracking-wider">Neutral:</span>
-          {neutrals.slice(0, 4).map((n, i) => (
-            <span key={i} className="inline-flex items-center gap-1">
-              <span className="h-1 w-1 rounded-full bg-muted-foreground/50" />
-              <span>{n}</span>
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Levers one-liner */}
-      {leversLine && (
-        <div className="flex items-start gap-1.5 px-1 text-[11px] leading-snug">
-          <Zap className="h-3 w-3 text-primary shrink-0 mt-0.5" />
-          <span><span className="font-semibold">Would resolve this: </span><span className="text-muted-foreground">{leversLine}</span></span>
-        </div>
+        </>
       )}
     </div>
   );
