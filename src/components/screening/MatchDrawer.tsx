@@ -1542,18 +1542,18 @@ export function MatchDrawer({
   // Left column (scrollable): identity evidence. Right column (scrollable): disposition + history + profile
 
   const fullscreenContent = (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {stickyHeader}
-      <div className="flex-1 overflow-hidden grid grid-cols-[1fr_360px]">
+      <div className="flex-1 min-h-0 overflow-hidden grid grid-cols-[1fr_360px] grid-rows-[minmax(0,1fr)]">
         {/* LEFT: evidence */}
-        <div className="overflow-y-auto border-r">
+        <div className="overflow-y-auto min-h-0 border-r">
           {whatChangedSection}
           {whyMatchedSection}
           {screeningProfileSection}
           {recordDetailSection}
         </div>
         {/* RIGHT: disposition + context */}
-        <div className="overflow-y-auto flex flex-col">
+        <div className="overflow-y-auto min-h-0 flex flex-col">
           {resolutionHistorySection}
           {dispositionSection}
         </div>
@@ -1572,7 +1572,7 @@ export function MatchDrawer({
           </SheetContent>
         </Sheet>
         <Dialog open={open} onOpenChange={v => { if (!v) { setIsFullscreen(false); onClose(); } }}>
-          <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] p-0 overflow-hidden [&>button.absolute]:hidden">
+          <DialogContent className="max-w-[95vw] w-[95vw] h-[95vh] p-0 overflow-hidden flex flex-col gap-0 [&>button.absolute]:hidden">
             {fullscreenContent}
           </DialogContent>
         </Dialog>
