@@ -44,6 +44,15 @@ export function SettingsDialog() {
 
   const systemTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
+  // Guard against invalid stored locale tags (e.g. "en-US@posix")
+  const safeLocale = (() => {
+    try {
+      return new Intl.DateTimeFormat(locale).resolvedOptions().locale;
+    } catch {
+      return 'en-US';
+    }
+  })();
+
   const roleDescriptions: Record<UserRole, string> = {
     Analyst: 'Resolve and review matches (Maker)',
     Supervisor: 'Oversee analysts and manage cases',
